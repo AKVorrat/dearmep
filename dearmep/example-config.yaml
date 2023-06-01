@@ -67,7 +67,7 @@ l10n:
   # default if the user's browser claims they accept `*` (i.e. "any language").
   # You therefore probably want to make sure that the first value here is
   # identical to the `default_language` set below.
-  languages: [ en, de-AT, de, sv ]
+  languages: [ en, de, sv ]
 
   # Which language to fall back to if there is no localized message available
   # for the user's language. Every string defined under `strings` needs to have
@@ -160,9 +160,9 @@ l10n:
     # Make sure to use a short and concise title. Ideally it should be no more than two or three
     # lines of text.
     call.home.title:
-      en: Contact your Member of the European Parliament. Make your voice heard and convince them to stop the chatcontrol bill! 
+      en: Contact your Member of the European Parliament. Make your voice heard and convince them to stop the chatcontrol bill!
       de: Sprich mit deinen Abgeordneten im EU Parlament. Überzeuge sie, den Gesetzesvorschlag zur Chatkontrolle zu stoppen!
-      sv: Prata med en parlamentsledamot i EU parlamentet och få dem att stoppa lagförslaget. 
+      sv: Prata med en Europaparlamentariker och få dem att stoppa lagförslaget.
 
     # Description paragraphs of the calling-section of the app.
     # The paragraphs are displayed in the first step (thus "home") of the calling flow. This means
@@ -177,7 +177,7 @@ l10n:
     call.home.descriptions.0.text:
       en: You can call now or schedule daily or weekly calls in the future.
       de: Du kannst entweder jetzt anrufen oder für später tägliche oder wöchentliche Anrufe planen.
-      sv: Du kan ringa nu eller schemalägga dagliga eller veckovisa samtal .  
+      sv: Du kan ringa nu eller schemalägga dagliga eller veckovisa samtal.
     call.home.descriptions.1.text:
       en: We will always connect you free of charge to the Politican that you are most likely to convince.
       de: Wir werden dich immer mit dem Politiker verbinden, der wahrscheinlich am leichtesten zu überzeugen ist.
@@ -213,14 +213,14 @@ l10n:
     verification.enterNumber.policy:
       en: I have read and accept the {{ policyLink }}.
       de: Ich habe die {{ policyLink }} gelesen und akzeptiere sie.
-      sv: Jag har läst {{ policyLink }} och godkänner dem. 
+      sv: Jag har läst {{ policyLink }} och godkänner dem.
 
     # Link-Text of the privacy-policy link which replaces the {{ policyLink }} placeholder of
     # the translation key "verification.enterNumber.policy"
     verification.enterNumber.policyLinkText:
       en: Privacy Policy
       de: Datenschutzerklärung
-      sv: reglerna för behandling av personuppgifter
+      sv: integritetspolicy
 
     # Button text of the button that lets the user send a verification code to the specified phone number
     verification.enterNumber.sendCode:
@@ -338,9 +338,9 @@ l10n:
 
     # Placeholder for a text-area that can be used to enter additional feedback in textual form.
     feedback.additionalFeedbackPlaceholder:
-      en: If you have any additional feedback, please type it in here … If you want us to contact you for a debrief, please provide your contact information here. 
+      en: If you have any additional feedback, please type it in here … If you want us to contact you for a debrief, please provide your contact information here.
       de: Falls du uns weiteres Feedback geben möchtest, nutze bitte dieses Feld. Wenn du eine Nachbesprechung wünschst, lasse uns wissen wie wir dich erreichen.
-      sv: Här kan du lämna fler kommentarer kring samtalet. Om du vill prata med oss om din upplevelse, tala om för oss hur vi kan nå dig.  
+      sv: Här kan du lämna fler kommentarer kring samtalet. Om du vill prata med oss om din upplevelse, tala om för oss hur vi kan nå dig.
 
     # Submit button that allows the user to send their feedback.
     feedback.submit:
@@ -357,7 +357,7 @@ l10n:
     select-mep.autorenew:
       en: Choose another Politician
       de: Einen anderen Politiker wählen
-      sv: Välj en annan ledamot
+      sv: Välj en annan Europaparlamentariker
 
     # Label for the select-form-control that lets the user choose a different country for the automatic or
     # manual selection of MEPs
@@ -391,7 +391,7 @@ l10n:
     talkingPoints.points.0.body:
       en: The independent research services of the EU Commission, Parliament and Council all agree, this law is unconstitutional and would not survive the high court. No child is protected, if this law is struck down in court in three years.
       de: Die wissenschaftlichen Dienste von EU-Kommission, Parlament und Rat sind sich einig, dass dieser Gesetzesvorschlag verfassungswidrig ist und vor dem EuGh nicht bestehen würde.
-      sv: EU parlamentets utredningstjänst samt kommissionens och ministerrådets rättstjänst är eniga om att lagförslaget bryter mot EUs grundlag och skulle sågas av högsta domstolen. Inga barn kommer att skyddas om lagen förkastas av EU domstolen om tre år. 
+      sv: EU parlamentets utredningstjänst samt kommissionens och ministerrådets rättstjänst är eniga om att lagförslaget bryter mot EUs grundlag och skulle sågas av högsta domstolen. Inga barn kommer att skyddas om lagen förkastas av EU domstolen om tre år.
     talkingPoints.points.1.title:
       en: Magic Technology won't save us
       de: Technische Wundermittel sind nicht die Rettung
@@ -399,7 +399,7 @@ l10n:
     talkingPoints.points.1.body:
       en: There is no filter technology in the world that can accurately detect these types of illegal content. With the billions of messages Europeans send every day, hundreds of millions of legal messages would end up with the police. Legal speech would be deleted on a massive scale.
       de: Keine Filtertechnologie der Welt kann diese Art illegaler Inhalte zuverlässig detektieren. Selbst bei optimistischen Fehlerraten im einstelligen Prozentbereich würden in Anbetracht von Milliarden täglicher Nachrichten hunderte Millionen harmloser Nachrichten bei der Polizei landen. In unerhörtem Umfang würde freie Rede behindert.
-      sv: Det finns ingen filterteknologi som på ett pålitligt sätt identifierar den här typen av olagligt innehåll. Det skickas miljarder meddelanden varje dag, så polisen skulle översvämmas med hundramiljontals helt oskyldiga meddelanden. Yttrandefriheten skulle begränsas kolossalt. 
+      sv: Det finns ingen filterteknologi som på ett pålitligt sätt identifierar den här typen av olagligt innehåll. Det skickas miljarder meddelanden varje dag, så polisen skulle översvämmas med hundramiljontals helt oskyldiga meddelanden. Yttrandefriheten skulle begränsas kolossalt.
     talkingPoints.points.2.title:
       en: Chat control does not protect children
       de: Chatkontrolle schützt Kinder nicht
@@ -407,7 +407,7 @@ l10n:
     talkingPoints.points.2.body:
       en: This chat control law will not help to significantly improve the situation of victims. Instead of pouring money into expensive surveillance technologies that don't work, the EU should promote prevention, education and victim protection measures. The EU Commission is preventing meaningful solutions by its narrow focus on surveillance technology as a supposed panacea for complex social problems.
       de: Dieses Gesetz wird nicht helfen, die Situation der Opfer wesentlich zu verbessern. Statt Gelder in teure, fehleranfällige Überwachungstechniken zu stecken, sollte die EU Maßnahmen zur Aufklärung und zum Opferschutz fördern. Mit ihrem engen Fokus auf Überwachungstechnologie als Allheilmittel verhindert die EU sinnvolle Lösungsansätze für komplexe soziale Probleme.
-      sv: Lagen om chatkontroll kommer inte på ett väsentligt sätt förbättra offrens situation. Istället för att lägga pengar på dyra, verkningslösa övervakningsteknologier, EU borde främja utbildning och andra förebyggande åtgärder. Kommissionen förhindrar effektiva åtgärder genom att satsa enbart på övervakning som ett medel mot komplexa sociala problem.  
+      sv: Lagen om chatkontroll kommer inte på ett väsentligt sätt förbättra offrens situation. Istället för att lägga pengar på dyra, verkningslösa övervakningsteknologier, EU borde främja utbildning och andra förebyggande åtgärder. Kommissionen förhindrar effektiva åtgärder genom att satsa enbart på övervakning som ett medel mot komplexa sociala problem.
     talkingPoints.points.3.title:
       en: Police will be overwhelmed with false positives
       de: Massenweiser Falschalarm überlastet die Polizei
@@ -419,11 +419,11 @@ l10n:
     talkingPoints.points.4.title:
       en: False positives endanger innocent people
       de: Fehlalarme gefährden Unschuldige
-      sv: Oskyldiga utsätts för falska larm 
+      sv: Oskyldiga utsätts för falska larm
     talkingPoints.points.4.body:
       en: There are already documented cases in which voluntary chat control by companies has led to suspicion reports against innocent people. For example, an American man was reported as an alleged perpetrator even though he was communicating with his child's pediatrician in an acute emergency. The father of the family not only lost access to all his online accounts with the company, but was also reported to the police. With chat control, such false suspicions would happen every day.
       de: Es gibt bereits bekannte Fälle in denen freiwillige Chatkontrolle durch Unternehmen zu Anzeigen gegen unschuldige Nutzer geführt hat. Zum Beispiel wurde ein Mann in den USA als mutmaßlicher Täter angezeigt, obwohl er nur in einem Notfall mit dem Kinderarzt seines Sohns kommunizierte. Der Vater verlor nicht nur den Zugang zu seinen Nutzerkonten sondern wurde auch bei der Polizei angezeigt. Mit verpflichtender Chatkontrolle würden derartige Fehlalarme ständig passieren.
-      sv: Redan idag finns det kända fall där oskyldiga användare pekas ut som kriminella av företag som använder frivillig chatkontroll. I USA anmäldes till exempel en man till polisen som hade skickat bilder av sin son till sonens barnläkare i samband med ett läkarbesök. Även om anmälan drogs tillbaka senare så blev pappan av med sina användarkonton. Med chatkontroll, vi kan vänta oss den typen av falska larm hela tiden.  
+      sv: Redan idag finns det kända fall där oskyldiga användare pekas ut som kriminella av företag som använder frivillig chatkontroll. I USA anmäldes till exempel en man till polisen som hade skickat bilder av sin son till sonens barnläkare i samband med ett läkarbesök. Även om anmälan drogs tillbaka senare så blev pappan av med sina användarkonton. Med chatkontroll, vi kan vänta oss den typen av falska larm hela tiden.
     talkingPoints.points.5.title:
       en: Encryption is the precondition for privacy, security and trust online
       de: Verschlüsselung ist Voraussetzung für Privatsphäre, Sicherheit und Vertrauen im Netz
@@ -447,7 +447,7 @@ l10n:
     talkingPoints.points.7.body:
       en: The GDPR has shown that the European Union can set global standards that other parts of the world will follow. If this legislation is passed, the European Union is giving authoritarian governments around the world an excuse to implement mass surveillance plans with a similar design. Such a surveillance infrastructure can easily be misused for other purposes once it has been created.
       de: Die DSGVO hat gezeigt, dass die EU weltweit Standards setzen kann, denen andere Teile der Welt folgen. Falls die Gesetzgebung zur Chatkontrolle angenommen wird, bietet die EU autoritären Regimen eine Ausrede, ähnliche Maßnahmen zur Massenüberwachung einzuführen. Wenn einmal vorhanden, kann eine derartige Überwachungsinfrastruktur leicht für andere Zwecke missbraucht werden.
-      sv: GDPR har visat att lagar som införs i EU kan vara förebild för länder utanför unionen. Ifall lagen om chatkontroll antas är det en fantastisk ursäkt för auktoritära regimer världen för att installera liknande åtgärder för massövervakning. En gång på plats, kan infrastrukturen användas för alla möjliga andra syften. 
+      sv: GDPR har visat att lagar som införs i EU kan vara förebild för länder utanför unionen. Ifall lagen om chatkontroll antas är det en fantastisk ursäkt för auktoritära regimer världen för att installera liknande åtgärder för massövervakning. En gång på plats, kan infrastrukturen användas för alla möjliga andra syften.
 
   # Translation strings for the language switcher component
 
@@ -486,12 +486,12 @@ l10n:
     schedule.description:
       en: 'Plan now to talk to a politican later! Select a day and time:'
       de: 'Wähle jetzt Tag und Uhrzeit für dein Gespräch mit einem Politiker:'
-      sv: 'Välj dag och tid för ditt samtal med en ledamot:'
+      sv: 'Välj dag och tid för ditt samtal med en Europaparlamentariker:'
     schedule.scheduleAsText:
       en: We will give you a ring every {{ timeSlots }} at your number to connect you
         with a politician from {{ country }}.
       de: Wir werden dich jeden {{ timeSlots }} auf deiner Nummer anrufen um dich mit einem Politiker aus {{ country }} zu verbinden.
-      sv: Vi kommer att ringa dig varje {{ timeSlots }} på ditt nummer för att koppla dig till en EU ledamot från {{ country }}. 
+      sv: Vi kommer att ringa dig varje {{ timeSlots }} på ditt nummer för att koppla dig till en Europaparlamentariker från {{ country }}.
     schedule.timeSlot:
       en: "{{ dayOfWeek }} around {{ time }}"
       de: "{{ dayOfWeek }} um {{ time }}"
