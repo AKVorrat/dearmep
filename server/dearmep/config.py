@@ -3,7 +3,7 @@ from functools import lru_cache
 import logging
 from pathlib import Path
 import re
-from typing import Any, ClassVar, Dict, List, Optional, Union, Tuple
+from typing import Any, ClassVar, Dict, List, Optional, Union, Tuple, Literal
 
 from pydantic import BaseModel, BaseSettings, ConstrainedStr, DirectoryPath, \
     Field, FilePath, ValidationError, validator
@@ -57,8 +57,8 @@ class SMSVerificationConfig(BaseModel):
     send_limit: str
 
 
-class TelProviderConfig(BaseModel):
-    provider: str
+class ElksConfig(BaseModel):
+    provider_name: Literal["46elks"]
     username: str
     password: str
     allowed_ips: Tuple[str, ...]
@@ -66,7 +66,7 @@ class TelProviderConfig(BaseModel):
 
 class TelephonyConfig(BaseModel):
     sms_verification: SMSVerificationConfig
-    provider: TelProviderConfig
+    provider: ElksConfig
 
 
 class ContactTimespanFilterTimespan(BaseModel):

@@ -140,7 +140,7 @@ telephony:
   # The phone provider, currently only `46elks`
   # (API CREDENTIALS) https://46elks.com/account for Basic Auth
   provider:
-    provider: 46elks
+    provider_name: 46elks
     username: xxx
     password: yyy
     # allowed IPs taken from https://46elks.com/docs/verify-callback-origin
@@ -150,6 +150,8 @@ telephony:
       - "85.24.146.132"
       - "185.39.146.243"
       - "2001:9b0:2:902::199"
+      - "127.0.0.1"
+      - "::1"
 
 # Localization options.
 l10n:

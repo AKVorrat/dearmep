@@ -9,7 +9,7 @@ from starlette_exporter.optional_metrics import request_body_size, \
 
 from . import __version__, markdown_files, static_files
 from .api import v1 as api_v1
-from .phone import router as phone
+from .phone import elks as phone
 from .config import APP_NAME, Config
 
 

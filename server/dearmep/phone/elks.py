@@ -1,15 +1,25 @@
 from datetime import datetime
 import logging
-from os import environ
-from typing import Literal, Tuple, Union
+from typing import Literal, Tuple
 
-from fastapi import APIRouter, Depends, FastAPI, Form, HTTPException, \
-                    Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
+import requests
 
-logger = logging.getLogger(__name__)
+from dearmep.config import Config
 
+# Config
 
+Config.load()
+config = Config.get().telephony
+
+whitelisted_ips: Tuple[str, ...] = config.provider.allowed_ips
+auth: Tuple[str, str] = (
+    config.provider.username,
+    config.provider.password,
+)
+
+# Types
 CallDirection = Literal["incoming", "outgoing"]
 CallID = str
 Cost = int
@@ -19,98 +29,51 @@ FinalState = Literal["success", "failed", "busy"]
 PhoneNumber = str
 
 
-def include_router(
-    parent: Union[APIRouter, FastAPI],
-    base_url: str,
-    prefix: str = "/callback/46elks",
-    allow_localhost: bool = False,
-) -> APIRouter:
-    # TODO: This is just for initial experimentation. Will be removed.
-    connect_to = environ["CONNECT_TO"]
-    logger.warn("will connect everyone to %s", connect_to)
+# Helpers
 
-    base_url = base_url.rstrip("/")
+logger = logging.getLogger(__name__)
 
-    logger.info(
-        "setting up 46elks callback routes at %s%s, %sallowing localhost",
-        base_url, prefix, "" if allow_localhost else "dis"
-    )
 
-    router = APIRouter()
-
-    # This list is from <https://46elks.com/docs/verify-callback-origin>.
-    elks_ips: Tuple[str, ...] = (
-        "176.10.154.199", "85.24.146.132", "185.39.146.243",
-        "2001:9b0:2:902::199",
-    )
-
-    if allow_localhost:
-        elks_ips += ("::1", "127.0.0.1")
-
-    async def verify_origin(request: Request):
-        client_ip = None if request.client is None else request.client.host
-        if client_ip not in elks_ips:
-            logger.debug(f"refusing {client_ip}, not a 46elks IP")
-            raise HTTPException(
-                status.HTTP_403_FORBIDDEN,
-                {
-                    "error": "You don't look like an elk.",
-                    "client_ip": client_ip,
-                },
-            )
-
-    # See <https://46elks.com/docs/receive-call>.
-    @router.post("/voice-start")
-    async def voice_start(
-        callid: CallID = Form(),
-        direction: CallDirection = Form(),
-        from_nr: PhoneNumber = Form(alias="from"),
-        to_nr: PhoneNumber = Form(alias="to"),
-    ):
-        logger.info(
-            "voice_start of %s call %s",
-            direction, callid,
-        )
-        prompt_path = "/audio/experiments/46elks/connect-prompt.de.mp3"
-        return {
-            "ivr": f"{base_url}{prompt_path}",
-            "whenhangup": f"{base_url}{prefix}/voice-end",
-            "next": f"{base_url}{prefix}/next"
-        }
-
-    # See <https://46elks.com/docs/call-actions>.
-    @router.post(
-        "/voice-end",  # aka "whenhangup"
-        status_code=status.HTTP_204_NO_CONTENT,
-    )
-    async def voice_end(
-        callid: CallID = Form(alias="id"),
-        created: DateTime = Form(),
-        start: DateTime = Form(),  # TODO: is this optional?
-        direction: CallDirection = Form(),
-        from_nr: PhoneNumber = Form(alias="from"),
-        to_nr: PhoneNumber = Form(alias="to"),
-        state: FinalState = Form(),
-        cost: Cost = Form(),
-        duration: Duration = Form(),
-    ):
-        logger.info(
-            "%s call %s (created %s, started %s) ends (%s), %ds, cost %d",
-            direction, callid, created, start, state, duration, cost,
+async def verify_origin(request: Request):
+    client_ip = None if request.client is None else request.client.host
+    if client_ip not in whitelisted_ips:
+        logger.debug(f"refusing {client_ip}, not a 46elks IP")
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            {
+                "error": "You don't look like an elk.",
+                "client_ip": client_ip,
+            },
         )
 
-    @router.post(
-        "/next",
-    )
-    async def next():
-        return {
-            "connect": connect_to,
-            "next": f"{base_url}{prefix}/connect",
-        }
 
-    parent.include_router(
-        router,
-        dependencies=[Depends(verify_origin)],
-        prefix=prefix,
+# DEV only. keywords to find TODO print eval
+def get_function_name():
+    import inspect
+    frame = inspect.currentframe()
+    return frame.f_back.f_code.co_name
+
+
+# Routes
+
+router = APIRouter(
+    dependencies=[Depends(verify_origin)]
+)
+
+
+@router.get("/call")
+def explorative_calls():
+    _f = get_function_name()
+
+    response = requests.get(
+        url="https://api.46elks.com/a1/numbers",
+        auth=auth,
+        data={}
     )
-    return router
+    response.raise_for_status()
+
+    return {
+        "function": _f,
+        "response.status_code": response.status_code,
+        "response.text": response.text
+    }
