@@ -9,6 +9,7 @@ from starlette_exporter.optional_metrics import request_body_size, \
 
 from . import __version__, markdown_files, static_files
 from .api import v1 as api_v1
+from .phone import router as phone
 from .config import APP_NAME, Config
 
 
@@ -41,6 +42,7 @@ def create_app(config_dict: Optional[dict] = None) -> FastAPI:
     )
 
     app.include_router(api_v1.router, prefix="/api/v1")
+    app.include_router(phone.router, prefix="/phone")
     static_files.mount_if_configured(app, "/static")
     markdown_files.mount_if_configured(app, "/pages")
 

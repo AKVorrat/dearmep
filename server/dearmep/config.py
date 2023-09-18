@@ -3,7 +3,7 @@ from functools import lru_cache
 import logging
 from pathlib import Path
 import re
-from typing import Any, ClassVar, Dict, List, Optional, Union
+from typing import Any, ClassVar, Dict, List, Optional, Union, Tuple
 
 from pydantic import BaseModel, BaseSettings, ConstrainedStr, DirectoryPath, \
     Field, FilePath, ValidationError, validator
@@ -48,6 +48,25 @@ class APIRateLimitConfig(BaseModel):
 
 class APIConfig(BaseModel):
     rate_limits: APIRateLimitConfig
+
+
+class SMSVerificationConfig(BaseModel):
+    timeout: int
+    max_unused: int
+    per_ip_limit: str
+    send_limit: str
+
+
+class TelProviderConfig(BaseModel):
+    provider: str
+    username: str
+    password: str
+    allowed_ips: Tuple[str, ...]
+
+
+class TelephonyConfig(BaseModel):
+    sms_verification: SMSVerificationConfig
+    provider: TelProviderConfig
 
 
 class ContactTimespanFilterTimespan(BaseModel):
@@ -181,6 +200,7 @@ class Config(BaseModel):
     contact_timespan_filter: Optional[ContactTimespanFilterConfig]
     database: DatabaseConfig
     l10n: L10nConfig
+    telephony: TelephonyConfig
 
     _instance: ClassVar[Optional["Config"]] = None
     _patch: ClassVar[Optional[Dict]] = None

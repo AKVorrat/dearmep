@@ -137,6 +137,19 @@ telephony:
     # How many SMS messages may the system send overall?
     send_limit: 5 per second, 100 per hour
 
+  # The phone provider, currently only `46elks`
+  # (API CREDENTIALS) https://46elks.com/account for Basic Auth
+  provider:
+    provider: 46elks
+    username: xxx
+    password: yyy
+    # allowed IPs taken from https://46elks.com/docs/verify-callback-origin
+    # (2023-09)
+    allowed_ips:
+      - "176.10.154.199"
+      - "85.24.146.132"
+      - "185.39.146.243"
+      - "2001:9b0:2:902::199"
 
 # Localization options.
 l10n:
