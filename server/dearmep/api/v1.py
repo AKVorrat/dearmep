@@ -14,7 +14,7 @@ from ..models import MAX_SEARCH_RESULT_LIMIT, CountryCode, \
     DestinationSearchResult, FrontendStringsResponse, LanguageDetection, \
     LocalizationResponse, RateLimitResponse, SearchResult, SearchResultLimit
 from ..ratelimit import Limit, client_addr
-from ..phone.elks import initiate_call
+from ..phone.elks import initiate_call, InitialElkResponseState
 from ..phone.utils import choose_from_number
 
 
@@ -299,7 +299,7 @@ def post_initiate_call(
         language=language  # destination.country
     )
 
-    call_state = initiate_call(
+    call_state: InitialElkResponseState = initiate_call(
         dest_number=user_phone,
         from_number=from_number.number,
         user_language=language
