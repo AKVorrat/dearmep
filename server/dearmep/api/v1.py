@@ -14,6 +14,8 @@ from ..models import MAX_SEARCH_RESULT_LIMIT, CountryCode, \
     DestinationSearchResult, FrontendStringsResponse, LanguageDetection, \
     LocalizationResponse, RateLimitResponse, SearchResult, SearchResultLimit
 from ..ratelimit import Limit, client_addr
+from ..phone.elks import initiate_call
+from ..phone.utils import choose_from_number
 
 
 l10n_autodetect_total = Counter(
@@ -270,3 +272,38 @@ def get_suggested_destination(
         except query.NotFound as e:
             raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
         return destination_to_destinationread(dest)
+
+
+@router.post(
+    "/initiate-call",
+    operation_id="initiateCall",
+    dependencies=(simple_rate_limit,),
+    status_code=status.HTTP_204_NO_CONTENT
+)
+def post_initiate_call(
+    language: Language,
+    destination_id: DestinationID,
+    user_phone: str
+):
+    """
+    Selects a phone number based on MEP's country
+    and initiates a call to the user.
+    """
+    # with get_session() as session:
+    #     try:
+    #         destination = query.get_destination_by_id(session, id=destination_id)
+    #     except query.NotFound as e:
+    #         raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+
+    from_number = choose_from_number(
+        language=language  # destination.country
+    )
+
+    call_state = initiate_call(
+        dest_number=user_phone,
+        from_number=from_number.number,
+        user_language=language
+    )
+
+    if call_state == "failed":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Call failed")

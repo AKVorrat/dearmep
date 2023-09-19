@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 import requests
 
-from dearmep.config import Config
+from dearmep.config import Config, Language
 
 # Config
 
@@ -23,11 +23,9 @@ auth: Tuple[str, str] = (
 # Types
 CallDirection = Literal["incoming", "outgoing"]
 CallID = str
-Cost = int
 DateTime = datetime
-Duration = int
-FinalState = Literal["success", "failed", "busy"]
 PhoneNumber = str
+InitialElkResponseState = Literal["ongoing", "success", "busy", "failed"]
 
 
 class Number(BaseModel):
@@ -53,7 +51,7 @@ logger = logging.getLogger(__name__)
 
 def get_numbers() -> List[Number]:
     """
-    Fetches all available numbers to the account from 46elks.
+    Fetches all available numbers of an account at 46elks.
     """
 
     response = requests.get(
@@ -88,13 +86,52 @@ def verify_origin(request: Request):
         )
 
 
+class InitialCallElkResponse(BaseModel):
+    id: str
+    created: DateTime
+    direction: Literal["incoming", "outgoing"]
+    state: InitialElkResponseState
+    from_nr: PhoneNumber
+    to_nr: PhoneNumber
+
+
+def initiate_call(
+    dest_number: PhoneNumber,
+    from_number: PhoneNumber,
+    user_language: Language
+) -> InitialElkResponseState:
+    """ Initiate a Phone call via 46elks """
+
+    response = requests.post(
+        url="https://api.46elks.com/a1/calls",
+        auth=auth,
+        data={
+            "to": dest_number,
+            "from": from_number,
+            "voice_start": f'https://a.jf.en.i.d.h.yq.de/{user_language}.mp3',
+            "whenhangup": 'https://a.jf.en.i.d.h.yq.de/hangup',
+            "timeout": 15
+        }
+    )
+
+    response.raise_for_status()
+    data: InitialCallElkResponse = response.json()
+
+    if data.state == "failed":
+        logger.warn(f"Call failed from our number: {from_number}")
+
+    return data.state
+
 # Routes
+
 
 router = APIRouter(
     dependencies=[Depends(verify_origin)]
 )
 
 
+# TODO: deprecated, use lifespan
+# https://fastapi.tiangolo.com/advanced/events/
 @router.on_event("startup")
 async def startup():
     for number in get_numbers():
@@ -107,17 +144,15 @@ async def startup():
         )
 
 
-@router.get("/call")
-def explorative_calls():
+@router.post("/voice-start/{language}")
+async def voice_start(language: Language):
+    """ Play mp3 to the called person in their language. """
 
-    response = requests.get(
-        url="https://api.46elks.com/a1/numbers",
-        auth=auth,
-        data={}
-    )
-    response.raise_for_status()
+    # TODO check if file for language exists, fallback to english
+    prompt_path = f"/audio/experiments/46elks/connect-prompt.{language}.mp3"
 
     return {
-        "response.status_code": response.status_code,
-        "response.text": response.text
+        "play": f"{prompt_path}",
+        "whenhangup": "call back gather info",
+        "next": "callback connect call"
     }
