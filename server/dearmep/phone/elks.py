@@ -1,7 +1,7 @@
 from datetime import datetime
 import logging
 from typing import Tuple, List, Literal
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
@@ -59,16 +59,17 @@ def get_numbers() -> List[Number]:
         auth=auth
     )
     if response.status_code != 200:
-        logger.error(
-            'Could not fetch numbers from 46elks. Response status: %s',
-            response.status_code
-        )
-        return []
+        raise Exception(
+            "Could not fetch numbers from 46elks. "
+            f"Their http status: {response.status_code}")
 
     numbers: List[Number] = [
         Number.parse_obj(number) for number in response.json().get('data')
     ]
-    logger.info(f"Fetched {len(numbers)} phone numbers from 46elks.")
+    logger.info(
+        "Currently available 46elks phone numbers: "
+        f"{[number.number for number in numbers]}",
+    )
 
     return numbers
 
@@ -91,8 +92,8 @@ class InitialCallElkResponse(BaseModel):
     created: DateTime
     direction: Literal["incoming", "outgoing"]
     state: InitialElkResponseState
-    from_nr: PhoneNumber
-    to_nr: PhoneNumber
+    from_nr: PhoneNumber = Field(alias="from")
+    to_nr: PhoneNumber = Field(alias="to")
 
 
 def initiate_call(
@@ -115,7 +116,7 @@ def initiate_call(
     )
 
     response.raise_for_status()
-    data: InitialCallElkResponse = response.json()
+    data = InitialCallElkResponse.parse_obj(response.json())
 
     if data.state == "failed":
         logger.warn(f"Call failed from our number: {from_number}")
@@ -134,14 +135,7 @@ router = APIRouter(
 # https://fastapi.tiangolo.com/advanced/events/
 @router.on_event("startup")
 async def startup():
-    for number in get_numbers():
-        phone_numbers.append(number)
-
-    if len(phone_numbers) == 0:
-        logger.error(
-            "No phone numbers were fetched on startup. "
-            "Please make sure you have configured your 46elks account."
-        )
+    phone_numbers.extend(get_numbers())
 
 
 @router.post("/voice-start/{language}")
