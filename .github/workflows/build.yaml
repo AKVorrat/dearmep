@@ -63,8 +63,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        # Temporarily removed Node 20 from the list, should be added back in once the fix for this (https://github.com/nodejs/node/issues/49497) issue in node is rolled out.
-        node-version: ["16.x", "18.x" ] # "20.x"
+        node-version: ["18.x", "20.x"]
     steps:
       - uses: actions/checkout@v3
       - name: Set up Node.js ${{ matrix.node-version }}
@@ -84,7 +83,7 @@ jobs:
       - name: Build
         run: npm run build
       - name: Collect completed frontend build as an artifact
-        if: ${{ matrix.node-version == '18.x' }}
+        if: ${{ matrix.node-version == '20.x' }}
         uses: actions/upload-artifact@v3
         with:
           name: frontend
