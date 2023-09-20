@@ -1,9 +1,9 @@
 from datetime import datetime
 import logging
-from typing import Tuple, List, Literal
-from pydantic import BaseModel, Field
+from typing import Tuple, List, Literal, Any, Dict, Union
+from pydantic import BaseModel, Field, Json
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Form, status
 
 import requests
 
@@ -11,13 +11,12 @@ from dearmep.config import Config, Language
 
 # Config
 
-# Dev#
+# TODO: find a proper place for those values
 from os import environ
-CONNECT_TO = environ['DEARMEP_CONNECT_TO']
-BASE_URL = environ['DEARMEP_BASE_URL']
-BASE_URL += "/phone"
-voice_start_url = f"{BASE_URL}/voice-start"
-when_hangup_url = f"{BASE_URL}/hangup"
+CONNECT_TO = environ['DEARMEP_CONNECT_TO']  # phone_nr of mep
+BASE_URL = environ['DEARMEP_BASE_URL']  # base url of instance
+ROUTER_BASE_URL = f"{BASE_URL}/phone"  # useful in multiple endpoints in here.
+AUDIO_SRC = environ['DEARMEP_AUDIO_FILES_SRC']  # absolute url to audio files
 # ## #
 
 Config.load()
@@ -30,11 +29,6 @@ auth: Tuple[str, str] = (
 )
 
 # Types
-CallDirection = Literal["incoming", "outgoing"]
-CallID = str
-DateTime = datetime
-PhoneNumber = str
-InitialElkResponseState = Literal["ongoing", "success", "busy", "failed"]
 
 
 class Number(BaseModel):
@@ -96,19 +90,20 @@ def verify_origin(request: Request):
         )
 
 
+InitialElkResponseState = Literal["ongoing", "success", "busy", "failed"]
 class InitialCallElkResponse(BaseModel):
     id: str
-    created: DateTime
+    created: datetime
     direction: Literal["incoming", "outgoing"]
     state: InitialElkResponseState
-    from_nr: PhoneNumber = Field(alias="from")
-    to_nr: PhoneNumber = Field(alias="to")
+    from_nr: str = Field(alias="from")
+    to_nr: str = Field(alias="to")
 
 
 def initiate_call(
-    dest_number: PhoneNumber,
-    from_number: PhoneNumber,
-    user_language: Language
+    dest_number: str,
+    from_number: str,
+    user_language: Language,
 ) -> InitialElkResponseState:
     """ Initiate a Phone call via 46elks """
 
@@ -118,11 +113,14 @@ def initiate_call(
         data={
             "to": dest_number,
             "from": from_number,
-            "voice_start": voice_start_url,
-            "whenhangup": when_hangup_url,
+            "voice_start": f"{ROUTER_BASE_URL}/voice-start",
+            "whenhangup": f"{ROUTER_BASE_URL}/hangup",
             "timeout": 13
         }
     )
+    # TODO build something to refer in connect call later
+    # with MEP nr. and the call id we get back from the
+    # response
 
     response.raise_for_status()
     data = InitialCallElkResponse.parse_obj(response.json())
@@ -146,26 +144,74 @@ router = APIRouter(
 async def startup():
     phone_numbers.extend(get_numbers())
 
+from random import choice  # DEV remove
 
-# DEVELOP
-from typing import Any, Dict,Union
-from fastapi import Form
+
 @router.post("/voice-start")
-def voice_starttest(request: Union[List,Dict,Any]=None):
-    next_url = f"{BASE_URL}/next"
+def voice_start(
+        callid: str = Form(),
+        direction: Literal["incoming", "outgoing"] = Form(),
+        from_nr: str = Form(alias="from"),
+        to_nr: str = Form(alias="to"),
+        result: Literal["newoutgoing"] = Form(),
+):
+
+    # TODO mb as part of the route voice-start/en
+    lang = choice(('fr', 'de', 'en', 'sv', 'it', 'es'))
 
     return {
-      "connect": CONNECT_TO,
-      "next": next_url
+        "ivr": f"{AUDIO_SRC}/connect-prompt.{lang}.ogg",
+        "next": f"{ROUTER_BASE_URL}/next"
     }
 
 
-from urllib.parse import parse_qs
 @router.post("/next")
-def hangup(request: Union[List,Dict,Any,bytes]=None):
-    readable = parse_qs(request.decode())
-    print(' ~~~ NEXT:',readable)
+def next(
+        callid: str = Form(),
+        direction: Literal["incoming", "outgoing"] = Form(),
+        from_nr: str = Form(alias="from"),
+        to_nr: str = Form(alias="to"),
+        # TODO check which results happen when no key is pressed f.e. "hold"
+        result: int = Form(),
+):
+
+    if result == 1:
+        return {
+            # we want to connect here but I don't want to talk
+            # to all my friends during development
+            "play": f"{AUDIO_SRC}/success.ogg",
+            "next": f"{ROUTER_BASE_URL}/goodbye",
+        }
+    return {
+        "play": f"{AUDIO_SRC}/final-tune.ogg",
+    }
+
+
+@router.post("/goodbye")
+def goodbye(
+        callid: str = Form(),
+        direction: Literal["incoming", "outgoing"] = Form(),
+        from_nr: str = Form(alias="from"),
+        to_nr: str = Form(alias="to"),
+        result: Any = Form(),
+):
+    return {
+        "play": f"{AUDIO_SRC}/final-tune.ogg",
+    }
+
+
 @router.post("/hangup")
-def hangup(request: Union[List,Dict,Any,bytes]=None):
-    readable = parse_qs(request.decode())
-    print(' ~~~ ON_HANGUP:',readable)
+def hangup(
+    actions: Json = Form(),
+    cost: int = Form(),  # in 100 = 1 cent
+    created: datetime = Form(),
+    direction: Literal["incoming", "outgoing"] = Form(),
+    duration: int = Form(),  # in sec
+    from_nr: str = Form(alias="from"),
+    callid: str = Form(alias="id"),
+    start: datetime = Form(),
+    state: str = Form(),
+    to_nr: str = Form(alias="to"),
+    ):
+
+    actions: List[Union[str, Dict[str, Any]]] = actions
