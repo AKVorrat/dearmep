@@ -11,6 +11,15 @@ from dearmep.config import Config, Language
 
 # Config
 
+# Dev#
+from os import environ
+CONNECT_TO = environ['DEARMEP_CONNECT_TO']
+BASE_URL = environ['DEARMEP_BASE_URL']
+BASE_URL += "/phone"
+voice_start_url = f"{BASE_URL}/voice-start"
+when_hangup_url = f"{BASE_URL}/hangup"
+# ## #
+
 Config.load()
 config = Config.get().telephony
 
@@ -109,9 +118,9 @@ def initiate_call(
         data={
             "to": dest_number,
             "from": from_number,
-            "voice_start": f'https://a.jf.en.i.d.h.yq.de/{user_language}.mp3',
-            "whenhangup": 'https://a.jf.en.i.d.h.yq.de/hangup',
-            "timeout": 15
+            "voice_start": voice_start_url,
+            "whenhangup": when_hangup_url,
+            "timeout": 13
         }
     )
 
@@ -138,15 +147,25 @@ async def startup():
     phone_numbers.extend(get_numbers())
 
 
-@router.post("/voice-start/{language}")
-async def voice_start(language: Language):
-    """ Play mp3 to the called person in their language. """
-
-    # TODO check if file for language exists, fallback to english
-    prompt_path = f"/audio/experiments/46elks/connect-prompt.{language}.mp3"
+# DEVELOP
+from typing import Any, Dict,Union
+from fastapi import Form
+@router.post("/voice-start")
+def voice_starttest(request: Union[List,Dict,Any]=None):
+    next_url = f"{BASE_URL}/next"
 
     return {
-        "play": f"{prompt_path}",
-        "whenhangup": "call back gather info",
-        "next": "callback connect call"
+      "connect": CONNECT_TO,
+      "next": next_url
     }
+
+
+from urllib.parse import parse_qs
+@router.post("/next")
+def hangup(request: Union[List,Dict,Any,bytes]=None):
+    readable = parse_qs(request.decode())
+    print(' ~~~ NEXT:',readable)
+@router.post("/hangup")
+def hangup(request: Union[List,Dict,Any,bytes]=None):
+    readable = parse_qs(request.decode())
+    print(' ~~~ ON_HANGUP:',readable)
