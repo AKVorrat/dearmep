@@ -33,11 +33,11 @@ class OngoingCalls:
             raise IndexError(f"Could not find ongoing call with id: {callid}")
 
     def destination_is_on_call(self, destination_id: str) -> bool:
-        """ Check if Destination is on a call we control here """
+        """ Check if destination_id is on a call we control """
         _calls = [
             x for x in self.calls if x.contact.destination_id == destination_id
         ]
-        if len(_calls) > 0:
+        if _calls:
             return True
         return False
 
