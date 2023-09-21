@@ -23,7 +23,9 @@ def require_operation_id(app: FastAPI):
     This allows e.g. auto-generated clients to use nice method names.
     """
     for route in app.routes:
-        if isinstance(route, APIRoute) and not route.operation_id:
+        if isinstance(route, APIRoute) \
+            and route.include_in_schema \
+            and not route.operation_id:
             _logger.error(
                 f'API function "{route.name}" ({", ".join(route.methods)} '
                 f"{route.path}) does not have operation_id set"

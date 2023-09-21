@@ -134,7 +134,8 @@ def initiate_call(
 
 
 router = APIRouter(
-    dependencies=[Depends(verify_origin)]
+    dependencies=[Depends(verify_origin)],
+    include_in_schema=False
 )
 
 
