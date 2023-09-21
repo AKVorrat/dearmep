@@ -291,11 +291,9 @@ def post_initiate_call(
     """
     with get_session() as session:
         try:
-            contact = query.get_contact_for_destination_in_group(
+            contact = query.get_contact_for_destination(
                 session,
-                destination_id=destination_id,
-                # TODO how do we get the relevant 'group'?
-                group="brussels"
+                destination_id=destination_id
             )
         except query.NotFound as e:
             raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))

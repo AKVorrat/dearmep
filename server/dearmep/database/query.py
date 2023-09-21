@@ -48,20 +48,18 @@ def get_destination_by_id(
     return dest
 
 
-def get_contact_for_destination_in_group(
+def get_contact_for_destination(
     session: Session,
     destination_id: DestinationID,
-    group: str,
 ) -> Contact:
     contact = session.query(Contact).join(Destination.contacts) \
         .filter(Destination.id == destination_id) \
-        .filter(Contact.group == group) \
         .filter(Contact.type == "phone") \
         .one_or_none()
     if not contact:
         logger.critical(
             f"No contact for <Destination.id: {destination_id}, "
-            f"Contact.group: {group}, Contact.type: phone> found"
+            f"Contact.type: phone> found"
         )
         raise NotFound(f"Contact for destination {destination_id} found")
     return contact
