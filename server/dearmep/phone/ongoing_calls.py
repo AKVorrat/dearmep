@@ -1,4 +1,5 @@
 from dearmep.config import Language
+from dearmep.database.models import Contact
 from pydantic import BaseModel
 from typing import Literal
 from .models import InitialElkResponseState
@@ -14,6 +15,7 @@ class OngoingCall(BaseModel):
     from_nr: str
     to_nr: str
     language: Language
+    contact: Contact
     # mepid: str
 
 

@@ -10,7 +10,7 @@ import requests
 from dearmep.config import Config, Language
 
 from .models import InitialCallElkResponse, InitialElkResponseState, Number
-from .ongoing_calls import OngoingCalls, OngoingCall
+from .ongoing_calls import OngoingCalls, OngoingCall, Contact
 
 from .utils import get_numbers, choose_from_number
 
@@ -60,12 +60,13 @@ def verify_origin(request: Request):
 
 
 def initiate_call(
-    dest_number: str,
+    user_phone_number: str,
     user_language: Language,
+    contact: Contact
 ) -> InitialElkResponseState:
     """ Initiate a Phone call via 46elks """
 
-    # make a choice for the phone number we use to call
+    # make a choice for our phone number
     phone_number = choose_from_number(
         phone_numbers=phone_numbers,
         language=user_language
@@ -74,7 +75,7 @@ def initiate_call(
         url="https://api.46elks.com/a1/calls",
         auth=auth,
         data={
-            "to": dest_number,
+            "to": user_phone_number,
             "from": phone_number.number,
             "voice_start": f"{ROUTER_BASE_URL}/voice-start",
             "whenhangup": f"{ROUTER_BASE_URL}/hangup",
@@ -91,7 +92,8 @@ def initiate_call(
 
     _ongoing_call = response_data.dict()
     _ongoing_call.update({
-        "language": user_language
+        "language": user_language,
+        "contact": contact
     })
     ongoing_call: OngoingCall = OngoingCall.parse_obj(
         _ongoing_call

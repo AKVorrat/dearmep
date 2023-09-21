@@ -299,8 +299,9 @@ def post_initiate_call(
             raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
 
     call_state: InitialElkResponseState = initiate_call(
-        dest_number=user_phone,
-        user_language=language
+        user_phone_number=user_phone,
+        user_language=language,
+        contact=contact
     )
 
     if call_state == "failed":
