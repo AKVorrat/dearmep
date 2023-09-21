@@ -8,7 +8,11 @@ from sqlmodel import case
 from ..models import CountryCode, DestinationSearchGroup, \
     DestinationSearchResult, SearchResult
 from .connection import Session, select
-from .models import Blob, Destination, DestinationID
+from .models import Blob, Destination, DestinationID, Contact
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class NotFound(Exception):
@@ -42,6 +46,25 @@ def get_destination_by_id(
     if not dest:
         raise NotFound(f"no destination with ID {id} found")
     return dest
+
+
+def get_contact_for_destination_in_group(
+    session: Session,
+    destination_id: DestinationID,
+    group: str,
+) -> Contact:
+    contact = session.query(Contact).join(Destination.contacts) \
+        .filter(Destination.id == destination_id) \
+        .filter(Contact.group == group) \
+        .filter(Contact.type == "phone") \
+        .one_or_none()
+    if not contact:
+        logger.critical(
+            f"No contact for <Destination.id: {destination_id}, "
+            f"Contact.group: {group}, Contact.type: phone> found"
+        )
+        raise NotFound(f"Contact for destination {destination_id} found")
+    return contact
 
 
 def get_destinations_by_country(
