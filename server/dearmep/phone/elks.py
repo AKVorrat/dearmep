@@ -87,9 +87,10 @@ def initiate_call(
     response_data: InitialCallElkResponse = InitialCallElkResponse.parse_obj(response.json())
 
     if response_data.state == "failed":
-        logger.warn(f"Call failed from our number: {from_number}")
+        logger.warn(f"Call failed from our number: {phone_number.number}")
         return response_data.state
 
+    # add to ongoing calls
     _ongoing_call = response_data.dict()
     _ongoing_call.update({
         "language": user_language,
@@ -151,12 +152,17 @@ def next(
     current_call: OngoingCall = ongoing_calls.get_call(callid)
 
     if result == 1:
-        return {
-            # we want to connect here but I don't want to talk
-            # to all my friends during development
+        # we want to connect here but I don't want to talk
+        # to parlamentarians during development
+        # connection_response = {
+        #     "connect": current_call.contact.contact,
+        #     "next": f"{ROUTER_BASE_URL}/goodbye",
+        # }
+        development_response = {
             "play": f"{AUDIO_SRC}/success.ogg",
             "next": f"{ROUTER_BASE_URL}/goodbye",
         }
+        return development_response
     return {
         "play": f"{AUDIO_SRC}/final-tune.ogg",
     }

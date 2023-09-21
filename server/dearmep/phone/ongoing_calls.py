@@ -32,6 +32,15 @@ class OngoingCalls:
         except IndexError:
             raise IndexError(f"Could not find ongoing call with id: {callid}")
 
+    def destination_is_on_call(self, destination_id: str) -> bool:
+        """ Check if Destination is on a call we control here """
+        _calls = [
+            x for x in self.calls if x.contact.destination_id == destination_id
+        ]
+        if len(_calls) > 0:
+            return True
+        return False
+
     def append(self, call: OngoingCall):
         """ Append an ongoing call """
         self.calls.append(call)
@@ -47,5 +56,8 @@ class OngoingCalls:
     def __len__(self):
         return len(self.calls)
 
+    def __repr__(self):
+        return str(f"<OngoingCalls Instance with {len(self.calls)} Calls>")
+
     def __str__(self):
-        return str(f"{len(self.calls)} ongoing calls: {self.calls}")
+        return self.calls

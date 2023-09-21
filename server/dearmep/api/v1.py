@@ -14,8 +14,7 @@ from ..models import MAX_SEARCH_RESULT_LIMIT, CountryCode, \
     DestinationSearchResult, FrontendStringsResponse, LanguageDetection, \
     LocalizationResponse, RateLimitResponse, SearchResult, SearchResultLimit
 from ..ratelimit import Limit, client_addr
-from ..phone.elks import initiate_call, InitialElkResponseState
-from ..phone.utils import choose_from_number
+from ..phone.elks import initiate_call, InitialElkResponseState, ongoing_calls
 
 
 l10n_autodetect_total = Counter(
@@ -289,6 +288,10 @@ def post_initiate_call(
     Selects a phone number based on MEP's country
     and initiates a call to the user.
     """
+
+    if ongoing_calls.destination_is_on_call(destination_id):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Already on a call")
+
     with get_session() as session:
         try:
             contact = query.get_contact_for_destination(
