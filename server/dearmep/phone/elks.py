@@ -92,12 +92,33 @@ def verify_origin(request: Request):
 
 InitialElkResponseState = Literal["ongoing", "success", "busy", "failed"]
 class InitialCallElkResponse(BaseModel):
-    id: str
+    callid: str = Field(alias="id")
     created: datetime
     direction: Literal["incoming", "outgoing"]
     state: InitialElkResponseState
     from_nr: str = Field(alias="from")
     to_nr: str = Field(alias="to")
+
+
+class OngoingCall(BaseModel):
+    callid: str
+    created: datetime
+    direction: Literal["incoming", "outgoing"]
+    state: InitialElkResponseState
+    from_nr: str
+    to_nr: str
+    language: Language
+    # mepid: str
+
+
+ongoing_calls: List[OngoingCall] = []
+
+def get_ongoing_call(callid: str) -> OngoingCall:
+
+    try:
+        return [x for x in ongoing_calls if x.callid == callid][0]
+    except IndexError:
+        raise IndexError(f"Could not find ongoing call with id: {callid}")
 
 
 def initiate_call(
@@ -106,6 +127,7 @@ def initiate_call(
     user_language: Language,
 ) -> InitialElkResponseState:
     """ Initiate a Phone call via 46elks """
+
 
     response = requests.post(
         url="https://api.46elks.com/a1/calls",
@@ -118,17 +140,27 @@ def initiate_call(
             "timeout": 13
         }
     )
-    # TODO build something to refer in connect call later
-    # with MEP nr. and the call id we get back from the
-    # response
 
     response.raise_for_status()
-    data = InitialCallElkResponse.parse_obj(response.json())
+    response_data: InitialCallElkResponse = InitialCallElkResponse.parse_obj(response.json())
 
-    if data.state == "failed":
+    if response_data.state == "failed":
         logger.warn(f"Call failed from our number: {from_number}")
+        return response_data.state
 
-    return data.state
+    _ongoing_call = response_data.dict()
+    _ongoing_call.update({
+        "language": user_language
+    })
+    ongoing_call: OngoingCall = OngoingCall.parse_obj(
+        _ongoing_call
+    )
+    ongoing_calls.append(ongoing_call)
+
+    logger.info( 20 * "*" + "initiate_call")
+
+    return ongoing_call.state
+
 
 # Routes
 
@@ -157,11 +189,10 @@ def voice_start(
         result: Literal["newoutgoing"] = Form(),
 ):
 
-    # TODO mb as part of the route voice-start/en
-    lang = choice(('fr', 'de', 'en', 'sv', 'it', 'es'))
+    current_call: OngoingCall = get_ongoing_call(callid)
 
     return {
-        "ivr": f"{AUDIO_SRC}/connect-prompt.{lang}.ogg",
+        "ivr": f"{AUDIO_SRC}/connect-prompt.{current_call.language}.ogg",
         "next": f"{ROUTER_BASE_URL}/next"
     }
 
@@ -172,9 +203,10 @@ def next(
         direction: Literal["incoming", "outgoing"] = Form(),
         from_nr: str = Form(alias="from"),
         to_nr: str = Form(alias="to"),
-        # TODO check which results happen when no key is pressed f.e. "hold"
         result: int = Form(),
 ):
+
+    current_call: OngoingCall = get_ongoing_call(callid)
 
     if result == 1:
         return {
@@ -188,6 +220,7 @@ def next(
     }
 
 
+# route probably unused in the release, useful for debugging
 @router.post("/goodbye")
 def goodbye(
         callid: str = Form(),
@@ -196,6 +229,8 @@ def goodbye(
         to_nr: str = Form(alias="to"),
         result: Any = Form(),
 ):
+    current_call: OngoingCall = get_ongoing_call(callid)
+
     return {
         "play": f"{AUDIO_SRC}/final-tune.ogg",
     }
@@ -216,3 +251,25 @@ def hangup(
     ):
 
     actions: List[Union[str, Dict[str, Any]]] = actions
+
+    # was sometimes called before call ended. even before phone was picked up..
+    # might also be remnants of earlier calls where elk was not able to successfully
+    # call /hangup because app crashed in dev or breakpoint() hit.
+    try:
+        current_call: OngoingCall = get_ongoing_call(callid)
+    except IndexError:
+        logger.critical(50*"*")
+        logger.debug("hangup prematurely called by elks?")
+        logger.debug(f"They tried to send data for call {callid}")
+        logger.debug(f" Ongoing Calls: {ongoing_calls}")
+        logger.debug("Their request")
+        logger.debug(actions, cost, created, direction, duration, from_nr, callid, start, state, to_nr)
+        logger.critical(50*"*")
+        return
+
+    ongoing_calls.remove(current_call)
+    if len(ongoing_calls) != 0:
+        logger.critical(50*"*")
+        logger.debug("Current calls NOT empty:")
+        logger.debug(ongoing_calls)
+        logger.critical(50*"*")
