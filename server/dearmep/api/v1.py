@@ -295,13 +295,8 @@ def post_initiate_call(
     #     except query.NotFound as e:
     #         raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
 
-    from_number = choose_from_number(
-        language=language  # destination.country
-    )
-
     call_state: InitialElkResponseState = initiate_call(
         dest_number=user_phone,
-        from_number=from_number.number,
         user_language=language
     )
 
