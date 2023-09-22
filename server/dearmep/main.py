@@ -24,8 +24,8 @@ def require_operation_id(app: FastAPI):
     """
     for route in app.routes:
         if isinstance(route, APIRoute) \
-            and route.include_in_schema \
-            and not route.operation_id:
+                and route.include_in_schema \
+                and not route.operation_id:
             _logger.error(
                 f'API function "{route.name}" ({", ".join(route.methods)} '
                 f"{route.path}) does not have operation_id set"

@@ -11,7 +11,10 @@ from ..config import Language
 logger = logging.getLogger(__name__)
 
 
-def choose_from_number(phone_numbers: List[Number], language: Language) -> Number:
+def choose_from_number(
+        phone_numbers: List[Number],
+        language: Language
+) -> Number:
     """
     Returns a phonenumber, preferably from the given language.
     In case a local country number does not exist,
@@ -26,7 +29,10 @@ def choose_from_number(phone_numbers: List[Number], language: Language) -> Numbe
     return choice(lang_numbers)
 
 
-def get_numbers(phone_numbers: List[Number], auth: Tuple[str, str]) -> List[Number]:
+def get_numbers(
+        phone_numbers: List[Number],
+        auth: Tuple[str, str]
+) -> List[Number]:
     """
     Fetches all available numbers of an account at 46elks.
     """
@@ -41,7 +47,7 @@ def get_numbers(phone_numbers: List[Number], auth: Tuple[str, str]) -> List[Numb
             f"Their http status: {response.status_code}")
 
     phone_numbers.extend(
-        [Number.parse_obj(number) for number in response.json().get('data')]
+        [Number.parse_obj(number) for number in response.json().get("data")]
     )
     logger.info(
         "Currently available 46elks phone numbers: "

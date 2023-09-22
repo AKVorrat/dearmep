@@ -1,4 +1,4 @@
-from typing import Callable, List, Optional, cast
+from typing import Callable, List, Optional, Union, cast
 import re
 
 from sqlalchemy import func
@@ -52,7 +52,8 @@ def get_contact_for_destination(
     session: Session,
     destination_id: DestinationID,
 ) -> Contact:
-    contact = session.query(Contact).join(Destination.contacts) \
+    contact: Union[Contact, None] = \
+        session.query(Contact).join(Destination.contacts) \
         .filter(Destination.id == destination_id) \
         .filter(Contact.type == "phone") \
         .one_or_none()

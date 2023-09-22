@@ -1,7 +1,7 @@
 from dearmep.config import Language
 from dearmep.database.models import Contact
 from pydantic import BaseModel
-from typing import Literal
+from typing import Literal, List
 from .models import InitialElkResponseState
 from datetime import datetime
 
@@ -28,7 +28,8 @@ class OngoingCalls:
     def get_call(self, callid: str) -> OngoingCall:
         """ Get an ongoing call by id """
         try:
-            return [x for x in self.calls if x.callid == callid][0]
+            _c: OngoingCall = [x for x in self.calls if x.callid == callid][0]
+            return _c
         except IndexError:
             raise IndexError(f"Could not find ongoing call with id: {callid}")
 
@@ -49,9 +50,10 @@ class OngoingCalls:
         """ Remove an ongoing call """
         self.calls = [x for x in self.calls if x.callid != callid]
 
-    def all(self):
+    def all(self) -> List[OngoingCall]:
         """ Get all ongoing calls """
-        return self.calls
+        _calls: List[OngoingCall] = self.calls
+        return _calls
 
     def __len__(self):
         return len(self.calls)
