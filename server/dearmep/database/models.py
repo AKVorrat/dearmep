@@ -269,6 +269,11 @@ class DestinationRead(DestinationBase):
     )
 
 
+class ContactRead(ContactBase):
+    destination_id: DestinationID
+    destination: DestinationRead
+
+
 class DestinationGroupBase(SQLModel):
     """A group to which Destinations may belong."""
     id: DestinationGroupID = Field(

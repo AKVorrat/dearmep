@@ -10,7 +10,7 @@ import requests
 from dearmep.config import Config, Language
 
 from .models import InitialCallElkResponse, InitialElkResponseState, Number
-from .ongoing_calls import OngoingCalls, OngoingCall, Contact
+from .ongoing_calls import OngoingCalls, OngoingCall, OngoingCallRead, Contact
 from .utils import get_numbers, choose_from_number
 from .metrics import elks_metrics
 
@@ -134,7 +134,7 @@ def voice_start(
 ):
 
     config: Config = get_config()
-    current_call: OngoingCall = ongoing_calls.get_call(callid)
+    current_call: OngoingCallRead = ongoing_calls.get_call(callid)
 
     return {
         "ivr": f"{config.telephony.audio_source}"
@@ -158,7 +158,7 @@ def next(
 
     if result == 1:
 
-        current_call: OngoingCall = ongoing_calls.get_call(callid)
+        current_call: OngoingCallRead = ongoing_calls.get_call(callid)
         number_MEP = current_call.contact.contact
         # we want to connect here but I don't want to talk
         # to parlamentarians during development
@@ -224,7 +224,7 @@ def hangup(
     # might also be remnants of earlier calls where elk was not able to
     # successfully call /hangup because app crashed in dev or breakpoint() hit.
     try:
-        current_call: OngoingCall = ongoing_calls.get_call(callid)
+        current_call: OngoingCallRead = ongoing_calls.get_call(callid)
         # TODO change dearmep.database.models.Contact.destination_id
         # away from Optional[str] to str
         elks_metrics.observe_connect_time(

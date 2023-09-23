@@ -1,5 +1,5 @@
 from dearmep.config import Language
-from dearmep.database.models import Contact
+from dearmep.database.models import Contact, ContactRead
 from pydantic import BaseModel
 from typing import Literal, List
 from .models import InitialElkResponseState
@@ -16,6 +16,18 @@ class OngoingCall(BaseModel):
     to_nr: str
     language: Language
     contact: Contact
+
+
+class OngoingCallRead(BaseModel):
+    provider: str = "46elks"
+    callid: str
+    created: datetime
+    direction: Literal["incoming", "outgoing"]
+    state: InitialElkResponseState
+    from_nr: str
+    to_nr: str
+    language: Language
+    contact: ContactRead
     # mepid: str
 
 
@@ -25,10 +37,12 @@ class OngoingCalls:
     def __init__(self):
         self.calls = []
 
-    def get_call(self, callid: str) -> OngoingCall:
+    def get_call(self, callid: str) -> OngoingCallRead:
         """ Get an ongoing call by id """
         try:
-            _c: OngoingCall = [x for x in self.calls if x.callid == callid][0]
+            _c: OngoingCallRead = [
+                x for x in self.calls if x.callid == callid
+            ][0]
             return _c
         except IndexError:
             raise IndexError(f"Could not find ongoing call with id: {callid}")
@@ -50,9 +64,9 @@ class OngoingCalls:
         """ Remove an ongoing call """
         self.calls = [x for x in self.calls if x.callid != callid]
 
-    def all(self) -> List[OngoingCall]:
+    def all(self) -> List[OngoingCallRead]:
         """ Get all ongoing calls """
-        _calls: List[OngoingCall] = self.calls
+        _calls: List[OngoingCallRead] = self.calls
         return _calls
 
     def __len__(self):
