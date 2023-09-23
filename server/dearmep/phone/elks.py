@@ -11,8 +11,8 @@ from dearmep.config import Config, Language
 
 from .models import InitialCallElkResponse, InitialElkResponseState, Number
 from .ongoing_calls import OngoingCalls, OngoingCall, Contact
-
 from .utils import get_numbers, choose_from_number
+from .metrics import elks_metrics
 
 
 def get_config() -> Config:
@@ -157,12 +157,19 @@ def next(
     # current_call: OngoingCall = ongoing_calls.get_call(callid)
 
     if result == 1:
+
+        current_call: OngoingCall = ongoing_calls.get_call(callid)
+        number_MEP = current_call.contact.contact
         # we want to connect here but I don't want to talk
         # to parlamentarians during development
         # connection_response = {
         #     "connect": current_call.contact.contact,
         #     "next": f"{config.general.base_url}/phone/goodbye",
         # }
+        elks_metrics.inc_start(
+            destination_number=number_MEP,
+            our_number=from_nr
+        )
         development_response = {
             "play": f"{config.telephony.audio_source}/success.ogg",
             "next": f"{config.general.base_url}/phone/goodbye",
@@ -203,17 +210,35 @@ def hangup(
     start: datetime = Form(),
     state: str = Form(),
     to_nr: str = Form(alias="to"),
+    # TODO access LEGS which apparently gets sent sometimes
 ):
 
     actions: List[Union[str, Dict[str, Any]]] = _actions
 
+    # PREP testing
+    # log all the things, including OngoingCall instance
+    # calculate duration w testing_connect_time value and now
+    # compare to legs and duration
+
     # was sometimes called before call ended. even before phone was picked up..
     # might also be remnants of earlier calls where elk was not able to
     # successfully call /hangup because app crashed in dev or breakpoint() hit.
-
     try:
-        # current_call: OngoingCall = ongoing_calls.get_call(callid)
-        pass
+        current_call: OngoingCall = ongoing_calls.get_call(callid)
+        # TODO change dearmep.database.models.Contact.destination_id
+        # away from Optional[str] to str
+        elks_metrics.observe_connect_time(
+            destination_id=current_call.contact.destination_id,
+            duration=duration
+        )
+        elks_metrics.observe_cost(
+            destination_id=current_call.contact.destination_id,
+            cost=cost
+        )
+        elks_metrics.inc_end(
+            destination_number=current_call.contact.contact,
+            our_number=from_nr
+        )
     except IndexError:
         logger.critical(50 * "*")
         logger.debug("hangup prematurely called by elks?")
