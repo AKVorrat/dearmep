@@ -14,20 +14,9 @@ from .ongoing_calls import OngoingCalls, OngoingCall, Contact
 
 from .utils import get_numbers, choose_from_number
 
-# Config
 
-# TODO: find a proper place for those values
-from os import environ
-CONNECT_TO = environ["DEARMEP_CONNECT_TO"]  # phone_nr of mep
-BASE_URL = environ["DEARMEP_BASE_URL"]  # base url of instance
-ROUTER_BASE_URL = f"{BASE_URL}/phone"  # useful in multiple endpoints in here.
-AUDIO_SRC = environ["DEARMEP_AUDIO_FILES_SRC"]  # absolute url to audio files
-# ## #
-
-
-def get_telephony_config():
-
-    config = Config.get().telephony
+def get_config() -> Config:
+    config = Config.get()
     return config
 
 
@@ -46,8 +35,8 @@ logger = logging.getLogger(__name__)
 def verify_origin(request: Request):
     """ Makes sure the request is coming from a 46elks IP """
     client_ip = None if request.client is None else request.client.host
-    config = get_telephony_config()
-    whitelisted_ips: Tuple[str, ...] = config.provider.allowed_ips
+    config = get_config()
+    whitelisted_ips: Tuple[str, ...] = config.telephony.provider.allowed_ips
     if client_ip not in whitelisted_ips:
         logger.debug(f"refusing {client_ip}, not a 46elks IP")
         raise HTTPException(
@@ -65,10 +54,10 @@ def initiate_call(
     contact: Contact
 ) -> InitialElkResponseState:
     """ Initiate a Phone call via 46elks """
-    config = get_telephony_config()
+    config = get_config()
     auth: Tuple[str, str] = (
-        config.provider.username,
-        config.provider.password,
+        config.telephony.provider.username,
+        config.telephony.provider.password,
     )
 
     # make a choice for our phone number
@@ -76,14 +65,15 @@ def initiate_call(
         phone_numbers=phone_numbers,
         language=user_language
     )
+
     response = requests.post(
         url="https://api.46elks.com/a1/calls",
         auth=auth,
         data={
             "to": user_phone_number,
             "from": phone_number.number,
-            "voice_start": f"{ROUTER_BASE_URL}/voice-start",
-            "whenhangup": f"{ROUTER_BASE_URL}/hangup",
+            "voice_start": f"{config.general.base_url}/phone/voice-start",
+            "whenhangup": f"{config.general.base_url}/phone/hangup",
             "timeout": 13
         }
     )
@@ -123,10 +113,10 @@ router = APIRouter(
 # https://fastapi.tiangolo.com/advanced/events/
 @router.on_event("startup")
 async def startup():
-    config = get_telephony_config()
+    config = get_config()
     auth: Tuple[str, str] = (
-        config.provider.username,
-        config.provider.password,
+        config.telephony.provider.username,
+        config.telephony.provider.password,
     )
     phone_numbers.extend(get_numbers(
         phone_numbers=phone_numbers,
@@ -143,11 +133,13 @@ def voice_start(
         result: Literal["newoutgoing"] = Form(),
 ):
 
+    config: Config = get_config()
     current_call: OngoingCall = ongoing_calls.get_call(callid)
 
     return {
-        "ivr": f"{AUDIO_SRC}/connect-prompt.{current_call.language}.ogg",
-        "next": f"{ROUTER_BASE_URL}/next"
+        "ivr": f"{config.telephony.audio_source}"
+               f"/connect-prompt.{current_call.language}.ogg",
+        "next": f"{config.general.base_url}/phone/next"
     }
 
 
@@ -160,6 +152,8 @@ def next(
         result: int = Form(),
 ):
 
+    config: Config = get_config()
+
     # current_call: OngoingCall = ongoing_calls.get_call(callid)
 
     if result == 1:
@@ -167,15 +161,16 @@ def next(
         # to parlamentarians during development
         # connection_response = {
         #     "connect": current_call.contact.contact,
-        #     "next": f"{ROUTER_BASE_URL}/goodbye",
+        #     "next": f"{config.general.base_url}/phone/goodbye",
         # }
         development_response = {
-            "play": f"{AUDIO_SRC}/success.ogg",
-            "next": f"{ROUTER_BASE_URL}/goodbye",
+            "play": f"{config.telephony.audio_source}/success.ogg",
+            "next": f"{config.general.base_url}/phone/goodbye",
         }
         return development_response
+
     return {
-        "play": f"{AUDIO_SRC}/final-tune.ogg",
+        "play": f"{config.telephony.audio_source}/final-tune.ogg",
     }
 
 
@@ -188,10 +183,11 @@ def goodbye(
         to_nr: str = Form(alias="to"),
         result: Any = Form(),
 ):
+    config: Config = get_config()
     # current_call: OngoingCall = ongoing_calls.get_call(callid)
 
     return {
-        "play": f"{AUDIO_SRC}/final-tune.ogg",
+        "play": f"{config.telephony.audio_source}/final-tune.ogg",
     }
 
 

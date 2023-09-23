@@ -6,7 +6,7 @@ import re
 from typing import Any, ClassVar, Dict, List, Optional, Union, Tuple, Literal
 
 from pydantic import BaseModel, BaseSettings, ConstrainedStr, DirectoryPath, \
-    Field, FilePath, ValidationError, validator
+    Field, FilePath, ValidationError, HttpUrl, validator
 from pydantic.fields import ModelField
 from pydantic.utils import deep_update
 import yaml
@@ -41,6 +41,10 @@ class IPRateLimits(BaseModel):
     large_block_limit: str
 
 
+class GeneralConfig(BaseModel):
+    base_url: HttpUrl
+
+
 class APIRateLimitConfig(BaseModel):
     simple: IPRateLimits
     computational: IPRateLimits
@@ -67,6 +71,7 @@ class ElksConfig(BaseModel):
 class TelephonyConfig(BaseModel):
     sms_verification: SMSVerificationConfig
     provider: ElksConfig
+    audio_source: HttpUrl
 
 
 class ContactTimespanFilterTimespan(BaseModel):
@@ -201,6 +206,7 @@ class Config(BaseModel):
     database: DatabaseConfig
     l10n: L10nConfig
     telephony: TelephonyConfig
+    general: GeneralConfig
 
     _instance: ClassVar[Optional["Config"]] = None
     _patch: ClassVar[Optional[Dict]] = None

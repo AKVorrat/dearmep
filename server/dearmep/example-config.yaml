@@ -14,6 +14,12 @@ campaign:
   # The name of the campaign.
   name: Stop Scanning Me!
 
+general:
+  # The absolute url where this software is to be found
+  # example https://example.com
+  # also accepts IP addresses with or without port
+  base_url: https://example-campaign.com
+
 
 # Database configuration.
 database:
@@ -152,6 +158,10 @@ telephony:
       - "2001:9b0:2:902::199"
       - "127.0.0.1"
       - "::1"
+
+  # absolute Url of audio files which are played in phone calls
+  # also accepts IP addresses with or without port
+  audio_source: "https://campaign.com/audio"
 
 # Localization options.
 l10n:
