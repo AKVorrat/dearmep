@@ -2,7 +2,9 @@ from typing import Any, Callable, Dict, Iterable, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Header, Query, \
     Response, status
+from fastapi.responses import JSONResponse
 from prometheus_client import Counter
+from pydantic import BaseModel
 
 from ..config import Config, Language, all_frontend_strings
 from ..database.connection import get_session
@@ -64,6 +66,10 @@ def destination_to_destinationread(dest: Destination) -> DestinationRead:
             for group in dest.groups
         ],
     })
+
+
+def error_model(status_code: int, instance: BaseModel) -> JSONResponse:
+    return JSONResponse(instance.dict(), status_code=status_code)
 
 
 router = APIRouter()
@@ -275,3 +281,315 @@ def get_suggested_destination(
             raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
         session.commit()
         return destination_to_destinationread(dest)
+
+
+# *** Stubs for describing the API for the frontend. ***
+
+
+import re  # noqa: E402
+from typing import Literal  # noqa: E402
+from pydantic import ConstrainedStr, Field  # noqa: E402
+
+
+# #122: feature/dpp-timestamp
+
+
+class PhoneNumber(ConstrainedStr):
+    regex = re.compile(r"^\+4")  # TODO: mockup constraint
+
+
+class VerificationCode(ConstrainedStr):
+    min_length = 6
+    max_length = 6
+
+
+class LanguageMixin(BaseModel):
+    language: Language = Field(
+        description="The language to use for interactions with the User.",
+        example="de",
+    )
+
+
+class PhoneNumberMixin(BaseModel):
+    phone_number: PhoneNumber = Field(
+        description="The User’s phone number.",
+        example="+491751234567",
+    )
+
+
+class PhoneNumberVerificationRequest(LanguageMixin, PhoneNumberMixin):
+    accepted_dpp: Literal[True] = Field(
+        title="Accepted DPP",
+        description="Whether the User has accepted the data protection "
+        "policy. Must be `true` for the request to succeed.",
+    )
+
+
+class PhoneNumberVerificationResponse(BaseModel):
+    phone_number: PhoneNumber = Field(
+        description="The canocial form of the phone number that has been "
+        "input. Should be used for display purposes in the frontend.",
+        example="+491751234567",
+    )
+
+
+class PhoneNumberNotAllowedResponse(BaseModel):
+    error: Literal["NUMBER_NOT_ALLOWED"] = Field(
+        "NUMBER_NOT_ALLOWED",
+        description="The phone number is well-formed, but not accepted for "
+        "policy reasons. Usually this is because the number is not a mobile "
+        "phone number, from an unsupported country, or uses an unsupported "
+        "prefix.",
+    )
+
+
+class SMSCodeVerificationRequest(PhoneNumberMixin):
+    code: VerificationCode = Field(
+        description="The verification code the User received via SMS.",
+        example="123456",
+    )
+
+
+class SMSCodeVerificationFailedResponse(BaseModel):
+    error: Literal["CODE_VERIFICATION_FAILED"] = Field(
+        "CODE_VERIFICATION_FAILED",
+        description="Either the code did not match the one from the challenge "
+        "SMS message, or there is no challenge running for the supplied phone "
+        "number at all. (For security reasons, it’s not disclosed which one "
+        "of the reasons actually applies.)",
+    )
+
+
+class JWTResponse(BaseModel):
+    access_token: str = Field(
+        description="The JWT that proves ownership over a specific phone "
+        "number. Clients should treat this as an opaque string and not try to "
+        "extract information from it.",
+        example="TW9vcHN5IQo=",
+    )
+    token_type: Literal["Bearer"] = Field(
+        "Bearer",
+        description="Type of the token as specified by OAuth2.",
+    )
+    expires_in: int = Field(
+        description="Number of seconds after which this JWT will expire.",
+        example=3600,
+    )
+
+
+@router.post(
+    "/number-verification/request",
+    operation_id="requestNumberVerification",
+    response_model=PhoneNumberVerificationResponse,
+    responses={
+        **rate_limit_response,  # type: ignore[arg-type]
+        400: {
+            "model": PhoneNumberNotAllowedResponse,
+        },
+    },
+)
+def request_number_verification(request: PhoneNumberVerificationRequest):
+    """Request ownership verification of a phone number.
+
+    This will send an SMS text message with a random code to the given phone
+    number. Provide this code to the _Verify Number_ endpoint to receive a JWT
+    proving that you have access to that number.
+
+    **MOCKUP:** Phone numbers not starting with `+4` are considered invalid.
+
+    **MOCKUP:** Phone numbers starting with `+42` are not allowed. This is to
+    simulate the backend rejecting numbers that are not mobile phone numbers,
+    for example.
+    """
+    if request.phone_number.startswith("+42"):  # TODO: mockup constraint
+        return error_model(
+            status.HTTP_400_BAD_REQUEST, PhoneNumberNotAllowedResponse())
+
+    return PhoneNumberVerificationResponse(
+        phone_number=request.phone_number.strip(),  # TODO: canonicalize
+    )
+
+
+@router.post(
+    "/number-verification/verify",
+    operation_id="verifyNumber",
+    response_model=JWTResponse,
+    responses={
+        **rate_limit_response,  # type: ignore[arg-type]
+        400: {
+            "model": SMSCodeVerificationFailedResponse,
+        },
+    },
+)
+def verify_number(request: SMSCodeVerificationRequest):
+    """Prove ownership of a phone number.
+
+    Provide the random code that has been sent using the _Request Number
+    Verification_ endpoint to receive a JWT proving that you have access to
+    that number.
+
+    **MOCKUP:** All codes except `123456` are invalid.
+    """
+    if request.code != "123456":
+        return error_model(
+            status.HTTP_400_BAD_REQUEST, SMSCodeVerificationFailedResponse())
+
+    return JWTResponse(
+        access_token="asdf",
+        expires_in=3600,
+    )
+
+
+# #125: phonecall
+
+
+from datetime import datetime  # noqa: E402
+import enum  # noqa: E402
+from typing import Union  # noqa: E402
+from fastapi.security import OAuth2PasswordBearer  # noqa: E402
+
+
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl="/api/v1/number-verification/verify")  # TODO: don't hardcode
+
+
+class CallState(str, enum.Enum):
+    """The state of the User’s current call. The meanings of the values are:
+
+    * `NO_CALL`: The User does not have a current call.
+    * `CALLING_USER`: Trying to reach the User.
+    * `IN_MENU`: User has been reached and is currently in the menu.
+    * `CALLING_DESTINATION`: Trying to connect the User to the Destination.
+    * `DESTINATION_CONNECTED`: User and Destination have been connected
+      successfully.
+    * `FINISHED_SUCCESSFULLY`: The call has been finished successfully.
+    * `ABORTED`: The call has been aborted prematurely, e.g. because the User
+      hung up before being connected to the Destination, or because the User
+      was never called due to policy reasons, etc.
+    * `CALLING_USER_FAILED`: Unable to call the User due to an unexpected
+      error. Call never started.
+    * `CALLING_DESTINATION_FAILED`: Unable to call the Destination due to an
+      unexpected error. Call terminated.
+    """
+    NO_CALL = "NO_CALL"
+    CALLING_USER = "CALLING_USER"
+    IN_MENU = "IN_MENU"
+    CALLING_DESTINATION = "CALLING_DESTINATION"
+    DESTINATION_CONNECTED = "DESTINATION_CONNECTED"
+    FINISHED_SUCCESSFULLY = "FINISHED_SUCCESSFULLY"
+    ABORTED = "ABORTED"
+    CALLING_USER_FAILED = "CALLING_USER_FAILED"
+    CALLING_DESTINATION_FAILED = "CALLING_DESTINATION_FAILED"
+
+
+class InitiateCallRequest(LanguageMixin):
+    destination_id: DestinationID = Field(
+        description="The Destination to call.",
+    )
+
+
+class DestinationInCallResponse(BaseModel):
+    error: Literal["DESTINATION_IN_CALL"] = Field(
+        "DESTINATION_IN_CALL",
+        description="The Destination cannot be called right now because "
+        "another User is currently in a call with them. Ask the User to try "
+        "again later.",
+    )
+
+
+class UserInCallResponse(BaseModel):
+    error: Literal["USER_IN_CALL"] = Field(
+        "USER_IN_CALL",
+        description="There is already a call taking place with the User’s "
+        "phone number.",
+    )
+
+
+class OutsideHoursResponse(BaseModel):
+    error: Literal["OUTSIDE_HOURS"] = Field(
+        "OUTSIDE_HOURS",
+        description="The system currently does not allow calls, because the"
+        "Destinations are probably out of office right now. Ask the User to "
+        "try again later.",
+    )
+
+
+class CallStateResponse(BaseModel):
+    state: CallState
+
+
+@router.post(
+    "/call/initiate",
+    operation_id="initiateCall",
+    response_model=CallStateResponse,
+    responses={
+        **rate_limit_response,  # type: ignore[arg-type]
+        503: {
+            "model": Union[
+                DestinationInCallResponse,
+                UserInCallResponse,
+                OutsideHoursResponse,
+            ],
+        },
+    },
+    dependencies=(simple_rate_limit,),
+)
+def initiate_call(
+    request: InitiateCallRequest,
+    token: str = Depends(oauth2_scheme),
+):
+    """
+    Call the User and start an IVR interaction with them.
+
+    Pay attention to the return value. It is possible that the backend refuses
+    to start a call.
+
+    **MOCKUP:** Destinations that start with `5` will be in a call already.
+
+    **MOCKUP:** If the system time is at an odd minute, this endpoint will
+    return “outside office hours”.
+
+    **MOCKUP:** If the token starts with `x`, the endpoint will return that the
+    User already is in a call.
+    """
+    if token.startswith("x"):  # TODO: mockup code
+        return error_model(
+            status.HTTP_503_SERVICE_UNAVAILABLE, UserInCallResponse())
+
+    if datetime.now().minute % 2:  # TODO: mockup code
+        return error_model(
+            status.HTTP_503_SERVICE_UNAVAILABLE, OutsideHoursResponse())
+
+    with get_session() as session:
+        try:
+            query.get_destination_by_id(
+                session,
+                request.destination_id,
+            )
+        except query.NotFound as e:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+
+    if request.destination_id.startswith("5"):  # TODO: mockup code
+        return error_model(
+            status.HTTP_503_SERVICE_UNAVAILABLE, DestinationInCallResponse())
+
+    return CallStateResponse(state=CallState.CALLING_USER)
+
+
+@router.get(
+    "/call/state",
+    operation_id="getCallState",
+    response_model=CallStateResponse,
+)
+def get_call_state(
+    token: str = Depends(oauth2_scheme),
+):
+    """
+    Request the state of the User’s current call.
+
+    **MOCKUP:** This will return `CALLING_USER` or `IN_MENU` only.
+    """
+    tenths = datetime.now().second // 10
+    return CallStateResponse(
+        state=CallState.CALLING_USER if tenths % 2 else CallState.IN_MENU,
+    )
