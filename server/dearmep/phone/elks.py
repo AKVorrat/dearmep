@@ -171,20 +171,9 @@ def next(
     config: Config = get_config()
 
     current_call: OngoingCallRead = ongoing_calls.get_call(callid)
+
     if result == 1:
-
-        number_MEP = current_call.contact.contact
-
-        elks_metrics.inc_start(
-            destination_number=number_MEP,
-            our_number=from_nr
-        )
-        current_call.connected = True
-        connect = {
-            "connect": "+4940428990",
-            "next": f"{config.general.base_url}/phone/goodbye",
-        }
-        return connect
+        return elk_connect(current_call, from_nr)
 
     if result == 5:
 
@@ -206,13 +195,10 @@ def ivr_arguments_playback(
         result: int = Form(),
 ):
     config: Config = get_config()
+    current_call: OngoingCallRead = ongoing_calls.get_call(callid)
 
     if result == 1:
-        connect = {
-            "connect": "+4940428990",
-            "next": f"{config.general.base_url}/phone/goodbye",
-        }
-        return connect
+        return elk_connect(current_call, from_nr)
 
     return {
         "play": f"{config.telephony.audio_source}/final-tune.ogg",
@@ -283,3 +269,27 @@ def hangup(
             )
 
     debug(locals())
+
+
+# reused functions to craft responses to 46 elk
+
+
+def elk_connect(
+    current_call: OngoingCallRead,
+    from_nr: str
+):
+    """ Dict Response to connect an user with a destination """
+
+    config: Config = get_config()
+    number_MEP = current_call.contact.contact
+
+    elks_metrics.inc_start(
+        destination_number=number_MEP,
+        our_number=from_nr
+    )
+    current_call.connected = True
+    connect = {
+        "connect": "+4940428990",
+        "next": f"{config.general.base_url}/phone/goodbye",
+    }
+    return connect
