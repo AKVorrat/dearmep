@@ -172,7 +172,7 @@ l10n:
   # default if the user's browser claims they accept `*` (i.e. "any language").
   # You therefore probably want to make sure that the first value here is
   # identical to the `default_language` set below.
-  languages: [ en, de, sv, fr, da ]
+  languages: [ en, de, sv, fr, da, pt ]
 
   # Which language to fall back to if there is no localized message available
   # for the user's language. Every string defined under `strings` needs to have
@@ -213,6 +213,7 @@ l10n:
       da: "{code} er din verifikationskode for {campaign}. Hvis du tror at du ikke er den rigtige modtager af beskeden, ignorer den bare."
       sv: "{code} är din verifikationkod för {campaign}. Ignorera detta meddelande ifall du tror att du har fått det av misstag."
       fr: "Voici, ton code de vérification pour {campaign}: {code}. Si tu penses avoir reçu ce code par erreur, ignore-le."
+      pt: "O teu código de verificação para a campanha {campaign}: {code}. Se não solicitaste este código, podes ignorá-lo."
 
   frontend_strings:
     # Main title of the campaign.
@@ -223,6 +224,7 @@ l10n:
       sv: Stop Scanning Me! EU vill kolla alla våra privata chattar
       fr: Stop Scanning Me! L'UE veut inspecter tous nos messages personnels.
       da: Stop Scanning Me! EU vil overvågne alle dine chats
+      pt: Stop Scanning Me! A UE quer escutar todas as nossas mensagens privadas.
 
   # Translation strings for the calling-section on the right side of the screen
 
@@ -236,6 +238,7 @@ l10n:
       sv: Starta samtal
       fr: Appeler
       da: Start opkald
+      pt: Fazer chamada
 
     # Sub-text of primary button that lets the user initiate a call now.
     # Currently the intention of this sub-text is to reassure the user that they will not be charged
@@ -246,6 +249,7 @@ l10n:
       sv: Kostnadsfri
       fr: Gratuit
       da: Gratis
+      pt: Grátis
 
     # Main text of the pimrary button that lets the user initiate the actuall call.
     # After this button is clicked an actual phone-call will be set-up.
@@ -255,6 +259,7 @@ l10n:
       sv: Ring
       fr: Appeler maintenant
       da: Ring op
+      pt: Ligar agora
 
     # Sub-text of the primary button that lets the user initiate the actual call.
     # Currently the intention of this sub-text is to reassure the user that they will not be charged
@@ -265,6 +270,7 @@ l10n:
       sv: Kostnadsfri
       fr: Gratuit
       da: Gratis
+      pt: Grátis
 
     # Text of the button that allows the user to schedule a call at a later point in time.
     call.call-later-btn.title:
@@ -273,6 +279,7 @@ l10n:
       sv: Ringa senare
       fr: Appeler à une date plus tard
       da: Ring senere
+      pt: Ligar mais tarde
 
     # Title of the calling-section of the app.
     # This title is displayed in the first step (thus "home") of the calling flow. This means
@@ -286,6 +293,7 @@ l10n:
       sv: Prata med en Europaparlamentariker och få dem att stoppa lagförslaget.
       fr: Contacte ton Membre du Parlement européen. Engaage-toi et convaincs-les de rejeter le project de loi sur le contrôle du chat!
       da: Snak med dine politikere i Europa-Parlamentet. Overbevis dem at stoppe chatcontrolloven!
+      pt: Contacta os teus membros do Parlamento Europeu. Faz ouvir a tua voz e convence-os a parar o ChatControl!
 
     # Description paragraphs of the calling-section of the app.
     # The paragraphs are displayed in the first step (thus "home") of the calling flow. This means
@@ -303,12 +311,14 @@ l10n:
       sv: Du kan ringa nu eller schemalägga dagliga eller veckovisa samtal.
       fr: Tu peux les appeler maintenant ou choisir d'appeler à un autre moment. De plus, il y a la possibilité de faire des appels chaque jour ou chaque semaine.
       da: Du kan ringe nu eller planlægge en daglig/ugentlig opkald.
+      pt: Podes ligar agora ou agendar chamadas diárias ou semanais.
     call.home.descriptions.1.text:
       en: We will always connect you free of charge to the Politican that you are most likely to convince.
       de: Wir werden dich immer kostenlos mit dem Politiker verbinden, der wahrscheinlich am leichtesten zu überzeugen ist.
       sv: Vi kommer alltid att hitta den politikern som du kan övertyga enklast.
       fr: Nous te mettrons en contact gratuitement avec le membre du parlement qui est le plus facile à convaincre pour toi.
       da: Vi vil altid forbinde dig gratis med politikeren som er nemmest at overbevise.
+      pt: Vamos por-te em contacto, gratuitamente, com o membro do Parlamento mais provável de convenceres.
 
   # Translation strings related to the phone number verification step in the frontend
   # This step consists of three sub-steps: "enterNumber", "enterCode", "success"
@@ -321,6 +331,7 @@ l10n:
       sv: Bekräfta ditt telefonnummer
       fr: Vérifier ton numéro de téléphone
       da: Bekræft din telefonnummer
+      pt: Verifica o teu número de telefone
 
     # Short description of the first step (entering number) of the phone number verification.
     # The description is displayed below the title and above the number-field.
@@ -331,6 +342,7 @@ l10n:
       sv: Fyll i ditt telefonnummer så vi kan skicka en bekräftelsekod.
       fr: Entre ton propre numéro de téléphone, s'il te plaît, afin que nous puissions le vérifier en t'envoyant un mot de passe.
       da: Venligst indtast din telefonnummer så at vi kan sende dig en engangskode for at bekræfte din nummer.
+      pt: Introduz o teu número de telefone para te enviarmos um código de confirmação.
 
     # Label that describes the number-input of the first step of the phone number verification
     verification.enterNumber.numberFieldLabel:
@@ -339,6 +351,7 @@ l10n:
       sv: Fyll i ditt telefonnummer
       fr: Entre ton numéro de téléphone
       da: Indtast din telefonnummer
+      pt: Introduz o teu número de telefone
 
     # Text for the mandatory privacy-policy checkbox below the number-input.
     # The placeholder {{ policyLink }} is replaced with an HTML A-Tag linking to the privacy
@@ -349,6 +362,7 @@ l10n:
       sv: Jag har läst {{ policyLink }} och godkänner dem.
       fr: J'ai lu le {{ policylink }} et je l'accepte.
       da: Jeg har læst {{ policyLink }} og accepteret den.
+      pt: Li e aceito a {{ policyLink }}.
 
     # Link-Text of the privacy-policy link which replaces the {{ policyLink }} placeholder of
     # the translation key "verification.enterNumber.policy"
@@ -360,6 +374,7 @@ l10n:
       # given that it will probably be used in a sentence with a definite meaning.
       fr: Règles de confidentialité
       da: Privatlivspolitikken
+      pt: Política de privacidade
 
     verification.enterNumber.policyLinkUrl:
       en: /pages/privacy/en/
@@ -372,6 +387,7 @@ l10n:
       sv: Skicka kod
       fr: Envoyer le code de vérification
       da: Send kode
+      pt: Enviar código
 
     # Short description for the second sub-step of the verification (where the user is supposed to enter the code)
     # The placeholder {{ number }} is replaced with the previosly entered number. This allows the user to check if
@@ -382,6 +398,7 @@ l10n:
       sv: Vi har skickat en kod till {{ number }}. Kolla din telefon.
       fr: Nous t'avons envoyé le code de vérification à {{number}}. Merci de confirmer que le code est bien arrivé.
       da: Venligst tjek din telefon. Vi har sendt koden til {{ number }}.
+      pt: Verifica o teu telefone. Enviámos um código para {{ number }}.
 
     # Description text for the link-button that allowes the user to go one step back and edit the number in order
     # to resend the verification SMS to the correct number.
@@ -391,6 +408,7 @@ l10n:
       sv: Inte ditt nummer?
       fr: Ce n'est pas ton numéro de téléphone?
       da: Ikke din nummer?
+      pt: Número errado?
 
     # Label that describes the form field which is used to enter the verification code that was sent via SMS to the
     # users phone.
@@ -400,6 +418,7 @@ l10n:
       sv: Fyll i koden du fick
       fr: Entre ton code de vérification
       da: Indtast koden
+      pt: Introduz o código
 
     # Button text of the button that allows the user to submit the verification code in order to complete the verification
     # process.
@@ -409,6 +428,7 @@ l10n:
       sv: Verifiera
       fr: Vérifier
       da: Verificer
+      pt: Verificar
 
     # Message that is displayed in the final sub-step of the verification process informing the user of the successfull
     # verification.
@@ -420,6 +440,7 @@ l10n:
       sv: 'Ditt nummer {{ number }} är nu verifierat'
       fr: 'Nous avons réussi à vérifier ton numéro de téléphone: { number }}'
       da: Din nummer {{ number }} er verificeret nu
+      pt: 'Número verificado com sucesso: {{ number }}'
 
   # Translation strings related to the step that shows the user that their call is being set up right now.
 
@@ -430,6 +451,7 @@ l10n:
       sv: Samtalet byggs upp nu
       fr: Ton appel est en cours d'établissement.
       da: Dit opkald klargøres nu
+      pt: A preparar a chamada
 
     # Description of the call-setup-page informing the user that the call is currently being set up meaning their phone
     # is going to ring in the next few seconds.
@@ -443,6 +465,7 @@ l10n:
       sv: Ha din telefon redo. Vi ringer dig omgående för att koppla dig till {{ mep }}.
       fr: Prépare-toi, s'il te plaît. Nous t'appelerons en quelques secondes pour t'enfin connecter avec {{ mep }}.
       da: Hold din telefon parat. Vi vil straks ringe til dig og forbinde dig med {{ mep }}.
+      pt: Prepara-te para atender o telefone. Vamos ligar-te agora e pôr-te em contacto com {{ mep }}.
 
   # Translation strings related to the feedback step that will be displayed as soon as the user is connected to the MEP.
   # This means the feedback can already be entered during the call. This can be helpful for textual notes during the call.
@@ -454,6 +477,7 @@ l10n:
       sv: Återkoppling
       fr: Commentaires
       da: Tilbagemelding
+      pt: Comentários
 
     # Question-text of the first feedback item. The item is a question with four mutually exclusive radio-buttons.
     # The intention of the question is to ask the user whether they believe they were able to convice the MEP.
@@ -463,6 +487,7 @@ l10n:
       sv: Kunde du övertyga motparten?
       fr: As-tu réussi à convaincre la personne qui vous répondait au téléphone?
       da: Har du overbevist din samtalepartner?
+      pt: Conseguiste convencer a pessoa com quem falaste?
 
     # First possible answer indicates a strong yes in the question of whether the MEP was convinced.
     feedback.convincingQuestionFeedback.yes:
@@ -471,6 +496,7 @@ l10n:
       sv: 'Ja'
       fr: 'Oui'
       da: 'Ja'
+      pt: Sim
 
     # Second possible answer indicates more likely yes than no in the question of whether the MEP was convinced.
     feedback.convincingQuestionFeedback.likelyYes:
@@ -479,6 +505,7 @@ l10n:
       sv: Sannoliken
       fr: Probablement oui
       da: sandsynligvis ja
+      pt: Provavelmente sim
 
     # Third possible answer indicates more likely no than yes in the question of whether the MEP was convinced.
     feedback.convincingQuestionFeedback.likelyNo:
@@ -487,6 +514,7 @@ l10n:
       sv: Snarare inte
       fr: Probablement non
       da: Heller ikke
+      pt: Provavelmente não
 
     # Third possible answer indicates a strong no in the question of whether the MEP was convinced.
     feedback.convincingQuestionFeedback.no:
@@ -495,6 +523,7 @@ l10n:
       sv: 'Nej'
       fr: 'Non'
       da: 'Nej'
+      pt: Não
 
     # Checkbox-text for a checkbox that lets the user indicate that there were technical problems during the call.
     feedback.technicalProblemsQuestion:
@@ -503,6 +532,7 @@ l10n:
       sv: Det blev tekniska problem
       fr: Il y avait des difficultés techniques
       da: Der opstod et teknisk problem
+      pt: Houve problemas técnicos
 
     # Label describing a text-area that can be used to enter additional feedback in textual form.
     feedback.additionalFeedbackQuestion:
@@ -511,6 +541,7 @@ l10n:
       sv: Mer återkoppling
       fr: Commentaires supplémentaires
       da: Yderligere bemærkninger
+      pt: Comentários adicionais
 
     # Placeholder for a text-area that can be used to enter additional feedback in textual form.
     feedback.additionalFeedbackPlaceholder:
@@ -519,6 +550,7 @@ l10n:
       sv: Här kan du lämna fler kommentarer kring samtalet. Om du vill prata med oss om din upplevelse, tala om för oss hur vi kan nå dig.
       fr: Si tu as des commentaires supplémentaires, merci de les ajouter ici. Si tu souhaite que nous te contactions, merci de remplir tes coordonnées.
       da: Hvis du har yderligere kommentarer, så skriv dem her. Hvis du vil snakke med os om oplevelsen, angiv også dine kontaktoplysninger.
+      pt: Se tens comentários adicionais, escreve-os aqui. Se quiseres que te contactemos, escreve aqui o teu contacto.
 
     # Submit button that allows the user to send their feedback.
     feedback.submit:
@@ -527,6 +559,7 @@ l10n:
       sv: Skicka
       fr: Envoyer
       da: Send
+      pt: Enviar
 
   # Translation strings related to the section of the MEP-Selection section on the left side of the screen
 
@@ -540,6 +573,7 @@ l10n:
       sv: Välj en annan Europaparlamentariker
       fr: Choisir un autre membre du Parlement européen
       da: Vælg en anden politiker
+      pt: Escolher outro membro do Parlamento
 
     # Label for the select-form-control that lets the user choose a different country for the automatic or
     # manual selection of MEPs
@@ -549,12 +583,15 @@ l10n:
       sv: Land
       fr: Pays
       da: Land
+      pt: País
 
     # Placeholder for the
     select-mep.search.placeholder:
       en: Search
+      de: Suche
       fr: Rechercher
       da: Søg
+      pt: Pesquisar
 
     # Message that shows that no destinations math the entered search-text
     select-mep.autocomplete-empty:
@@ -562,6 +599,7 @@ l10n:
       de: Nicht gefunden
       fr: Aucun résultat n'a été trouvé
       da: Ikke fundet
+      pt: Sem resultados
 
     # Credits displayed below the portrait of the MEP
     # {{ id }} placeholder is replaced with the MEP-ID from the API
@@ -570,6 +608,7 @@ l10n:
       de: Portrait © Europäisches Parlament (<a href="https://www.europarl.europa.eu/meps/en/{{id}}/" target="_blank">source</a>)
       fr: portait © Parlement européen (<a href="https://www.europarl.europa.eu/meps/fr/{{id}}/" target="_blank">source</a>)
       da: Portræt © Europäisches Parlament (<a href="https://www.europarl.europa.eu/meps/en/{{id}}/" target="_blank">kilde</a>)
+      pt: retrato © Parlamento Europeu (<a href="https://www.europarl.europa.eu/meps/pt/{{id}}/" target="_blank">fonte</a>)
 
   # Translation strings for the talking-points that will be displayed during the call or while scheduling a call
 
@@ -580,6 +619,7 @@ l10n:
       sv: Samtalsämnen
       fr: Sujets de discussion
       da: Emner
+      pt: Assuntos
 
     # Enumeration of talking-points. The numeric index in the key can be used to configure an arbirary number of talking-points
     # starting with the index of zero. Example: "talkingPoints.points.0.title" and "talkingPoints.points.0.body".
@@ -597,114 +637,133 @@ l10n:
       sv: Illegal övervakning
       fr: Surveillance illégale
       da: Ulovlig overvågning
+      pt: Vigilância ilegal
     talkingPoints.points.0.body:
       en: The independent research / scrutiny services of the EU Commission, Parliament, Council and data protection supervisor all agree, this law is unconstitutional and would likely not survive the high court. No child is protected, if this law is struck down in court in three years.
       de: Die wissenschaftlichen Dienste von EU-Kommission, Parlament und Rat sowie die Datenschutzbeauftragten sind sich einig, dass dieser Gesetzesvorschlag verfassungswidrig ist und vor dem EuGh nicht bestehen würde.
       sv: EU parlamentets utredningstjänst, kommissionens och ministerrådets rättstjänst och dataskyddsansvariga är eniga om att lagförslaget bryter mot EUs grundlag och skulle sannoliken sågas av högsta domstolen. Inga barn kommer att skyddas om lagen förkastas av EU domstolen om tre år.
       fr: Les rechercheurs indépendants et services de surveillance de la Commission européenne, du Parlement européen, du Conseil européen et le Contrôleur européen de la protection des données sont tous d'accord que ce projet de loi est anticonstitutionnel et a peu de chances à la Cour de justice de l'UE. Les enfants ne sont pas protégés si cette régulation est abolie à la Cour dans trois années.
       da: Videnskabelige tjenester af EU kommissionen, EU parlamentet, Rådet for EU og datatilsynet siger at lovforslaget er grundlovsstridig og at EU domstolen vil sandsynligvis erklære loven for ugyldig.
+      pt: Os investigadores independentes da Comissão Europeia, do Parlamento Europeu, e do Conselho Europeu concordam que a lei é inconstitucional e não passaria no Tribunal Supremo. Não vamos proteger nenhuma criança se a lei for derrubada daqui a três anos.
     talkingPoints.points.1.title:
       en: Magic Technology won't save us
       de: Technische Wundermittel sind nicht die Rettung
       sv: Teknologiskt trolleri är inte räddningen
       fr: La technologie n'est pas un remède miracle
       da: Teknisk trylleri er ikke løsningen
+      pt: Tecnologia mágica não nos vai ajudar
     talkingPoints.points.1.body:
       en: There is no filter technology in the world that can accurately classify these types of illegal content. With the billions of messages Europeans send every day, hundreds of millions of legal messages would be read by an unintended recipient. Legal speech would be suppressed on a massive scale.
       de: Keine Filtertechnologie der Welt kann diese Art illegaler Inhalte zuverlässig klassifizieren. Selbst bei optimistischen Fehlerraten im einstelligen Prozentbereich würden in Anbetracht von Milliarden täglicher Nachrichten hunderte Millionen harmloser Nachrichten bei nicht-Adressaten landen. In unerhörtem Umfang würde freie Rede behindert.
       sv: Det finns ingen filterteknologi som på ett pålitligt sätt identifierar den här typen av olagligt innehåll. Det skickas miljarder meddelanden varje dag, så polisen skulle översvämmas med hundramiljontals helt oskyldiga meddelanden. Yttrandefriheten skulle begränsas kolossalt.
       fr: Il n'y a pas une technique de filtrage dans tout le monde qui est capable de trouver fiablement ce type de contenu illégal. En Europe, ce sont quelques milliards de messages qui sont partagés tous les jours. Ce seront quelque cent millions des messages légaux qui seront envoyés à la police due à des détections erronées. Par conséquent, le discours juridique serait supprimé sur une échelle massive.
       da: Der findes ingen teknologi i hele verden som kan pålideligt klassificere disse illegale indhold. Milliarder af beskeder sendes hver dag i EU og en masse af legale beskeder vil blive markeret som mistænkeligt og bliver videresendt til nogle ikke vedkommende. Det er en massivt krænkelse af frie og private samtaler.
+      pt: Não existe nenhuma tecnologia no mundo que consiga classificar correctamente estes tipos de conteúdo ilegal. Com os milhares de milhões de mensagens que os Europeus enviam todos os dias, centenas de milhões de mensagens legais seriam lidas por terceiros. Estaríamos a oprimir a expressão legal de europeus a uma escala maciça.
     talkingPoints.points.2.title:
       en: Chat control does not protect children
       de: Chatkontrolle schützt Kinder nicht
       sv: Chatkontroll skyddar inte barnen
       fr: Le contrôle du chat ne protège pas les enfants
       da: Chatkontrol beskytter ingen børn
+      pt: O ChatControl não protege as crianças
     talkingPoints.points.2.body:
       en: This chat control law lacks evidence that it would improve the situation of victims. Instead of pouring money into expensive surveillance technologies that don't work, the EU should promote prevention, education and victim protection measures. The EU Commission is preventing meaningful solutions by its narrow focus on surveillance technology as a supposed panacea for complex social problems.
       de: Es gibt keinerlei Nachweise, dass dieses Gesetz die Situation der Opfer wesentlich verbessern würde. Statt Gelder in teure, fehleranfällige Überwachungstechniken zu stecken, sollte die EU Maßnahmen zur Aufklärung und zum Opferschutz fördern. Mit ihrem engen Fokus auf Überwachungstechnologie als Allheilmittel verhindert die EU sinnvolle Lösungsansätze für komplexe soziale Probleme.
       sv: Det saknas bevis för att  chatkontroll kommer att på ett väsentligt sätt förbättra offrens situation. Istället för att lägga pengar på dyra, verkningslösa övervakningsteknologier, EU borde främja utbildning och andra förebyggande åtgärder. Kommissionen förhindrar effektiva åtgärder genom att satsa enbart på övervakning som ett medel mot komplexa sociala problem.
       fr: Ce projet de loi manque des épreuves vis à sa fonction d'améliorer la situation des victimes. À la place d'investir des grands sommes en techniques de surveillance sujette aux bogues, elle devrait favoriser et financer les projets sur les mesures de l'éducation, de la prévention et de la protection. La Commission européenne empêche que les solutions efficaces s'établissent en seulement considérant la surveillance comme solution véritable pour les problèmes sociaux et complexes.
       da: Der findes ingen bevis for at chatcontrol vil faktisk forbedre ofrenes situation. I stedet for at spilde penge for dyr og dårlig overvågningsteknologi, skulle EU styrke initiativer som laver forebyggelse mod børnemisbrug og som beskytter ofre. Den snævre fokus på overvågningsteknologi som løsning af komplekse sociale problemer er den forkerte vej.
+      pt: Não há evidências de que a lei do ChatControl melhoraria a situação das vítimas. Em vez de atirar dinheiro para tecnologias de vigilâncias que não funcionam, a UE deve promover medidas de prevenção, de educação e de protecção de vítimas. A Comissão Europeia está a impedir soluções viáveis ao se focar completamente em tecnologias de vigilância como se fossem uma solução milagrosa para problemas sociais complexos.
     talkingPoints.points.3.title:
       en: Police will be overwhelmed with false positives
       de: Massenweiser Falschalarm überlastet die Polizei
       sv: Falska larm vill överlasta polisen
       fr: La police sera débordée avec les détections erronées
       da: Politiet vil være overbelastet på grund af falsk alarm
+      pt: A polícia vai ser inundada com falsos positivos.
     talkingPoints.points.3.body:
       en: Evidence shows that these tools already routinely flag lawful images such as family beach photos or consensual adult content. Police already can't handle the case load and with these new automated tools million more false positives would end up on their desks. That will take valuable time and resources away from investigating actual perpetrators.
       de: Nachweislich kennzeichnen diese Tools routinemäßig rechtmäßige Bilder wie Familienfotos vom Strand oder einvernehmlich geteilte sexuelle Inhalte in Konversationen zwischen Erwachsenen. Schon heute kann die Polizei nicht allen Anzeigen nachgehen. Täglich Millionen neuer Anzeigen aufgrund überwiegend falscher Verdachtsfälle würden die Behörden lahmlegen und wertvolle Ressourcen für tatsächliche Strafverfolgung stehlen.
       sv: Det finns bevis för att dessa verktyg rutinmässigt flaggar helt lagliga bilder, t.ex. familjefoton från stranden eller samtyckesinnehåll för vuxna. Redan idag är polisen helt överlastad. Miljontals nya anmälningar dagligen på grund av den höga felkvoten skulle översvämma myndigheterna och stjäla värdefulla resurser som hade behövts för att få fast dem verkliga bovarna.
       fr: Il y a déjà évidence que ces outils techniques régulièrement marquent des photos légales comme des photos d'une famille à la plage ou du contenu consensuel adulte. La police n'a pas déjà la capacité de s'occuper de tous ces cas et avec l'implementation d'un outil automatique ils auront plusieurs millions des détections erronées de s'occuper. Ce temps investi en travailler avec les fausses détections serait perdu pour investiguer les vrais criminels.
       da: Den nuværende teknologi klassificerer lovlige familiebilleder fra stranden tit forkert. Det samme gælder for legale seksuelle indhold som deles bland seksuelle partnere. Politiet har allerede problemer med at håndtere den nuværende mængde af anmeldeser. Chatcontrol vil kræve endnu mere resurser som ikke står til rådighed for at bekæmpe reelt børnemisbrug.
+      pt: As evidências mostram que estas ferramentas denunciam sistematicamente imagens legais, como fotos de família na praia ou conteúdo adulto consensual. A polícia já não consegue lidar com todos os casos que recebe, e estas novas ferramentas automáticas adicionarão milhões de falsos positivos ao seu trabalho. Isto consumirá tempo e recursos que podiam ser gastos a investigar criminosos reais.
     talkingPoints.points.4.title:
       en: False positives endanger innocent people
       de: Fehlalarme gefährden Unschuldige
       sv: Oskyldiga utsätts för falska larm
       fr: Les détections erronées posent un danger aux personnes innocentes
       da: Falske alarmer er til fare for uskyldige borgere
+      pt: Falsos positivos põe em perigo pessoas inocentes
     talkingPoints.points.4.body:
       en: There are already documented cases in which voluntary chat control by companies has led to suspicion reports against innocent people. For example, several people have pursued court cases in the EU because they were permanently locked out of all their digital accounts following an accusation of sharing abuse material - despite the subsequent investigation clearing them of any wrongdoing. With chat control, such false suspicions would happen every day.
       de: Es gibt bereits bekannte Fälle in denen freiwillige Chatkontrolle durch Unternehmen zu Anzeigen gegen unschuldige Nutzer geführt hat. So haben beispielsweise mehrere Personen in der EU vor Gericht geklagt, weil sie nach einer Beschuldigung, Missbrauchsmaterial geteilt zu haben, dauerhaft aus allen ihren digitalen Konten ausgesperrt wurden - obwohl die anschließende Untersuchung sie von jeglichem Fehlverhalten freisprach. Mit verpflichtender Chatkontrolle würden derartige Fehlalarme ständig passieren.
       sv: Redan idag finns det kända fall där oskyldiga användare pekas ut som kriminella av företag som använder frivillig chatkontroll. Till exempel behövde flera personer driva domstolsprocesser i EU efter att de permanent låsts ut från alla sina digitala konton i samband med en anklagelse om att ha delat övergreppsmaterial - trots att den efterföljande utredningen friade dem från alla felaktigheter. Med chatkontroll, vi kan vänta oss den typen av falska larm hela tiden.
       fr: Chez quelques entreprises l'implementation d'un contrôle du chat volontaire a mené aux rapports de soupçon des personnes innocentes. Par exemple, y avait-il des procédures judiciaires nombreuses dans l'UE où les personnes étaient refuser l'accès à leurs comptes numériques car ils étaient soupçonnés d'avoir partagé du contenu d'abus. Malgré que les investigations révélaient qu'ils étaient innocents dans le cas. Avec le contrôle du chat mis en place, ces accusations seraient le quotidien.
       da: Der findes allerede tilfælde hvor frivilig chatcontrol har medført at uskyldige blev sigtet. Disse uskyldige har tabt adgangen til deres digitale kontoer på grund af fejlidentifikationen. Selvom de blev erklæret uskyldige, var de nødt til at føre en retssag på EU niveauet mod virksomheder for at får adgangen til deres digitale kontoer tilbage. Den forpligtende chatcontrolle vil føre til at det vil ske endnu hyppigere.
+      pt: Já há casos documentados em que sistemas de vigilância implementados voluntariamente por empresas levou a queixas contra pessoas inocentes. Por exemplo, várias pessoas foram a tribunal na UE porque foram impedidas de aceder às suas contas de serviços digitais como consequência de serem acusadas de partilharem material de exploração de menores - mesmo após a investigação as ilibar de qualquer crime. Com o ChatControl, estas queixas em falso aconteceriam todos os dias.
     talkingPoints.points.5.title:
       en: Encryption is the precondition for privacy, security and trust online
       de: Verschlüsselung ist Voraussetzung für Privatsphäre, Sicherheit und Vertrauen im Netz
       sv: Kryptering som förutsättning för privatsfär, säkerhet och tillit på nätet
       fr: Le chiffrement est la condition préalable à la confidentialité, à la sécurité et à la confiance en ligne
       da: Kryptering er en forudsætning for privatliv, sikkerhed og tillid online
+      pt: Encriptação das comunicação é necessária para haver privacidade, segurança e confiança online
     talkingPoints.points.5.body:
       en: If encryption is broken for one use case it is broken for all of society. We cannot take the right to secure and private communication away from just a few bad actors. If private messaging or cloud hosting services have to scan the messages of their users, they need to be able to circumvent the protections that right now make such scanning impossible. Intelligence agencies but also criminals are the main beneficiaries of a world in which no online communication can be trusted.
       de: Wenn Verschlüsselung für diesen Anwendungsfall ausgehebelt wird, ist sie für die gesamte Gesellschaft verloren. Es ist nicht möglich, lediglich den Verbrechern das Recht auf sichere und vertrauliche Kommunikation zu entziehen. Wenn Dienstleister für private Kommunikation oder Cloud-Speicher verpflichtet sind die Nachrichten ihrer Anwender zu scannen, müssen sie zwangsläufig den Schutz dieser Nachrichten umgehen. Neben Nachrichtendiensten ist vor allem die organisierte Kriminalität Gewinner in einer Welt, in der Kommunikation im Netz nicht mehr vertraut werden kann.
       sv: Försvagar man kryptering så drabbar detta hela samhället, inte bara dem kriminella som man egentligen vill åt. Om företag är tvungna att undersöka sina kunders meddelanden eller filer som sparas i molnet så måste de kringgå skyddet som krypteringen erbjuder. Underrättelsetjänster men framförallt organiserad brottslighet gynnas mest i en värld där en säker kommunikation på nätet blir omöjlig.
       fr: Si le chiffrement est cassé une fois, c'est cassé pour tous les jours à venir. On ne peut pas contourner le droit à une communication confidentielle et sécurisée à quelques mauvais acteurs. L'implémentation d'une telle technique de surveillance fera sauter toutes les précautions qui sont actives en ce moment pour rendre impossible la surveillance comme celle-ci proposée dans la regulation. Les services de rensignement et les criminels profitent également d'un monde ou la communication confidentielle est effectivement abolie.
       da:  Det er umuligt at kun fratage retten til sikker kommunikation fra forbrydere uden at påvirke resten af samfundet. Hvis tjenester for private kommunikation og cloud storage er forpligtet til at scanne beskeder og filer ejet af deres kunder, så er de nødt til at svække krypteringen for alle. Det gavner efterretningstjenester og organiserede kriminalitet mest hvis vi lever i en verden hvor man kan ikke stole på fortrolighed af kommunikationen.
+      pt: Se a encriptação for ultrapassada para um caso de uso, é ultrapassada para toda a sociedade. Não podemos tirar às pessoas o direito a comunicações seguras e privadas por causa de alguns criminosos. Se os serviços de comunicação ou alojamento na núvem tiverem de monitorizar as mensagens todas dos seus utilizadores, terão de desactivar as protecções que hoje em dia impedem que essa monitorização seja feita. Quem benificiará num mundo onde nenhuma comunicação online possa ser confiada serão os serviços de espionagem e criminosos.
     talkingPoints.points.6.title:
       en: Threats to professional secrecy
       de: Gefährdung des Berufsgeheimnisses
       sv: Yrken med tystnadsplikt hotas
       fr: Menacnes contre les secrets professioneels
       da: Trusler mod professionel fortrolighed
+      pt: Ameaças ao sigilo profissional
     talkingPoints.points.6.body:
       en: The analog equivalent of the current proposal would be, among other things, that  a machine in our home reads our letters before we put them in the envelope, and sends them to private moderators and police when they predict anything seems suspicious. Except that we communicate and reveal much more about ourselves and our contacts online than we do with letters. Some professions are bound to secrecy for good reasons, e.g. doctors, lawyers and journalists. Chat control threatens the protection of such professional secrets that are important for our democratic societies.
       de: Die Entsprechung zum aktuellen Vorschlag in der analogen Welt wäre ein Gerät, das jeden Brief liest bevor wir ihn in einen Umschlag stecken, und bei "verdächtigem" Inhalt private Moderatoren und die Polizei informiert. Nur dass wir online viel mehr über uns verraten als in Briefen. Das betrifft besonders auch Ärzte, Rechtsanwälte und Journalisten. Für diese Berufe gibt es aus gutem Grund ein Berufsgeheimnis, das essentiell für unsere demokratische Gesellschaft ist.
       sv: 'Tänker man sig en liknelse till chatkontroll i den analoga världen så vore det  en maskin som läser samtliga brev innan de läggs i ett kuvert, och att maskinen skickar vidare breven till polisen så snart den tror sig ha hittat "misstänkt" innehåll. Bara att vi berättar så mycket mer om oss idag i vår kommunikation på nätet. Vissa yrken skulle drabbas särskilt hårt av en lag om chatkontroll: Advokater, läkare med tystnadsplikt, journalister som vill skydda sina källor. Att undergräva deras rätt till förtrolig kommunikation utgör ett massivt hot mot vårt demokratiskt samhälle.'
       fr: L'équivalent analogique du projet de loi en question serait par exemple une machine qui lit nos lettres avant que nous les mettions dans l'enveloppe. Le contenu dans nos lettres sera envoyé aux inspecteurs secrets et à la police si cette machine voit quelque chose de suspecte. D'ailleurs, notre communication en ligne révèle beaucoup plus sur nous et nos contacts qu'une lettre jamais pourrait faire. De plus, à côté de notre besoin de la confidentialité naturelle, certaines professions sont dépendantes de la confidentialité. Ça s'applique notamment pour les docteurs, les avocats et les journalistes. Le contrôle du chat est une menace exemplaire pour ces professions qui sont de plus importants pour nos sociétés démocratiques.
       da: Den analoge ækvivalent til den nuværende lovforslag ville være, bland andet, en maskine i vores hjem som læser alle vores breve før vi lægger dem i en kuvert. Maskinen ville sende en kopi af brevet til moderatorer og politiet hvis maskinen tror at den har fundet noget mistænkeligt. Men vores onlinekommunikation indeholder langt mere informationer om os end vores breve. Nogle professioner som fx. advokater, læger og journalister har særlige behov for fortrolighed. Chatcontrol truer den professionelle fortrolighed som er meget vigtigt i vores demokratisk samfund.
+      pt: Uma analogia possível a esta proposta é instalar uma máquina nas nossas casas que lê toda a nossa correspondência antes de ser posta no envelope e que envia a um conjunto de moderadores privados e agentes da polícia quando algo parece suspeito. Com a agravante que nós comunicamos e revelamos muito mais sobre nós e os nossos contactos online do que fazemos com cartas postais. Algumas profissões estão vinculadas pelo sigilo profissional por bons motivos, p.e. médica/os, advogada/os, e jornalistas. O ChatControl ameaça a protecção do sigilo profissional, que é importante para a nossa democracia.
     talkingPoints.points.7.title:
       en: Setting a bad example globally
       de: Schlechte Vorbildwirkung weltweit
       sv: EU som dålig förebild
       fr: Donner un mauvais exemple à l'échelle globale
       da: EU bliver et dårlig forebillede
+      pt: Dar um mau exemplo a nível global
     talkingPoints.points.7.body:
       en: The GDPR has shown that the European Union can set global standards that other parts of the world will follow. If this legislation is passed, the European Union is giving authoritarian governments around the world an excuse to implement mass surveillance plans with a similar design. Such a surveillance infrastructure can easily be misused for other purposes once it has been created.
       de: Die DSGVO hat gezeigt, dass die EU weltweit Standards setzen kann, denen andere Teile der Welt folgen. Falls die Gesetzgebung zur Chatkontrolle angenommen wird, bietet die EU autoritären Regimen eine Ausrede, ähnliche Maßnahmen zur Massenüberwachung einzuführen. Wenn einmal vorhanden, kann eine derartige Überwachungsinfrastruktur leicht für andere Zwecke missbraucht werden.
       sv: GDPR har visat att lagar som införs i EU kan vara förebild för länder utanför unionen. Ifall lagen om chatkontroll antas är det en fantastisk ursäkt för auktoritära regimer världen för att installera liknande åtgärder för massövervakning. En gång på plats, kan infrastrukturen användas för alla möjliga andra syften.
       fr: Le RGPD a montré que l'UE peut servir de modèle au monde en établissant des standards qu'autres pays dans tout le monde essaient à suivre. Si l'UE implémentera cette regulation, elle donnait une excuse aux régimes totalitaires autour du monde pour implementer des systèmes de surveillance similaires. Un tel système se présente avec un grand potentiel d'abus une fois établi.
       da: GDPR har vist at den europæiske union kan sætte standarder som bliver til et forebillede i resten af verden. Hvis loven bliver vedtaget så har autoritære stater muligheden til at pege til EU for at indføre lignende masseovervågning. Overvågningsinfrastrukturen kan også nemt misbruges for andre formål.
+      pt: O RGPD mostrou que a União Europeia pode definir normas globais que outras partes do mundo seguirão. Se o ChatControl for aprovado, a União Europeia está a dar uma desculpa aos governos autoritários do mundo inteiro para implementar vigilância em massa semelhantes. Com esta infrastrutura implementada, facilmente pode ser abusada para outros propósitos.
     talkingPoints.points.8.title:
       en: Putting people’s personal devices at risk
       de: Gefährdet die Sicherheit mobiler Endgeräte
       sv: Utsätter mobila enheter för större risker
       fr: Mettre en danger les appareils personnels
       da: Truer sikkerheden af mobil IT udstyr
+      pt: Por em risco os nossos aparelhos pessoais
     talkingPoints.points.8.body:
       en: There is consensus from the tech community that technologies to scan encrypted messages are unsafe and create dangerous vulnerabilities in our personal devices. This could put victims of domestic partner violence and child abuse at greater risk of cyber stalking and violence, and journalists, politicians and activists at greater risk of illegal spyware being put on their phones.
       de: In der Tech-Community herrscht Konsens, dass Technologien zum Scannen verschlüsselter Nachrichten unsicher sind und gefährliche Schwachstellen in unseren Geräten schaffen. Dies setzt Opfer häuslicher Gewalt oder Kindesmissbrauchs der Gefahr des Cyber-Stalkings aus und erhöht das Risiko für Journalisten, Politiker oder Aktivisten, dass ihre Geräte ausgespäht werden.
       sv: Inom tech communityn råder det samförstånd att teknologier som kan läsa krypterade meddelanden skapar farliga sårbarheter i våra mobila enheter. Offer för våld i nära relationer och barnmisshandel löper då större risk för cyberstalking, och journalister, politiker och aktivister riskerar i ännu större utsträckning att få spionprogram installerade på sina telefoner.
       fr: Dans la communauté technique on est d'accord que les techniques utilisées pour inspecter la communication chiffrée ne sont pas sécurisées, ni digne de confiance car ils établissent des vulnérabilités dangereuses dans nos appareils personnels. Comme conséquence, le risque du cyber-harcèlement et violence augmentera chez les victimes  d'une relation violente ou chez les enfants abusés. De plus, la probabilité d'infiltration des appareils personnels avec l'espiogiciel augmentera chez les politiciens, journalistes et activistes.
       da: Technologieksperter er enige om at at det skaber usikkerhed når man scanner krypterede beskeder. Det er farligt for ofre af vold og misbrug fordi det øger risikoen for cyberstalking. Det øger også risikoen for at journalister, politikere og aktivister får deres mobiler hacket
+      pt: Na comunidade técnica há um consenso que as tecnologias de monitorizar mensagens encriptadas são inseguras e criam vulnerabilidades perigosas nos nossos aparelhos pessoais. Isto pode aumentar o risco de as vítimas de abuso doméstico e infantil sofrerem cyberstalking e violência, assim como põe as classes jornalistas, políticas e activistas em risco de serem espiadas através dos seus telefones.
     talkingPoints.moreArgumentsHtml:
-      en: <a href="https://edri.org/wp-content/uploads/2023/05/CSAR-summary-booklet.pdf>"More Arguments</a>
-      de: <a href="https://edri.org/wp-content/uploads/2023/05/CSAR-summary-booklet.pdf>"Mehr Argumente</a>
-      sv: <a href="https://edri.org/wp-content/uploads/2023/05/CSAR-summary-booklet.pdf>"Fler argument</a>
-      fr: <a href="https://edri.org/wp-content/uploads/2023/05/CSAR-summary-booklet.pdf>"Fler arguments</a>
-      da: <a href="https://edri.org/wp-content/uploads/2023/05/CSAR-summary-booklet.pdf>"Flere argumenter</a>
+      en: <a href="https://edri.org/wp-content/uploads/2023/05/CSAR-summary-booklet.pdf">More Arguments</a>
+      de: <a href="https://edri.org/wp-content/uploads/2023/05/CSAR-summary-booklet.pdf">Mehr Argumente</a>
+      sv: <a href="https://edri.org/wp-content/uploads/2023/05/CSAR-summary-booklet.pdf">Fler argument</a>
+      fr: <a href="https://edri.org/wp-content/uploads/2023/05/CSAR-summary-booklet.pdf">Fler arguments</a>
+      da: <a href="https://edri.org/wp-content/uploads/2023/05/CSAR-summary-booklet.pdf">Flere argumenter</a>
+      pt: <a href="https://edri.org/wp-content/uploads/2023/05/CSAR-summary-booklet.pdf">Mais argumentos</a>
 
   # Translation strings for the language switcher component
 
@@ -723,6 +782,7 @@ l10n:
     languages.sv: Svenska
     languages.fr: Français
     languages.da: Dansk
+    languages.pt: Português
 
   # Footer text of the app.
   # Html formatting is allowed in this string.
@@ -737,6 +797,8 @@ l10n:
       fr: <a href="https://dearmep.eu" target="_blank">DearMEP</a>&nbsp;powered by&nbsp;
       da: <a href="https://dearmep.eu" target="_blank">DearMEP</a>&nbsp;powered by&nbsp;
           <a href="https://en.epicenter.works" target="_blank">Epicenter.works</a>
+      pt: <a href="https://dearmep.eu" target="_blank">DearMEP</a>&nbsp;powered by&nbsp;
+          <a href="https://en.epicenter.works" target="_blank">Epicenter.works</a>
 
   # Translation strings for the call-scheduling section of the app.
 
@@ -746,12 +808,14 @@ l10n:
       sv: Schemalägg samtal
       fr: Trouver un date pour appeler
       da: Planlæg et opkald
+      pt: Agendar uma chamada
     schedule.description:
       en: 'Plan now to talk to a politican later! Select a day and time:'
       de: 'Wähle jetzt Tag und Uhrzeit für dein Gespräch mit einem Politiker:'
       sv: 'Välj dag och tid för ditt samtal med en Europaparlamentariker:'
       fr: "Quand voudrais-tu appeler un membre du Parlement européen? Ajoute un jour et temps, s'il te plaît."
       da: Vælg et senere tidspunktet for din samtale med en politiker nu
+      pt: 'Agenda falar com um membro do Parlamento! Escolhe o dia e a hora:'
     schedule.scheduleAsText:
       en: We will give you a ring every {{ timeSlots }} at your number to connect you
         with a politician from {{ country }}.
@@ -759,12 +823,14 @@ l10n:
       sv: Vi kommer att ringa dig varje {{ timeSlots }} på ditt nummer för att koppla dig till en Europaparlamentariker från {{ country }}.
       fr: Nous t'appelerons tous les {{ timeSlots }} à ton numéro pour te mettre en contact avec un membre du Parlement européen du / de la {{ country }}.
       da: Vi vil ringe til dig hver {{ timeSlots }} med dit nummer for at forbinde dig med en politiker fra {{ country }}
+      pt: Vamos ligar para o teu número a cada {{ timeSlots }} para te por em contacto com um membro do Parlamento Europeu de {{ country }}.
     schedule.timeSlot:
       en: "{{ dayOfWeek }} around {{ time }}"
       de: "{{ dayOfWeek }} um {{ time }}"
       sv: "{{ dayOfWeek }} klockan {{ time }}"
       fr: "{{ dayOfWeek }} à {{ time }}"
       da: "{{ dayOfWeek }} klokken {{ time }}"
+      pt: "{{ dayOfWeek }} às {{ time }}"
 
     # Long-Names of the seven weekdays.
     # The inxex is zero-based and ordered according to the semantics of 'Date.getDay()' in JavaScript.
@@ -776,42 +842,49 @@ l10n:
       sv: söndag
       fr: Dimanche
       da: søndag
+      pt: domingo
     schedule.days.1:
       en: Monday
       de: Montag
       sv: måndag
       fr: Lundi
       da: mandag
+      pt: segunda-feira
     schedule.days.2:
       en: Tuesday
       de: Dienstag
       sv: tisdag
       fr: Mardi
       da: tirdag
+      pt: terça-feira
     schedule.days.3:
       en: Wednesday
       de: Mittwoch
       sv: onsdag
       fr: Mercredi
       da: onsdag
+      pt: quarta-feira
     schedule.days.4:
       en: Thursday
       de: Donnerstag
       sv: torsdag
       fr: Jeudi
       da: torsdag
+      pt: quinta-feira
     schedule.days.5:
       en: Friday
       de: Freitag
       sv: fredag
       fr: Vendredi
       da: fredag
+      pt: sexta-feira
     schedule.days.6:
       en: Saturday
       de: Samstag
       sv: lördag
       fr: Samedi
       da: lørdag
+      pt: sábado
 
     # Short-Names of the seven weekdays.
     # Ideally two-letter abbreviations of the weekdays should be used.
@@ -825,42 +898,49 @@ l10n:
       sv: sön
       fr: Dim
       da: søn
+      pt: dom
     schedule.days-short.1:
       en: Mo
       de: Mo
       sv: mån
       fr: Lun
       da: man
+      pt: seg
     schedule.days-short.2:
       en: Tu
       de: Di
       sv: tis
       fr: Mar
       da: tis
+      pt: ter
     schedule.days-short.3:
       en: We
       de: Mi
       sv: ons
       fr: Mer
       da: ons
+      pt: qua
     schedule.days-short.4:
       en: Th
       de: Do
       sv: tor
       fr: Jeu
       da: tor
+      pt: qui
     schedule.days-short.5:
       en: Fr
       de: Fr
       sv: fre
       fr: Ven
       da: fre
+      pt: sex
     schedule.days-short.6:
       en: Sa
       de: Sa
       sv: lör
       fr: Sam
       da: lør
+      pt: sáb
 
     # Main text of the primary button that lets the user save the configured schedule.
     schedule.schedule-btn.title:
@@ -869,6 +949,7 @@ l10n:
       sv: Bekräfta
       fr: Confirmer
       da: Bekræft
+      pt: Confirmar
 
     # Sub-text of the primary button that lets the user save the configured schedule.
     # Currently the intention of this sub-text is to reassure the user that they will not be charged
@@ -879,6 +960,7 @@ l10n:
       sv: Kostnadsfri
       fr: Gratuit
       da: Gratis
+      pt: Grátis
 
     # Text to hint the time-zone of the displayed times.
     # This is usually the currently selected time-zone of the browser.
@@ -890,6 +972,7 @@ l10n:
       sv: 'Tid: {{ zone }}'
       fr: 'Temps: {{ zone }}'
       da: 'Tid: {{ zone }}'
+      pt: 'Fuso horário: {{ zone }}'
 
   # Names of all countries available for selection
   # Make sure to use two-letter ISO country codes (ISO-3166) in the keys.
@@ -899,42 +982,49 @@ l10n:
       sv: Belgien
       fr: Belgique
       da: Belgien
+      pt: Bélgica
     countries.BG:
       en: Bulgaria
       de: Bulgarien
       sv: Bulgarien
       fr: Bulgarie
       da: Bulgarien
+      pt: Bulgária
     countries.CZ:
       en: Czechia
       de: Tschechien
       sv: Tjeckien
       fr: Tchéquie
       da: Tjekkiet
+      pt: Chéquia
     countries.DK:
       en: Denmark
       de: Dänemark
       sv: Danmark
       fr: Danemark
       da: Danmark
+      pt: Dinamarca
     countries.DE:
       en: Germany
       de: Deutschland
       sv: Tyskland
       fr: Allemagne
       da: Tyskland
+      pt: Alemanha
     countries.EE:
       en: Estonia
       de: Estland
       sv: Estland
       fr: Estonie
       da: Estland
+      pt: Estónia
     countries.IE:
       en: Ireland
       de: Irland
       sv: Irland
       fr: Irlande
       da: Irland
+      pt: Irlanda
     countries.GR:
       en: Greece
       de: Griechenland
@@ -942,120 +1032,140 @@ l10n:
       fr: Grèce
       gr: Ελλάδα
       da: Grækenland
+      pt: Grécia
     countries.ES:
       en: Spain
       de: Spanien
       sv: Spanien
       fr: Espagne
       da: Spanien
+      pt: Espanha
     countries.FR:
       en: France
       de: Frankreich
       sv: Frankrike
       fr: France
       da: Frankrig
+      pt: França
     countries.HR:
       en: Croatia
       de: Kroatien
       sv: Kroatien
       fr: Croatie
       da: Kroatien
+      pt: Croácia
     countries.IT:
       en: Italy
       de: Italien
       sv: Italien
       fr: Italie
       da: Italien
+      pt: Itália
     countries.CY:
       en: Cyprus
       de: Zypern
       sv: Cypern
       fr: Chypre
       da: Cypern
+      pt: Chipre
     countries.LV:
       en: Latvia
       de: Lettland
       sv: Lettland
       fr: Lettonie
       da: Letland
+      pt: Letónia
     countries.LT:
       en: Lithuania
       de: Litauen
       sv: Litauen
       fr: Lituanie
       da: Litauen
+      pt: Lituânia
     countries.LU:
       en: Luxembourg
       de: Luxemburg
       sv: Luxemburg
       fr: Luxembourg
       da: Luxembourg
+      pt: Luxemburgo
     countries.HU:
       en: Hungary
       de: Ungarn
       sv: Ungern
       fr: Hongrie
       da: Ungarn
+      pt: Hungria
     countries.MT:
       en: Malta
       de: Malta
       sv: Malta
       fr: Malte
       da: Malta
+      pt: Malta
     countries.NL:
       en: Netherlands
       de: Niederlande
       sv: Nederländerna
       fr: Pays-Bas
       da: Holland
+      pt: Países Baixos
     countries.AT:
       en: Austria
       de: Österreich
       sv: Österrike
       fr: Autriche
       da: Østrig
+      pt: Áustria
     countries.PL:
       en: Poland
       de: Polen
       sv: Polen
       fr: Pologne
       da: Polen
+      pt: Polónia
     countries.PT:
       en: Portugal
       de: Portugal
       sv: Portugal
       fr: Portugal
       da: Portugal
+      pt: Portugal
     countries.RO:
       en: Romania
       de: Rumänien
       sv: Rumänien
       fr: Roumanie
       da: Rumænien
+      pt: Roménia
     countries.SI:
       en: Slovenia
       de: Slowenien
       sv: Slovenien
       fr: Slovénie
       da: Slovenien
+      pt: Eslovénia
     countries.SK:
       en: Slovakia
       de: Slowakei
       sv: Slovakien
       fr: Slovaquie
       da: Slovakiet
+      pt: Eslováquia
     countries.FI:
       en: Finland
       de: Finnland
       sv: Finnland
       fr: Finlande
       da: Finland
+      pt: Filândia
     countries.SE:
       en: Sweden
       de: Schweden
       sv: Sverige
       fr: Suède
       da: Sverige
+      pt: Suécia
 
   # General purpose string snippets
 
@@ -1067,6 +1177,7 @@ l10n:
       sv: ", "
       fr: ", "
       da: ", "
+      pt: ", "
 
     # Delimiter used in between the last and second-to-last items of an enumeration
     # Example: [ "A", "B", "C" ] => "A, B and C" using the lastDelimiter " and "
@@ -1076,3 +1187,4 @@ l10n:
       sv: " och "
       fr: " et "
       da: " og "
+      pt: " e "
