@@ -1,6 +1,8 @@
+# mypy: ignore-errors
+# Still in dev
 from datetime import datetime
 import logging
-from typing import Tuple, List, Literal, Any, Dict, Union
+from typing import Tuple, List, Literal, Any, Dict, Union, Optional
 from pydantic import Json
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Form, status
@@ -30,6 +32,23 @@ ongoing_calls = OngoingCalls()
 
 
 logger = logging.getLogger(__name__)
+
+
+def debug(locals: Optional[Dict[str, Any]] = None, header: str = "") -> None:
+    import inspect
+    import pprint
+    line = 20 * "*"
+    space = 20 * " "
+    whereami = inspect.currentframe().f_back.f_code.co_name
+
+    if locals:
+        logstr = f"\n\n{line} debug {line}  {whereami}() {header}\n"
+        logstr += f"local variables:\n{pprint.pformat(locals)}"
+        logstr += f"\n{line}{line}{line}\n"
+    else:
+        logstr = f"\n\n{line} call {line}  {whereami}()\n"
+
+    logger.debug(logstr)
 
 
 def verify_origin(request: Request):
@@ -100,9 +119,6 @@ def initiate_call(
     return ongoing_call.state
 
 
-# Routes
-
-
 router = APIRouter(
     dependencies=[Depends(verify_origin)],
     include_in_schema=False
@@ -154,27 +170,49 @@ def next(
 
     config: Config = get_config()
 
-    # current_call: OngoingCall = ongoing_calls.get_call(callid)
-
+    current_call: OngoingCallRead = ongoing_calls.get_call(callid)
     if result == 1:
 
-        current_call: OngoingCallRead = ongoing_calls.get_call(callid)
         number_MEP = current_call.contact.contact
-        # we want to connect here but I don't want to talk
-        # to parlamentarians during development
-        # connection_response = {
-        #     "connect": current_call.contact.contact,
-        #     "next": f"{config.general.base_url}/phone/goodbye",
-        # }
+
         elks_metrics.inc_start(
             destination_number=number_MEP,
             our_number=from_nr
         )
-        development_response = {
-            "play": f"{config.telephony.audio_source}/success.ogg",
+        current_call.connected = True
+        connect = {
+            "connect": "+4940428990",
             "next": f"{config.general.base_url}/phone/goodbye",
         }
-        return development_response
+        return connect
+
+    if result == 5:
+
+        playback_arguments = {
+            "ivr": f"{config.telephony.audio_source}"
+                   f"/playback_arguments.{current_call.language}.ogg",
+            "next": f"{config.general.base_url}/phone/ivr_arguments_playback",
+        }
+
+        return playback_arguments
+
+
+@router.post("/ivr_arguments_playback")
+def ivr_arguments_playback(
+        callid: str = Form(),
+        direction: Literal["incoming", "outgoing"] = Form(),
+        from_nr: str = Form(alias="from"),
+        to_nr: str = Form(alias="to"),
+        result: int = Form(),
+):
+    config: Config = get_config()
+
+    if result == 1:
+        connect = {
+            "connect": "+4940428990",
+            "next": f"{config.general.base_url}/phone/goodbye",
+        }
+        return connect
 
     return {
         "play": f"{config.telephony.audio_source}/final-tune.ogg",
@@ -191,7 +229,6 @@ def goodbye(
         result: Any = Form(),
 ):
     config: Config = get_config()
-    # current_call: OngoingCall = ongoing_calls.get_call(callid)
 
     return {
         "play": f"{config.telephony.audio_source}/final-tune.ogg",
@@ -210,23 +247,17 @@ def hangup(
     start: datetime = Form(),
     state: str = Form(),
     to_nr: str = Form(alias="to"),
-    # TODO access LEGS which apparently gets sent sometimes
+    legs: Optional[Json] = Form(default=None)
 ):
 
     actions: List[Union[str, Dict[str, Any]]] = _actions
 
-    # PREP testing
-    # log all the things, including OngoingCall instance
-    # calculate duration w testing_connect_time value and now
-    # compare to legs and duration
+    if actions == [{"hangup": "badsource",
+                    "reason": "The data received was not proper JSON"}]:
+        debug(locals(), header="badsource, unproper json")
 
-    # was sometimes called before call ended. even before phone was picked up..
-    # might also be remnants of earlier calls where elk was not able to
-    # successfully call /hangup because app crashed in dev or breakpoint() hit.
     try:
         current_call: OngoingCallRead = ongoing_calls.get_call(callid)
-        # TODO change dearmep.database.models.Contact.destination_id
-        # away from Optional[str] to str
         elks_metrics.observe_connect_time(
             destination_id=current_call.contact.destination_id,
             duration=duration
@@ -240,28 +271,15 @@ def hangup(
             our_number=from_nr
         )
     except IndexError:
-        logger.critical(50 * "*")
-        logger.debug("hangup prematurely called by elks?")
-        logger.debug(f"They tried to send data for call {callid}")
-        logger.debug(f" Ongoing Calls: {ongoing_calls}")
-        logger.debug("Their request")
-        logger.debug(
-            actions,
-            cost,
-            created,
-            direction,
-            duration,
-            from_nr,
-            callid,
-            start,
-            state,
-            to_nr)
-        logger.critical(50 * "*")
+        debug(locals(), header="premature? IndexError")
         return
 
     ongoing_calls.remove(callid)
     if len(ongoing_calls) != 0:
-        logger.critical(50 * "*")
-        logger.debug("Current calls NOT empty:")
-        logger.debug(ongoing_calls)
-        logger.critical(50 * "*")
+        for _ in range(200):
+            logger.critical(50 * "*")
+            logger.critical(
+                "this should never happen in dev, list of calls is not empty"
+            )
+
+    debug(locals())

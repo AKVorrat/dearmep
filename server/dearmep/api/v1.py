@@ -289,7 +289,7 @@ def post_initiate_call(
     and initiates a call to the user.
     """
 
-    if ongoing_calls.destination_is_on_call(destination_id):
+    if ongoing_calls.destination_is_in_call(destination_id):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Already on a call")
 
     with get_session() as session:

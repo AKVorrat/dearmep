@@ -16,6 +16,7 @@ class OngoingCall(BaseModel):
     to_nr: str
     language: Language
     contact: Contact
+    connected: bool = False
 
 
 class OngoingCallRead(BaseModel):
@@ -28,7 +29,7 @@ class OngoingCallRead(BaseModel):
     to_nr: str
     language: Language
     contact: ContactRead
-    # mepid: str
+    connected: bool
 
 
 class OngoingCalls:
@@ -47,10 +48,12 @@ class OngoingCalls:
         except IndexError:
             raise IndexError(f"Could not find ongoing call with id: {callid}")
 
-    def destination_is_on_call(self, destination_id: str) -> bool:
-        """ Check if destination_id is on a call we control """
+    def destination_is_in_call(self, destination_id: str) -> bool:
+        """ Check if destination_id is in a call we control """
         _calls = [
-            x for x in self.calls if x.contact.destination_id == destination_id
+            x for x in self.calls
+            if x.contact.destination_id == destination_id
+            and not x.connected
         ]
         if _calls:
             return True
