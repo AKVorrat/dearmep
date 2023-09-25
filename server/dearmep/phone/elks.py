@@ -238,29 +238,23 @@ def hangup(
 
     actions: List[Union[str, Dict[str, Any]]] = _actions
 
-    if actions == [{"hangup": "badsource",
-                    "reason": "The data received was not proper JSON"}]:
-        debug(locals(), header="badsource, unproper json")
-
-    try:
-        current_call: OngoingCallRead = ongoing_calls.get_call(callid)
-        elks_metrics.observe_connect_time(
-            destination_id=current_call.contact.destination_id,
-            duration=duration
-        )
-        elks_metrics.observe_cost(
-            destination_id=current_call.contact.destination_id,
-            cost=cost
-        )
-        elks_metrics.inc_end(
-            destination_number=current_call.contact.contact,
-            our_number=from_nr
-        )
-    except IndexError:
-        debug(locals(), header="premature? IndexError")
-        return
-
+    current_call: OngoingCallRead = ongoing_calls.get_call(callid)
+    # Remove call from ongoing calls as early as possible
     ongoing_calls.remove(callid)
+
+    elks_metrics.observe_connect_time(
+        destination_id=current_call.contact.destination_id,
+        duration=duration
+    )
+    elks_metrics.observe_cost(
+        destination_id=current_call.contact.destination_id,
+        cost=cost
+    )
+    elks_metrics.inc_end(
+        destination_number=current_call.contact.contact,
+        our_number=from_nr
+    )
+
     if len(ongoing_calls) != 0:
         for _ in range(200):
             logger.critical(50 * "*")
@@ -268,6 +262,15 @@ def hangup(
                 "this should never happen in dev, list of calls is not empty"
             )
 
+    # catch weird json
+    if [x for x in actions
+        if type(x) is not str and
+        x.get("hangup") == "badsource"]:
+
+        logger.warning("we sent unproper json elk did not understand")
+        debug(locals(), header="badsource, unproper json")
+
+        return
     debug(locals())
 
 
