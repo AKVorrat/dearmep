@@ -1,7 +1,7 @@
 from dearmep.config import Language
 from dearmep.database.models import Contact, ContactRead
 from pydantic import BaseModel
-from typing import Literal, List
+from typing import Literal, List, Optional
 from .models import InitialElkResponseState
 from datetime import datetime
 
@@ -16,7 +16,7 @@ class OngoingCall(BaseModel):
     to_nr: str
     language: Language
     contact: Contact
-    connected: bool = False
+    connected: Optional[datetime] = None
 
 
 class OngoingCallRead(BaseModel):
@@ -29,7 +29,7 @@ class OngoingCallRead(BaseModel):
     to_nr: str
     language: Language
     contact: ContactRead
-    connected: bool
+    connected: Optional[datetime]
 
 
 class OngoingCalls:
@@ -53,7 +53,7 @@ class OngoingCalls:
         _calls = [
             x for x in self.calls
             if x.contact.destination_id == destination_id
-            and not x.connected
+            and bool(x.connected) is True
         ]
         if _calls:
             return True

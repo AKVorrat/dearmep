@@ -105,7 +105,7 @@ def initiate_call(
         logger.warn(f"Call failed from our number: {phone_number.number}")
         return response_data.state
 
-    # add to ongoing calls
+    # create and add to ongoing calls
     _ongoing_call = response_data.dict()
     _ongoing_call.update({
         "language": user_language,
@@ -241,11 +241,13 @@ def hangup(
     current_call: OngoingCallRead = ongoing_calls.get_call(callid)
     # Remove call from ongoing calls as early as possible
     ongoing_calls.remove(callid)
-
-    elks_metrics.observe_connect_time(
-        destination_id=current_call.contact.destination_id,
-        duration=duration
-    )
+    if bool(current_call.connected):
+        connected_seconds = (
+            datetime.now() - current_call.connected).total_seconds()
+        elks_metrics.observe_connect_time(
+            destination_id=current_call.contact.destination_id,
+            duration=round(connected_seconds)
+        )
     elks_metrics.observe_cost(
         destination_id=current_call.contact.destination_id,
         cost=cost
@@ -290,7 +292,7 @@ def elk_connect(
         destination_number=number_MEP,
         our_number=from_nr
     )
-    current_call.connected = True
+    current_call.connected = datetime.now()
     connect = {
         "connect": "+4940428990",
         "next": f"{config.general.base_url}/phone/goodbye",
