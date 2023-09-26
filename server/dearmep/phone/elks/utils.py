@@ -6,7 +6,7 @@ from random import choice
 
 from .models import Number
 
-from ..config import Language
+from dearmep.config import Language
 
 logger = logging.getLogger(__name__)
 

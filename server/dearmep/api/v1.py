@@ -14,7 +14,7 @@ from ..models import MAX_SEARCH_RESULT_LIMIT, CountryCode, \
     DestinationSearchResult, FrontendStringsResponse, LanguageDetection, \
     LocalizationResponse, RateLimitResponse, SearchResult, SearchResultLimit
 from ..ratelimit import Limit, client_addr
-from ..phone.elks import initiate_call, InitialElkResponseState, ongoing_calls
+from ..phone.elks.elks import initiate_call, InitialElkResponseState, ongoing_calls
 
 
 l10n_autodetect_total = Counter(
