@@ -14,7 +14,7 @@ from ..models import MAX_SEARCH_RESULT_LIMIT, CountryCode, \
     DestinationSearchResult, FrontendStringsResponse, LanguageDetection, \
     LocalizationResponse, RateLimitResponse, SearchResult, SearchResultLimit
 from ..ratelimit import Limit, client_addr
-from ..phone.elks.elks import initiate_call, InitialElkResponseState, ongoing_calls
+from ..phone.elks.elks import initiate_call, InitialElkResponseState
 
 
 l10n_autodetect_total = Counter(
@@ -98,10 +98,10 @@ def get_localization(
 
     preferences = parse_accept_language(accept_language)
     recommended_lang = find_preferred_language(
-                prefs=preferences,
-                available=available_languages,
-                fallback=default_language,
-            )
+        prefs=preferences,
+        available=available_languages,
+        fallback=default_language,
+    )
 
     with get_session() as session:
         location = get_country(session, geo_db, client_addr)
@@ -289,8 +289,8 @@ def post_initiate_call(
     and initiates a call to the user.
     """
 
-    if ongoing_calls.destination_is_in_call(destination_id):
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Already on a call")
+    # if ongoing_calls.destination_is_in_call(destination_id):
+    #     raise HTTPException(status.HTTP_400_BAD_REQUEST, "Already on a call")
 
     with get_session() as session:
         try:
@@ -304,7 +304,8 @@ def post_initiate_call(
     call_state: InitialElkResponseState = initiate_call(
         user_phone_number=user_phone,
         user_language=language,
-        contact=contact
+        contact=contact,
+        config=Config.get()
     )
 
     if call_state == "failed":
