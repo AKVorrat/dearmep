@@ -8,6 +8,7 @@ from sqlmodel import Column, Field, Relationship, SQLModel, TIMESTAMP, and_, \
 
 from ..config import Config, ConfigNotLoaded
 from ..models import CountryCode
+from dearmep.config import Language
 
 
 class _SchemaExtra(TypedDict):
@@ -217,6 +218,47 @@ class DestinationBase(SQLModel):
     )
 
 
+class Call(SQLModel, table=True):
+    """A Call that is or was being made in our System """
+    __tablename__ = "calls"
+    id: UUID4 = Field(
+        primary_key=True,
+        default_factory=uuid4,
+        description="A unique string to identify this Call.",
+        **_example("80d35849-2527-4672-b227-0540e6133e09"),
+    )
+    provider: str = Field(
+        description="The Provider who makes the call for us.",
+        **_example("46elks"),
+    )
+    provider_call_id: str = Field(
+        description="The Provider's Call ID.",
+        **_example("c4644bcfb44e712345c36e189faba04bd"),
+        index=True,
+    )
+    connected_at: Optional[datetime] = Field(
+        None,
+        description="Timestamp of when the call was connected.",
+        **_example("2021-01-01 00:00:00"),
+    )
+    ended_at: Optional[datetime] = Field(
+        None,
+        description="Timestamp of when the call was ended.",
+        **_example("2021-01-01 00:00:00"),
+    )
+    user_language: Language = Field(
+        description="The user's language.",
+        **_example("en"),
+    )
+    destination_id: DestinationID = Field(
+        foreign_key="destinations.id",
+        description="The Destination this Call belongs to.",
+    )
+    destination: "Destination" = Relationship(
+        back_populates="calls",
+    )
+
+
 class Destination(DestinationBase, table=True):
     sort_name: str = Field(
         index=True,
@@ -224,6 +266,9 @@ class Destination(DestinationBase, table=True):
         "Usually, this will e.g. list the family name first, but the campaign "
         "is free to handle this as they please.",
         **_example("MIERSCHEID Jakob Maria"),
+    )
+    calls: List[Call] = Relationship(
+        back_populates="destination",
     )
     contacts: List[Contact] = Relationship(
         back_populates="destination",

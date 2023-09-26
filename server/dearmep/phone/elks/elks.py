@@ -13,7 +13,8 @@ import requests
 from dearmep.config import Config, Language
 
 from .models import InitialCallElkResponse, InitialElkResponseState, Number
-from .ongoing_calls import OngoingCalls, OngoingCall, OngoingCallRead, Contact
+from .ongoing_calls import Call
+from . import ongoing_calls
 from .utils import get_numbers, choose_from_number
 from .metrics import elks_metrics
 
@@ -39,13 +40,12 @@ def debug(locals: Optional[Dict[str, Any]] = None, header: str = "") -> None:
 
 
 phone_numbers: List[Number] = []
-ongoing_calls = OngoingCalls()
 
 
 def initiate_call(
     user_phone_number: str,
     user_language: Language,
-    contact: Contact,
+    destination_id: str,
     config: Config
 
 ) -> InitialElkResponseState:
@@ -80,23 +80,24 @@ def initiate_call(
         logger.warn(f"Call failed from our number: {phone_number.number}")
         return response_data.state
 
-    ongoing_call: OngoingCall = OngoingCall.parse_obj({
-        **response_data.dict(),
-        "language": user_language,
-        "contact": contact
-    })
-    ongoing_calls.append(ongoing_call)
+    ongoing_calls.add_call(
+        provider="46elks",
+        provider_call_id=response_data.callid,
+        user_language=user_language,
+        destination_id=destination_id,
+    )
 
-    return ongoing_call.state
+    return response_data.state
 
 
 def mount_router(app: FastAPI, prefix: str):
     """ Mount the 46elks router to the app """
 
     config = Config.get()
+    provider_cfg = config.telephony.provider
     auth = (
-        config.telephony.provider.username,
-        config.telephony.provider.password
+        provider_cfg.username,
+        provider_cfg.password,
     )
     phone_numbers.extend(get_numbers(
         phone_numbers=phone_numbers,
@@ -107,7 +108,7 @@ def mount_router(app: FastAPI, prefix: str):
         """ Makes sure the request is coming from a 46elks IP """
         client_ip = None if request.client is None else request.client.host
         # config = config
-        whitelisted_ips: Tuple[str, ...] = config.telephony.provider.allowed_ips
+        whitelisted_ips: Tuple[str, ...] = provider_cfg.allowed_ips
         if client_ip not in whitelisted_ips:
             logger.debug(f"refusing {client_ip}, not a 46elks IP")
             raise HTTPException(
@@ -134,11 +135,11 @@ def mount_router(app: FastAPI, prefix: str):
     ):
         """ Begin playback of an IVR to user """
 
-        current_call: OngoingCallRead = ongoing_calls.get_call(callid)
+        call = ongoing_calls.get_call(callid)
 
         return {
             "ivr": f"{config.telephony.audio_source}"
-                   f"/connect-prompt.{current_call.language}.ogg",
+                   f"/connect-prompt.{call.user_language}.ogg",
             "next": f"{config.general.base_url}/phone/next"
         }
 
@@ -152,21 +153,21 @@ def mount_router(app: FastAPI, prefix: str):
     ):
         """ Check the users entered number from voice-start """
 
-        current_call: OngoingCallRead = ongoing_calls.get_call(callid)
+        call = ongoing_calls.get_call(callid)
 
         if result == 1:
-            return elk_connect(current_call, from_nr)
+            return elk_connect(call, from_nr)
 
         if result == 5:
 
             playback_arguments = {
                 "ivr": f"{config.telephony.audio_source}"
-                       f"/playback_arguments.{current_call.language}.ogg",
-                "next": f"{config.general.base_url}/phone/ivr_arguments_playback",
+                       f"/playback_arguments.{call.language}.ogg",
+                "next": f"{config.general.base_url}"
+                        "/phone/ivr_arguments_playback",
             }
 
             return playback_arguments
-
 
     @router.post("/ivr_arguments_playback")
     def ivr_arguments_playback(
@@ -178,10 +179,10 @@ def mount_router(app: FastAPI, prefix: str):
     ):
         """ Check the users entered number from the arguments playback """
 
-        current_call: OngoingCallRead = ongoing_calls.get_call(callid)
+        call = ongoing_calls.get_call(callid)
 
         if result == 1:
-            return elk_connect(current_call, from_nr)
+            return elk_connect(call, from_nr)
 
         return {
             "play": f"{config.telephony.audio_source}/final-tune.ogg",
@@ -209,32 +210,27 @@ def mount_router(app: FastAPI, prefix: str):
 
         actions: List[Union[str, Dict[str, Any]]] = _actions
 
-        current_call: OngoingCallRead = ongoing_calls.get_call(callid)
-        ongoing_calls.remove(callid)
+        call = ongoing_calls.get_call(callid)
+        if not call:
+            logger.critical("call not found")
+            return
 
-        if bool(current_call.connected):
+        if bool(call.connected_at):
             connected_seconds = (
-                datetime.now() - current_call.connected).total_seconds()
+                datetime.now() - call.connected_at).total_seconds()
             elks_metrics.observe_connect_time(
-                destination_id=current_call.contact.destination_id,
+                destination_id=call.destination_id,
                 duration=round(connected_seconds)
             )
         elks_metrics.observe_cost(
-            destination_id=current_call.contact.destination_id,
+            destination_id=call.destination_id,
             cost=cost
         )
         elks_metrics.inc_end(
-            destination_number=current_call.contact.contact,
+            destination_number=call.destination_id,
             our_number=from_nr
         )
-
-        if len(ongoing_calls) != 0:
-            for _ in range(200):
-                logger.critical(50 * "*")
-                logger.critical(
-                    "this should never happen in dev, "
-                    "list of calls is not empty"
-                )
+        ongoing_calls.remove_call(callid)
 
         # catch weird json
         if [x for x in actions if type(x) is not str and x.get("hangup") == "badsource"]:  # noqa: E501
@@ -263,18 +259,18 @@ def mount_router(app: FastAPI, prefix: str):
 
     # reused functions to craft responses to 46 elk
     def elk_connect(
-        current_call: OngoingCallRead,
+        call: Call,
         from_nr: str
     ):
         """ Dict Response to connect an user with a destination """
 
-        number_MEP = current_call.contact.contact
+        number_MEP = ongoing_calls.get_mep_number(call)
 
         elks_metrics.inc_start(
             destination_number=number_MEP,
             our_number=from_nr
         )
-        current_call.connected = datetime.now()
+        ongoing_calls.connect_call(call)
         connect = {
             "connect": "+4940428990",
             "next": f"{config.general.base_url}/phone/goodbye",

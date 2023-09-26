@@ -289,22 +289,10 @@ def post_initiate_call(
     and initiates a call to the user.
     """
 
-    # if ongoing_calls.destination_is_in_call(destination_id):
-    #     raise HTTPException(status.HTTP_400_BAD_REQUEST, "Already on a call")
-
-    with get_session() as session:
-        try:
-            contact = query.get_contact_for_destination(
-                session,
-                destination_id=destination_id
-            )
-        except query.NotFound as e:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
-
     call_state: InitialElkResponseState = initiate_call(
         user_phone_number=user_phone,
         user_language=language,
-        contact=contact,
+        destination_id=destination_id,
         config=Config.get()
     )
 
