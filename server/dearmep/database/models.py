@@ -338,6 +338,9 @@ DestinationRead.update_forward_refs()
 
 
 class DestinationSelectionLogEvent(str, enum.Enum):
+    # NOTE: This model and `CallState` share many of their states, as well as a
+    # lot of the docstring. If you make changes to either of them, please check
+    # whether making changes to the other might be useful as well.
     """
     Destinations may be "selected" for different reasons, and depending on the
     reason, it might have different effects on whether the Destination can be

@@ -454,30 +454,49 @@ oauth2_scheme = OAuth2PasswordBearer(
 
 
 class CallState(str, enum.Enum):
-    """The state of the User’s current call. The meanings of the values are:
+    # NOTE: This model and `DestinationSelectionLogEvent` share many of their
+    # states, as well as a lot of the docstring. If you make changes to either
+    # of them, please check whether making changes to the other might be useful
+    # as well.
+    """
+    The state of the User’s current call. The meanings of the values are:
 
-    * `NO_CALL`: The User does not have a current call.
-    * `CALLING_USER`: Trying to reach the User.
-    * `IN_MENU`: User has been reached and is currently in the menu.
-    * `CALLING_DESTINATION`: Trying to connect the User to the Destination.
-    * `DESTINATION_CONNECTED`: User and Destination have been connected
-      successfully.
-    * `FINISHED_SUCCESSFULLY`: The call has been finished successfully.
-    * `ABORTED`: The call has been aborted prematurely, e.g. because the User
-      hung up before being connected to the Destination, or because the User
-      was never called due to policy reasons, etc.
-    * `CALLING_USER_FAILED`: Unable to call the User due to an unexpected
-      error. Call never started.
-    * `CALLING_DESTINATION_FAILED`: Unable to call the Destination due to an
-      unexpected error. Call terminated.
+    * `NO_CALL`: The User does not have a current (or most recent) call.
+    * `CALLING_USER`: The User has requested to be called, in order to be
+      connected to a Destination. This is the case when the User clicks on
+      “call now” in the web frontend. Now, the system tries to call the User’s
+      phone and place them into the IVR menu, targeting the Destination.
+    * `IN_MENU`: We have successfully established a call with the User, they
+      are currently in the IVR menu.
+    * `CALLING_DESTINATION`: The User has asked the IVR menu to be connected to
+      a Destination now, all sanity checks have been completed successfully and
+      the system is now trying to establish a call with the Destination.
+    * `DESTINATION_CONNECTED`: The system has successfully connected the User
+      and the Destination, and they are probably talking at the moment.
+    * `FINISHED_SHORT_CALL`: The call between User and Destination has been
+      completed. They were only talking for a short time, and it’s probably
+      okay to assume that only an assistant or voicemail has been reached, but
+      not the actual Member of Parliament.
+    * `FINISHED_CALL`: The call between User and Destination has been
+      completed. Also, they were talking long enough to assume that the Member
+      of Parliament has actually been reached and talked to.
+    * `CALL_ABORTED`: The call has been aborted prematurely, e.g. because the
+      User hung up before being connected to the Destination, or because the
+      User was never called due to policy reasons, etc.
+    * `CALLING_USER_FAILED`: The system was unable to call the User due to an
+      unexpected error. No call was established.
+    * `CALLING_DESTINATION_FAILED`: The system was in a call with the User, and
+      the User requested to be connected to the Destination, but the
+      Destination call could not be established due to an unexpected error.
     """
     NO_CALL = "NO_CALL"
     CALLING_USER = "CALLING_USER"
     IN_MENU = "IN_MENU"
     CALLING_DESTINATION = "CALLING_DESTINATION"
     DESTINATION_CONNECTED = "DESTINATION_CONNECTED"
-    FINISHED_SUCCESSFULLY = "FINISHED_SUCCESSFULLY"
-    ABORTED = "ABORTED"
+    FINISHED_SHORT_CALL = "FINISHED_SHORT_CALL"
+    FINISHED_CALL = "FINISHED_CALL"
+    CALL_ABORTED = "CALL_ABORTED"
     CALLING_USER_FAILED = "CALLING_USER_FAILED"
     CALLING_DESTINATION_FAILED = "CALLING_DESTINATION_FAILED"
 
