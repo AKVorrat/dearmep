@@ -4,6 +4,7 @@ from secrets import randbelow
 import re
 import backoff
 from pydantic import UUID4
+import random
 
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError, NoResultFound
@@ -14,7 +15,7 @@ from ..config import Config
 from ..convert.blobfile import BlobOrFile
 from ..models import CountryCode, DestinationSearchGroup, \
     DestinationSearchResult, FeedbackToken, Language, PhoneRejectReason, \
-    SearchResult, UserPhone, VerificationCode
+    SearchResult, UserPhone, VerificationCode, FeedbackConvinced
 from .connection import Session, select
 from .models import Blob, BlobID, Destination, DestinationID, \
     DestinationSelectionLog, DestinationSelectionLogEvent, MediaList, \
@@ -120,6 +121,22 @@ def get_destinations_by_name(
     return dests
 
 
+def log_destination_selection(
+    session: Session,
+    destination: Destination,
+    *,
+    event: DestinationSelectionLogEvent,
+    user_id: Optional[UserPhone] = None,
+    call_id: Optional[str] = None,
+):
+    session.add(DestinationSelectionLog(
+        destination=destination,
+        event=event,
+        user_id=user_id,
+        call_id=call_id,
+    ))
+
+
 def get_random_destination(
     session: Session,
     *,
@@ -146,20 +163,296 @@ def get_random_destination(
     return dest
 
 
-def log_destination_selection(
+def base_endorsement_scoring(base_score):
+    """Computes the likeliness of being selected based on
+    the 'base_endorsement'.
+    A plot of the function applied:
+    https://www.wolframalpha.com/input?i=1%2F%281%28abs%28x-0.5%29*4%29%5E3+
+    %2B1%29%2C+1%2F%281%28abs%28x-0.7%29*4%29%5E3+%2B1%29+%2C+1%2F%281%28abs
+    %28x-0.7%29*16%29%5E3+%2B1%29*0.9%2B0.1++for+0%3C%3Dx%3C%3D1
+    returns a value between 0 and 1.
+    """
+    # TODO: make configurable
+    BASE_ENDORSEMENT_SCORING_CENTER = 0.5
+    BASE_ENDORSEMENT_SCORING_MINIMUM = 0
+    BASE_ENDORSEMENT_SCORING_STEEPNESS = 4
+
+    return 1 / (
+        1 + (
+            abs(
+                base_score - BASE_ENDORSEMENT_SCORING_CENTER
+            ) * BASE_ENDORSEMENT_SCORING_STEEPNESS
+        ) ** 3
+    ) * (1-BASE_ENDORSEMENT_SCORING_MINIMUM) + BASE_ENDORSEMENT_SCORING_MINIMUM
+
+
+def feedback_scoring(feedback_sum):
+    """Computes the likeliness of being selected based on
+    the feedback.
+    A plot of the function applied:
+    https://www.wolframalpha.com/input?i=plot+1%2F%281%28abs%28x%2F%28N*8%29%29
+    *3%29%5E4+%2B1%29+for+-40%3C%3Dx%3C%3D40%2C+N%3D10
+    returns a value between 0 and 1.
+    """
+    # TODO: make configurable
+    N_CLEAR_FEEDBACK_TRESHOLD = 6
+    return 1 / (
+        1 + (abs(feedback_sum / (N_CLEAR_FEEDBACK_TRESHOLD*8)) * 3) ** 4
+    )
+
+
+def get_recommended_destination(
     session: Session,
-    destination: Destination,
     *,
-    event: DestinationSelectionLogEvent,
+    country: Optional[CountryCode] = None,
+    event: Optional[DestinationSelectionLogEvent] = None,
     user_id: Optional[UserPhone] = None,
     call_id: Optional[str] = None,
-):
-    session.add(DestinationSelectionLog(
-        destination=destination,
-        event=event,
-        user_id=user_id,
-        call_id=call_id,
-    ))
+) -> Destination:
+    """This function randomly selects destinations, while
+    the likeliness of being selected is tweaked with
+    three main methods:
+
+    1. Hard filter: Removes destinations from
+    the selection based on these hard criteria.
+    - If 'country' is set, all other countries are excluded.
+    - Hard cut offs for base_endorsement.
+    - If destination is in call, destination is excluded.
+
+    2. Scores: Over all destinations, a scoring algorithm is applied to
+    change the destinations likeliness of being selected.
+    - 'base_endorsement' close to center (default=0.5) boosts the likeliness.
+    - Clear repeated feedback (negative or positive) leads to
+    reduced likeliness.
+
+    3. Rule based drop of likeliness ("soft cool down") if
+    - destination was suggested in last request.
+    - destination was called very recently.
+    - caller called destination already.
+    """
+
+    # select all destinations
+    stmt_destinations = select(Destination)
+    print("all:", len(session.exec(stmt_destinations).all()))
+
+    # 1. hard filter
+    # exclude other destinations from other countries, if country is set
+    if country:
+        stmt_destinations = stmt_destinations.where(
+            Destination.country == country
+        )
+
+    print("filter: country", len(session.exec(stmt_destinations).all()))
+
+    # cut off by base_endorsement
+    # TODO: make configurable
+    MAX_ENDORSEMENT_CUTOFF = 1.0
+    MIN_ENDORSEMENT_CUTOFF = 0.0
+    stmt_destinations = stmt_destinations.where(
+        Destination.base_endorsement <= MAX_ENDORSEMENT_CUTOFF,
+        Destination.base_endorsement >= MIN_ENDORSEMENT_CUTOFF,
+    )
+
+    # exclude destinations in call by selecting
+    # all call events
+    # outter joining with CALL_ENDED events as last event per destination
+
+    # events designating a call is initiated
+    CALL_INITIATED = [
+        DestinationSelectionLogEvent.CALLING_DESTINATION,
+        DestinationSelectionLogEvent.CALLING_USER,
+        DestinationSelectionLogEvent.DESTINATION_CONNECTED,
+        DestinationSelectionLogEvent.IVR_SUGGESTED,
+    ]
+
+    # events designating a call has ended
+    CALL_ENDED = [
+        DestinationSelectionLogEvent.CALL_ABORTED,
+        DestinationSelectionLogEvent.CALLING_DESTINATION_FAILED,
+        DestinationSelectionLogEvent.FINISHED_CALL,
+        DestinationSelectionLogEvent.FINISHED_SHORT_CALL,
+        DestinationSelectionLogEvent.CALLING_USER_FAILED,
+    ]
+
+    # subquery selecting all the latest timestamp of
+    # all CALL events (CALL_INITIATED + CALL_ENDED)
+    # from sqlalchemy import select
+
+    max_timestamps_subquery = (
+        select(  # type: ignore
+            DestinationSelectionLog,
+            func.max(DestinationSelectionLog.timestamp).label("max_timestamp")
+        )
+        .where(
+            col(DestinationSelectionLog.event).in_(CALL_INITIATED+CALL_ENDED)
+        )
+        .group_by(DestinationSelectionLog.destination_id)
+        .subquery()
+    )
+
+    # join the selection logs with the latest timestamps of each destination_id
+    latest_logs_subquery = (
+        select(DestinationSelectionLog)
+        .join(
+            max_timestamps_subquery,
+            and_(
+                DestinationSelectionLog.destination_id ==
+                max_timestamps_subquery.c.destination_id,
+                DestinationSelectionLog.timestamp ==
+                max_timestamps_subquery.c.max_timestamp
+            )
+        )
+        .subquery()
+    )
+
+    # outer left join with all Destinations
+    stmt_destinations = stmt_destinations.outerjoin(
+        latest_logs_subquery,
+        or_(
+            Destination.id is None,  # there may be no logs
+            Destination.id == latest_logs_subquery.c.destination_id,
+        )
+    )
+
+    print("remove if in call:", len(session.exec(stmt_destinations).all()))
+
+    # 2. Scores
+    # get all destinations
+    destinations = session.exec(stmt_destinations).all()
+
+    # scoring based on 'base_endorsement'
+    weights = [
+            base_endorsement_scoring(dest.base_endorsement)
+            for dest in destinations
+        ]
+
+    # scoring based on feedback
+    stmt_feedback = select(  # type: ignore
+        UserFeedback.destination_id,
+        func.sum(
+            label(
+                "numeric_feedback",
+                case(
+                    (UserFeedback.convinced ==
+                     FeedbackConvinced.YES,            2),
+                    (UserFeedback.convinced ==
+                     FeedbackConvinced.LIKELY_YES,     1),
+                    (UserFeedback.convinced ==
+                     FeedbackConvinced.LIKELY_NO,     -1),
+                    (UserFeedback.convinced ==
+                     FeedbackConvinced.NO,            -2),
+                )
+            )
+        ).label("numeric_feedback_sum")
+    ).group_by(UserFeedback.destination_id)
+
+    feedbacks = session.exec(stmt_feedback).all()
+
+    feedback_scores = [
+            (
+                fb.destination_id,
+                feedback_scoring(fb.numeric_feedback_sum),
+            )
+            for fb in feedbacks
+        ]
+    print(feedback_scores)
+    for i, dest in enumerate(destinations):
+        for fb in feedback_scores:
+            if dest.id == fb[0]:
+                # merge scoring of feedback + base_endorsement by
+                # taking the average
+                # https://www.wolframalpha.com/input?i=plot+%281%2F%281%28abs%
+                # 28x%2F80%29*3%29%5E4+%2B1%29+%2B+1%2F%281%28abs%28y-0.5%29*4
+                # %29%5E3+%2B1%29%29%2F2+for+0%3C%3Dy%3C%3D1+%2C+-40%3C%3Dx%3C
+                # %3D40
+                weights[i] = (weights[i] + fb[1]) / 2
+                break
+
+    # 3. Soft cool down
+    # destination was suggested in last request
+    SUGGEST_EVENTS = [
+        DestinationSelectionLogEvent.WEB_SUGGESTED,
+        DestinationSelectionLogEvent.IVR_SUGGESTED,
+    ]
+    if event in SUGGEST_EVENTS:
+        latest_log = session.query(DestinationSelectionLog).where(
+            col(DestinationSelectionLog.event).in_(SUGGEST_EVENTS)
+        ).order_by(col(DestinationSelectionLog.timestamp).desc()).first()
+        print(latest_log)
+        if latest_log is DestinationSelectionLog:
+            # making sure that there is log at all
+            print(
+                session.query(Destination).where(
+                    Destination.id ==
+                    latest_log.destination_id
+                ).all()
+            )
+            for i, dest in enumerate(destinations):
+                if dest.id == latest_log.destination_id:
+                    # TODO: make configurable
+                    weights[i] = 0.00001
+                    break
+
+    # destination was called recently
+    # TODO: make configurable
+    SOFT_COOL_DOWN_CALL_DURATION_MINUTES = 15
+    minutes_ago = datetime.utcnow() - \
+        timedelta(minutes=SOFT_COOL_DOWN_CALL_DURATION_MINUTES)
+
+    stmt2 = select(DestinationSelectionLog)
+    stmt2 = stmt2.where(
+        col(DestinationSelectionLog.event).in_(CALL_ENDED),
+        col(DestinationSelectionLog.timestamp) >= minutes_ago,
+        )
+    destination_logs_recent_calls = session.exec(stmt2)
+    for i, dest in enumerate(destinations):
+        for dest_log in destination_logs_recent_calls:
+            if dest.id == dest_log.destination_id:
+                # make configurable
+                weights[i] = 0.1
+                break
+
+    # caller called destination already
+
+    if user_id:
+        SOFT_COOL_DOWN_CALLER_CALLED_DESTINATION_DURATION_HOURS = 24
+        hours_ago = datetime.utcnow() - \
+            timedelta(
+                hours=SOFT_COOL_DOWN_CALLER_CALLED_DESTINATION_DURATION_HOURS
+            )
+        stmt_calls_ended = (
+            select(DestinationSelectionLog)
+            .where(
+                col(DestinationSelectionLog.event).in_(CALL_ENDED),
+                col(DestinationSelectionLog.timestamp) >= hours_ago,
+                DestinationSelectionLog.user_id == user_id,
+                )
+        )
+        dest_logs_recent_calls_with_user = session.exec(stmt_calls_ended)
+        for i, dest in enumerate(destinations):
+            for dest_log in dest_logs_recent_calls_with_user:
+                if dest.id == dest_log.destination_id:
+                    weights[i] = 0.1
+                    break
+
+    # finally select a destination
+    if len(destinations) > 0:
+        final_dest = random.choices(destinations, weights=weights, k=1)[0]
+    else:
+        final_dest = None
+
+    if not final_dest:
+        raise NotFound("no destination found that could be recommended")
+
+    if event:
+        log_destination_selection(
+            session=session,
+            destination=final_dest,
+            event=event,
+            user_id=user_id,
+            call_id=call_id,
+        )
+    return dest
 
 
 def to_destination_search_result(

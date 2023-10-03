@@ -282,7 +282,7 @@ def get_suggested_destination(
     with get_session() as session:
         try:
             # TODO: Replace with actually _recommended_, not random.
-            dest = query.get_random_destination(
+            dest = query.get_recommended_destination(
                 session,
                 country=country,
                 event=DestinationSelectionLogEvent.WEB_SUGGESTED,
