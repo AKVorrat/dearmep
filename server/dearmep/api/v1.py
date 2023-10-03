@@ -1,4 +1,5 @@
-from typing import Any, Callable, Dict, Iterable, Optional
+import enum
+from typing import Any, Callable, Dict, Iterable, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Header, Query, \
     Response, status
@@ -333,14 +334,31 @@ class PhoneNumberVerificationResponse(BaseModel):
     )
 
 
-class PhoneNumberNotAllowedResponse(BaseModel):
-    error: Literal["NUMBER_NOT_ALLOWED"] = Field(
-        "NUMBER_NOT_ALLOWED",
-        description="The phone number is well-formed, but not accepted for "
-        "policy reasons. Usually this is because the number is not a mobile "
-        "phone number, from an unsupported country, or uses an unsupported "
-        "prefix.",
-    )
+class PhoneRejectReason(str, enum.Enum):
+    """Reasons why a phone number is rejected by the system.
+    * `INVALID_PATTERN`: It does not match the validation rules for a number of
+      that country. For example, there might be too many or too few digits for
+      the given area code.
+    * `DISALLOWED_COUNTRY`: The number belongs to a country that has not been
+      enabled as being one of the allowed ones.
+    * `DISALLOWED_TYPE`: The number is of a type that we do not support, for
+      example a landline, pager, or paid service number.
+    * `BLOCKED`: This number or some prefix of it has been manually blocked by
+      the administrator.
+    * `TOO_MANY_VERIFICATION_REQUESTS`: This number has issued too many
+      verification requests (each resulting in an SMS message being sent)
+      without confirming them.
+    """
+    INVALID_PATTERN = "INVALID_PATTERN"
+    DISALLOWED_COUNTRY = "DISALLOWED_COUNTRY"
+    DISALLOWED_TYPE = "DISALLOWED_TYPE"
+    BLOCKED = "BLOCKED"
+    TOO_MANY_VERIFICATION_REQUESTS = "TOO_MANY_VERIFICATION_REQUESTS"
+
+
+class PhoneNumberVerificationRejectedResponse(BaseModel):
+    """The phone number was rejected for one or more reasons."""
+    errors: List[PhoneRejectReason]
 
 
 class SMSCodeVerificationRequest(PhoneNumberMixin):
@@ -384,7 +402,7 @@ class JWTResponse(BaseModel):
     responses={
         **rate_limit_response,  # type: ignore[arg-type]
         400: {
-            "model": PhoneNumberNotAllowedResponse,
+            "model": PhoneNumberVerificationRejectedResponse,
         },
     },
 )
@@ -403,7 +421,10 @@ def request_number_verification(request: PhoneNumberVerificationRequest):
     """
     if request.phone_number.startswith("+42"):  # TODO: mockup constraint
         return error_model(
-            status.HTTP_400_BAD_REQUEST, PhoneNumberNotAllowedResponse())
+            status.HTTP_400_BAD_REQUEST,
+            PhoneNumberVerificationRejectedResponse(errors=[
+                PhoneRejectReason.DISALLOWED_COUNTRY,
+            ]))
 
     return PhoneNumberVerificationResponse(
         phone_number=request.phone_number.strip(),  # TODO: canonicalize
