@@ -29,6 +29,7 @@ class ElksMetrics:
                              destination_id: str,
                              duration: int
                              ):
+        """Track the connected calltime of user to MEP in seconds"""
         self.call_connect_time.labels(
             provider=self.provider,
             destination_id=destination_id
@@ -38,6 +39,7 @@ class ElksMetrics:
                      destination_id: str,
                      cost: int
                      ):
+        """Track how much the call cost"""
         self.call_cost.labels(
             provider=self.provider,
             destination_id=destination_id
@@ -47,6 +49,7 @@ class ElksMetrics:
                   destination_number: str,
                   our_number: str
                   ):
+        """Track a started call to MEP"""
         self.call_start_total.labels(
             provider=self.provider,
             destination_number=destination_number,
@@ -57,6 +60,7 @@ class ElksMetrics:
                 destination_number: str,
                 our_number: str
                 ):
+        """Track an ended call to MEP"""
         self.call_end_total.labels(
             provider=self.provider,
             destination_number=destination_number,

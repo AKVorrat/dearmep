@@ -2,7 +2,7 @@
 # Still in dev
 from datetime import datetime
 import logging
-from typing import Tuple, List, Literal, Any, Dict, Union, Optional
+from typing import Tuple, List, Literal, Any, Dict, Optional
 from pydantic import Json
 
 from fastapi import FastAPI, APIRouter, Depends, \
@@ -47,7 +47,6 @@ def initiate_call(
     user_language: Language,
     destination_id: str,
     config: Config
-
 ) -> InitialElkResponseState:
     """ Initiate a Phone call via 46elks """
     auth: Tuple[str, str] = (
@@ -127,11 +126,11 @@ def mount_router(app: FastAPI, prefix: str):
 
     @router.post("/voice-start")
     def voice_start(
-            callid: str = Form(),
-            direction: Literal["incoming", "outgoing"] = Form(),
-            from_nr: str = Form(alias="from"),
-            to_nr: str = Form(alias="to"),
-            result: Literal["newoutgoing"] = Form(),
+        callid: str = Form(),
+        direction: Literal["incoming", "outgoing"] = Form(),
+        from_nr: str = Form(alias="from"),
+        to_nr: str = Form(alias="to"),
+        result: Literal["newoutgoing"] = Form(),
     ):
         """ Begin playback of an IVR to user """
 
@@ -140,29 +139,40 @@ def mount_router(app: FastAPI, prefix: str):
         return {
             "ivr": f"{config.telephony.audio_source}"
                    f"/connect-prompt.{call.user_language}.ogg",
-            "next": f"{config.general.base_url}/phone/next"
+            "next": f"{config.general.base_url}/phone/next",
+            "timeout": 1,
+            "repeat": 1,
         }
 
     @router.post("/next")
     def next(
-            callid: str = Form(),
-            direction: Literal["incoming", "outgoing"] = Form(),
-            from_nr: str = Form(alias="from"),
-            to_nr: str = Form(alias="to"),
-            result: int = Form(),
+        callid: str = Form(),
+        direction: Literal["incoming", "outgoing"] = Form(),
+        from_nr: str = Form(alias="from"),
+        to_nr: str = Form(alias="to"),
+        result: str = Form(),
+        why: Optional[str] = Form(default=None),
     ):
         """ Check the users entered number from voice-start """
 
+        if str(result) == "failed" and why == "noinput":
+            """
+            No input by user. Either we are on
+            voice mail OR user did not enter a number
+            and time has passed. We hang up.
+            """
+            return {"hangup": "reject"}
+
         call = ongoing_calls.get_call(callid)
 
-        if result == 1:
+        if result == "1":
             return elk_connect(call, from_nr)
 
-        if result == 5:
+        if result == "5":
 
             playback_arguments = {
                 "ivr": f"{config.telephony.audio_source}"
-                       f"/playback_arguments.{call.language}.ogg",
+                       f"/playback_arguments.{call.user_language}.ogg",
                 "next": f"{config.general.base_url}"
                         "/phone/ivr_arguments_playback",
             }
@@ -171,17 +181,17 @@ def mount_router(app: FastAPI, prefix: str):
 
     @router.post("/ivr_arguments_playback")
     def ivr_arguments_playback(
-            callid: str = Form(),
-            direction: Literal["incoming", "outgoing"] = Form(),
-            from_nr: str = Form(alias="from"),
-            to_nr: str = Form(alias="to"),
-            result: int = Form(),
+        callid: str = Form(),
+        direction: Literal["incoming", "outgoing"] = Form(),
+        from_nr: str = Form(alias="from"),
+        to_nr: str = Form(alias="to"),
+        result: str = Form(),
     ):
         """ Check the users entered number from the arguments playback """
 
         call = ongoing_calls.get_call(callid)
 
-        if result == 1:
+        if result == "1":
             return elk_connect(call, from_nr)
 
         return {
@@ -190,16 +200,18 @@ def mount_router(app: FastAPI, prefix: str):
 
     @router.post("/hangup")
     def hangup(
-        _actions: Json = Form(alias="actions"),
-        cost: int = Form(),  # in 100 = 1 cent
-        created: datetime = Form(),
+        # Arguments always present, also failures
         direction: Literal["incoming", "outgoing"] = Form(),
-        duration: int = Form(),  # in sec
+        created: datetime = Form(),
         from_nr: str = Form(alias="from"),
         callid: str = Form(alias="id"),
-        start: datetime = Form(),
-        state: str = Form(),
         to_nr: str = Form(alias="to"),
+        state: str = Form(),
+        # Arguments present in some cases, i.e. success
+        start: Optional[datetime] = Form(default=None),
+        actions: Optional[Json] = Form(default=None),
+        cost: Optional[int] = Form(default=None),  # in 100 = 1 cent
+        duration: Optional[int] = Form(default=None),  # in sec
         legs: Optional[Json] = Form(default=None)
     ):
         """
@@ -207,8 +219,11 @@ def mount_router(app: FastAPI, prefix: str):
         Always gets called in the end of calls, no matter their outcome
         Route for hangups
         """
-
-        actions: List[Union[str, Dict[str, Any]]] = _actions
+        # If start doesn't exist this is an error message and should
+        # be logged. We finish the call in our call tracking table
+        if not start:
+            logger.critical(f"Call id: {callid} failed. "
+                            f"state: {state}, direction: {direction}")
 
         call = ongoing_calls.get_call(callid)
         if not call:
@@ -222,24 +237,20 @@ def mount_router(app: FastAPI, prefix: str):
                 destination_id=call.destination_id,
                 duration=round(connected_seconds)
             )
-        elks_metrics.observe_cost(
-            destination_id=call.destination_id,
-            cost=cost
-        )
+        if cost:
+            elks_metrics.observe_cost(
+                destination_id=call.destination_id,
+                cost=cost
+            )
         elks_metrics.inc_end(
             destination_number=call.destination_id,
             our_number=from_nr
         )
         ongoing_calls.remove_call(callid)
 
-        # catch weird json
-        if [x for x in actions if type(x) is not str and x.get("hangup") == "badsource"]:  # noqa: E501
-
-            logger.warning("we sent unproper json elk did not understand")
-            debug(locals(), header="badsource, unproper json")
-
+        # exit if error
+        if not start:
             return
-        debug(locals())
 
     @router.post("/goodbye")
     def goodbye(
@@ -271,8 +282,10 @@ def mount_router(app: FastAPI, prefix: str):
             our_number=from_nr
         )
         ongoing_calls.connect_call(call)
+        # DEV
+        number_MEP = "+4940428990"  # die Uhrzeit
         connect = {
-            "connect": "+4940428990",
+            "connect": number_MEP,
             "next": f"{config.general.base_url}/phone/goodbye",
         }
         return connect
