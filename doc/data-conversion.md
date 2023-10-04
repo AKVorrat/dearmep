@@ -8,6 +8,8 @@ This document aims to give you some pointers on where to get the data required t
 We assume that you have installed DearMEP and that it’s available to be invoked using the `dearmep` command.
 It is recommended that you install DearMEP with the `convert` extra (e.g. `pip install 'dearmep[convert]'`), because this will provide additional data conversion and exploration tools like [csvkit](https://csvkit.readthedocs.io/) and [VisiData](https://www.visidata.org/).
 
+If you’d like to have a look at a shell script that has been used in an actual campaign, check out [`build-db.sh`](../server/build-db.sh).
+
 
 ## Members of the European Parliament
 
@@ -229,7 +231,7 @@ This will change in the future.
 The actual import command is rather simple:
 
 ```console
-$ poetry run dearmep import destinations --portrait-template 'portraits/{id}.jpg' --fallback-portrait portraits/placeholder.jpg dearmep-destinations.json
+$ dearmep import destinations --portrait-template 'portraits/{id}.jpg' --fallback-portrait portraits/placeholder.jpg dearmep-destinations.json
 reading and converting JSON ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
 $ ls -lh dearmep.sqlite
 -rw-r--r-- 1 scy scy 44M Jul  8 14:25 dearmep.sqlite

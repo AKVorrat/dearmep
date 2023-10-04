@@ -35,12 +35,12 @@
             ],
             "styles": [
               {
-                "input": "src/style/styles.scss",
-                "bundleName": "styles"
+                "input": "src/style/dear-mep-inner.scss",
+                "bundleName": "dear-mep-inner"
               },
               {
-                "input": "src/style/fonts.scss",
-                "bundleName": "fonts"
+                "input": "src/style/dear-mep.scss",
+                "bundleName": "dear-mep"
               },
               {
                 "input": "node_modules/country-flag-icons/3x2/flags.css",
@@ -120,12 +120,12 @@
             ],
             "styles": [
               {
-                "input": "src/style/styles.scss",
-                "bundleName": "styles"
+                "input": "src/style/dear-mep-inner.scss",
+                "bundleName": "dear-mep-inner"
               },
               {
-                "input": "src/style/fonts.scss",
-                "bundleName": "fonts"
+                "input": "src/style/dear-mep.scss",
+                "bundleName": "dear-mep"
               },
               {
                 "input": "node_modules/country-flag-icons/3x2/flags.css",

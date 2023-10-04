@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { CallingStep } from '../model/calling-step.enum';
 import { CallingStateManagerService } from '../services/calling/calling-state-manager.service';
 
@@ -16,6 +16,9 @@ export class CallingComponent {
   public readonly StepUpdateCallSchedule = CallingStep.UpdateCallSchedule
 
   public readonly step$
+
+  @Input()
+  public disableScheduling = false
 
   constructor(
     private readonly callingStateManager: CallingStateManagerService,

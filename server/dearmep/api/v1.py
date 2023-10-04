@@ -1,18 +1,27 @@
-from typing import Any, Callable, Dict, Iterable, Optional
+from datetime import datetime
+from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 from fastapi import APIRouter, Depends, HTTPException, Header, Query, \
     Response, status
+from fastapi.responses import JSONResponse
 from prometheus_client import Counter
+from pydantic import BaseModel
 
 from ..config import Config, Language, all_frontend_strings
 from ..database.connection import get_session
 from ..database.models import Blob, Destination, DestinationGroupListItem, \
-    DestinationID, DestinationRead
+    DestinationID, DestinationRead, DestinationSelectionLogEvent, \
+    FeedbackContext
 from ..database import query
 from ..l10n import find_preferred_language, get_country, parse_accept_language
 from ..models import MAX_SEARCH_RESULT_LIMIT, CountryCode, \
-    DestinationSearchResult, FrontendStringsResponse, LanguageDetection, \
-    LocalizationResponse, RateLimitResponse, SearchResult, SearchResultLimit
+    DestinationSearchResult, FeedbackSubmission, FeedbackToken, \
+    FrontendStringsResponse, JWTResponse, LanguageDetection, \
+    LocalizationResponse, PhoneNumberVerificationRejectedResponse, \
+    PhoneNumberVerificationResponse, PhoneRejectReason, RateLimitResponse, \
+    SMSCodeVerificationFailedResponse, SearchResult, SearchResultLimit, \
+    UserPhone, PhoneNumberVerificationRequest, SMSCodeVerificationRequest
+from ..phone.abstract import get_phone_service
 from ..ratelimit import Limit, client_addr
 from ..phone.elks.elks import initiate_call, InitialElkResponseState
 
@@ -40,6 +49,7 @@ rate_limit_response: Dict[int, Dict[str, Any]] = {
 
 simple_rate_limit = Depends(Limit("simple"))
 computational_rate_limit = Depends(Limit("computational"))
+sms_rate_limit = Depends(Limit("sms"))
 
 
 BlobURLDep = Callable[[Optional[Blob]], Optional[str]]
@@ -65,6 +75,10 @@ def destination_to_destinationread(dest: Destination) -> DestinationRead:
             for group in dest.groups
         ],
     })
+
+
+def error_model(status_code: int, instance: BaseModel) -> JSONResponse:
+    return JSONResponse(instance.dict(), status_code=status_code)
 
 
 router = APIRouter()
@@ -267,9 +281,14 @@ def get_suggested_destination(
     with get_session() as session:
         try:
             # TODO: Replace with actually _recommended_, not random.
-            dest = query.get_random_destination(session, country=country)
+            dest = query.get_random_destination(
+                session,
+                country=country,
+                event=DestinationSelectionLogEvent.WEB_SUGGESTED,
+            )
         except query.NotFound as e:
             raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+        session.commit()
         return destination_to_destinationread(dest)
 
 
@@ -298,3 +317,140 @@ def post_initiate_call(
 
     if call_state == "failed":
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Call failed")
+
+
+@router.post(
+    "/number-verification/request", operation_id="requestNumberVerification",
+    responses={
+        **rate_limit_response,  # type: ignore[arg-type]
+        400: {"model": PhoneNumberVerificationRejectedResponse},
+    },
+    response_model=PhoneNumberVerificationResponse,
+    dependencies=(sms_rate_limit,),
+)
+def request_number_verification(
+    request: PhoneNumberVerificationRequest,
+) -> Union[JSONResponse, PhoneNumberVerificationResponse]:
+    """Request ownership verification of a phone number.
+
+    This will send an SMS text message with a random code to the given phone
+    number. Provide this code to the _Verify Number_ endpoint to receive a JWT
+    proving that you have access to that number.
+    """
+    def reject(errors: List[PhoneRejectReason]) -> JSONResponse:
+        return error_model(
+            status.HTTP_400_BAD_REQUEST,
+            PhoneNumberVerificationRejectedResponse(errors=errors))
+
+    user = UserPhone(request.phone_number)
+    assert user.original_number  # sure, we just created it from one
+    number = user.format_number(user.original_number)
+
+    # Check if the number is forbidden by policy.
+    if reject_reasons := user.check_allowed():
+        return reject(reject_reasons)
+
+    with get_session() as session:
+        result = query.get_new_sms_auth_code(
+            session, user=user, language=request.language)
+        # Number could be rejected because of too many requests.
+        if isinstance(result, PhoneRejectReason):
+            return reject([result])
+
+        message = f"Your code is {result}"  # TODO translation
+        get_phone_service().send_sms(number, message)
+        response = PhoneNumberVerificationResponse(
+            phone_number=number,
+        )
+        # Only commit after sending the code successfully.
+        session.commit()
+    return response
+
+
+@router.post(
+    "/number-verification/verify", operation_id="verifyNumber",
+    responses={
+        **rate_limit_response,  # type: ignore[arg-type]
+        400: {"model": SMSCodeVerificationFailedResponse},
+    },
+    response_model=JWTResponse,
+    dependencies=(simple_rate_limit,),
+)
+def verify_number(
+    request: SMSCodeVerificationRequest,
+) -> Union[JWTResponse, JSONResponse]:
+    """Prove ownership of a phone number.
+
+    Provide the random code that has been sent using the _Request Number
+    Verification_ endpoint to receive a JWT proving that you have access to
+    that number.
+    """
+    with get_session() as session:
+        user = UserPhone(request.phone_number)
+        if not query.verify_sms_auth_code(
+            session, user=user, code=request.code,
+        ):
+            return error_model(
+                status.HTTP_400_BAD_REQUEST,
+                SMSCodeVerificationFailedResponse())
+        response = JWTResponse(
+            access_token="TODO",  # TODO
+            expires_in=3600,  # TODO
+        )
+        session.commit()
+    return response
+
+
+@router.get(
+    "/call/feedback/{token}", operation_id="getFeedbackContext",
+    response_model=FeedbackContext,
+    responses={
+        **rate_limit_response,  # type: ignore[arg-type]
+        404: {"description": "Token Not Found"},
+    },
+    dependencies=(simple_rate_limit,),
+)
+def get_feedback_context(
+    token: FeedbackToken,
+) -> FeedbackContext:
+    with get_session() as session:
+        try:
+            feedback = query.get_user_feedback_by_token(session, token=token)
+        except query.NotFound as e:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+        return FeedbackContext(
+            expired=feedback.expires_at <= datetime.now(),
+            used=feedback.feedback_entered_at is not None,
+            destination=destination_to_destinationread(feedback.destination),
+        )
+
+
+@router.post(
+    "/call/feedback/{token}", operation_id="submitCallFeedback",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        **rate_limit_response,  # type: ignore[arg-type]
+        403: {"description": "Token Already Used"},
+        404: {"description": "Token Not Found"},
+    },
+    dependencies=(simple_rate_limit,),
+)
+def submit_call_feedback(
+    token: FeedbackToken,
+    submission: FeedbackSubmission,
+):
+    with get_session() as session:
+        try:
+            feedback = query.get_user_feedback_by_token(session, token=token)
+        except query.NotFound as e:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+        if feedback.feedback_entered_at is not None:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN, "token has already been used")
+
+        feedback.feedback_entered_at = datetime.now()
+        feedback.convinced = submission.convinced
+        feedback.technical_problems = submission.technical_problems
+        feedback.additional = submission.additional
+        session.add(feedback)
+        session.commit()

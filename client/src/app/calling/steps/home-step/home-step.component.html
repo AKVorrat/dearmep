@@ -15,7 +15,7 @@
     </button>
   </div>
 
-  <div class="dmep-btn-container">
+  <div class="dmep-btn-container" *ngIf="!disableScheduling">
     <button mat-stroked-button class="dmep-call-later-btn dmep-btn dmep-btn-secondary" (click)="onCallLaterClick()">
       <span class="btn-content">
         {{ 'call.call-later-btn.title' | transloco }}

@@ -1,5 +1,5 @@
 <div class="mep">
-  <img *ngIf="mep" [hidden]="!imageLoaded()" class="mep-image" [src]="mep.portrait" [alt]="mep.name" (load)="imageLoadedUrl = mep.portrait">
+  <img *ngIf="mep" [hidden]="!imageLoaded()" class="mep-image" [src]="mep.portrait | toAbsolute: 'api'" [alt]="mep.name" (load)="imageLoadedUrl = mep.portrait">
   <div *ngIf="!mep || !imageLoaded()" class="mep-image-loading-placeholder mep-image">
     <mat-spinner [diameter]="56"></mat-spinner>
   </div>
@@ -12,7 +12,7 @@
       </button>
     </h3>
     <div class="group-party" *ngFor="let group of mep?.groups">
-      <img *ngIf="group.logo" [src]="group.logo" class="mep-group-icon">
+      <img *ngIf="group.logo" [src]="group.logo | toAbsolute: 'api'" class="mep-group-icon">
       <span>{{ group.long_name }}</span>
     </div>
     <p class="country" *ngIf="mep">{{ 'countries.' + mep.country | transloco  }}</p>

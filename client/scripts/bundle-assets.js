@@ -10,9 +10,9 @@ const concat = require('concat');
   await fs.remove('./dist/dear-mep-bundle')
   await fs.ensureDir('./dist/dear-mep-bundle')
   await concat(files, './dist/dear-mep-bundle/dear-mep.js');
-  await fs.copyFile('./dist/dear-mep/styles.css', './dist/dear-mep-bundle/styles.css')
-  await fs.copyFile('./dist/dear-mep/fonts.css', './dist/dear-mep-bundle/fonts.css')
-  
+  await fs.copyFile('./dist/dear-mep/dear-mep-inner.css', './dist/dear-mep-bundle/dear-mep-inner.css')
+  await fs.copyFile('./dist/dear-mep/dear-mep.css', './dist/dear-mep-bundle/dear-mep.css')
+
   // fonts
   await fs.copyFile('./dist/dear-mep/flags.css', './dist/dear-mep-bundle/flags.css')
   await fs.copyFile('./dist/dear-mep/material-icons-outlined-all-400-normal.woff', './dist/dear-mep-bundle/material-icons-outlined-all-400-normal.woff')

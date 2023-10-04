@@ -48,9 +48,13 @@ export class L10nService {
       this.detectedCountry$,
       this.defaultCountry$,
       this.randomCountry$,
+      this.availableCountries$,
     ]).pipe(
-      map(([userSelectedCountry, apiDetectedCountry, defaultCountry, randomCountry]) => {
-        return userSelectedCountry || apiDetectedCountry || defaultCountry || randomCountry
+      map(([userSelectedCountry, apiDetectedCountry, defaultCountry, randomCountry, availableCountries]) => {
+        return this.mustBePartOf(userSelectedCountry, availableCountries)
+          || apiDetectedCountry
+          || this.mustBePartOf(defaultCountry, availableCountries)
+          || randomCountry
       }),
       shareReplay(),
     )
@@ -64,9 +68,10 @@ export class L10nService {
     return combineLatest([
       this.userSelectedLanguage$,
       this.detectedLanguage$,
+      this.availableLanguages$,
     ]).pipe(
-      map(([userSelectedLang, apiDetectedLang]) => {
-        return userSelectedLang || apiDetectedLang
+      map(([userSelectedLang, apiDetectedLang, availableLanguages]) => {
+        return this.mustBePartOf(userSelectedLang, availableLanguages) || apiDetectedLang
       })
     )
   }
@@ -113,5 +118,12 @@ export class L10nService {
         this.translocoService.setAvailableLangs(resp.language.available)
       }
     })
+  }
+
+  private mustBePartOf(item: string | undefined, items: string[] ): string | undefined {
+    if (item !== undefined && items.indexOf(item) !== -1) {
+      return item
+    }
+    return undefined
   }
 }

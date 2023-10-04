@@ -64,7 +64,7 @@ class Limit:
     def reset_all_limits():
         limits_storage.reset()
 
-    def __init__(self, limit_name: Literal["simple", "computational"]):
+    def __init__(self, limit_name: Literal["simple", "computational", "sms"]):
         self.limit_name = limit_name
         self.limits: Optional[Dict[str, limits.RateLimitItem]] = None
 

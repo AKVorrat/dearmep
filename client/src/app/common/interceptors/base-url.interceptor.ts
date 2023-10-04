@@ -23,10 +23,10 @@ export class BaseUrlInterceptor implements HttpInterceptor {
     }
 
     // prefix relative urls
-    return this.baseUrlService.getBaseUrl$().pipe(
-      mergeMap(baseUrl =>
+    return this.baseUrlService.toAbsoluteAPIUrl$(request.url).pipe(
+      mergeMap(absoluteUrl =>
         next.handle(
-          request.clone({ url: UrlUtil.toAbsolute(request.url, baseUrl) })
+          request.clone({ url: absoluteUrl })
         )
       )
     )

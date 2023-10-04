@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, filter, map, Observable, ReplaySubject } from 'rxjs';
+import { BehaviorSubject, filter, map, Observable } from 'rxjs';
 import { UrlUtil } from '../util/url.util';
 
 /**
@@ -12,41 +12,59 @@ import { UrlUtil } from '../util/url.util';
   providedIn: 'root'
 })
 export class BaseUrlService {
-  private readonly baseUrl$ = new BehaviorSubject<string | undefined>(undefined)
-  private readonly assetsPath$ = new ReplaySubject<string>()
+  private readonly assetsUrl$ = new BehaviorSubject<string | undefined>(undefined)
+  private readonly apiUrl$ = new BehaviorSubject<string | undefined>(undefined)
 
-  /**
-   * Sets the base-url that will be used as a base for converting relative urls
-   */
-  public setBaseUrl(url: string) {
-    if (!url || url === "" || !UrlUtil.isAbsolute(url)) {
-      throw new Error("BaseUrl must be absolute")
-    }
-    return this.baseUrl$.next(url)
+  public setAssetsUrl(url: string) {
+    this.assetsUrl$.next(url)
   }
 
-  public getBaseUrl$(): Observable<string> {
-    return this.baseUrl$.pipe(
-      filter(u => !!u),
-    ) as Observable<string>
+  public setAPIUrl(url: string) {
+    this.apiUrl$.next(url)
   }
 
-  public toAbsoluteUrl$(relativeUrl: string): Observable<string> {
+  public getAssetsUrl$(): Observable<string> {
+    return this.assetsUrl$
+      .pipe(filter(u => !!u)) as Observable<string>
+  }
+
+  public getAPIUrl$(): Observable<string> {
+    return this.apiUrl$
+      .pipe(filter(u => !!u)) as Observable<string>
+  }
+
+  public toAbsoluteAssetUrl$(relativeUrl: string) {
+    return this.toAbsoluteUrl$(relativeUrl, this.assetsUrl$)
+  }
+
+  public toAbsoluteAssetUrl(relativeUrl: string) {
+    return this.toAbsoluteUrl(relativeUrl, this.assetsUrl$.value)
+  }
+
+  public toAbsoluteAPIUrl$(relativeUrl: string) {
+    return this.toAbsoluteUrl$(relativeUrl, this.apiUrl$)
+  }
+
+  public toAbsoluteAPIUrl(relativeUrl: string) {
+    return this.toAbsoluteUrl(relativeUrl, this.apiUrl$.value)
+  }
+
+  private toAbsoluteUrl$(relativeUrl: string, baseUrl$: Observable<string | undefined>): Observable<string> {
     if (UrlUtil.isAbsolute(relativeUrl)) {
       return new BehaviorSubject(relativeUrl)
     }
 
-    return this.baseUrl$.pipe(
+    return baseUrl$.pipe(
       filter(u => !!u),
       map(baseUrl => UrlUtil.toAbsolute(relativeUrl, baseUrl))
     )
   }
 
-  public toAbsoluteUrl(relativeUrl: string): string {
+  private toAbsoluteUrl(relativeUrl: string, baseUrl: string | undefined): string {
     if (UrlUtil.isAbsolute(relativeUrl)) {
       return relativeUrl
     }
 
-    return UrlUtil.toAbsolute(relativeUrl, this.baseUrl$.value)
+    return UrlUtil.toAbsolute(relativeUrl, baseUrl)
   }
 }

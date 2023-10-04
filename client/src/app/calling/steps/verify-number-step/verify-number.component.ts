@@ -79,15 +79,18 @@ export class VerifyNumberComponent {
   public getPolicyLinkHtml(): string {
     const policyUrlKey = 'verification.enterNumber.policyLinkUrl'
     const policyUrl = this.translocoService.translate(policyUrlKey)
-    const linkText = this.translocoService.translate('verification.enterNumber.policyLinkText')
+    let linkText = this.translocoService.translate('verification.enterNumber.policyLinkText')
 
     if (policyUrl === policyUrlKey) {
       console.error("Missing privacy policy url!")
     }
+    if (!linkText) {
+      linkText = policyUrl
+    }
 
     let absPolicyUrl = policyUrl
     try {
-      absPolicyUrl = this.baseUrlService.toAbsoluteUrl(policyUrl)
+      absPolicyUrl = this.baseUrlService.toAbsoluteAPIUrl(policyUrl)
     } catch (err) {
       console.error("failed to convert url to absolute", err)
     }

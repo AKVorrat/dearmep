@@ -65,6 +65,18 @@ contact_timespan_filter:
 
 # The HTTP API.
 api:
+  # Configuration for Cross-Origin Resource Sharing, see
+  # <https://en.wikipedia.org/wiki/Cross-origin_resource_sharing>. Enter a list
+  # of HTTP and/or HTTPS URLs (without any paths or trailing slashes). You may
+  # also add "*" if you prefer to live dangerously. These are the URLs that are
+  # allowed to access the API via a browser. Each campaign that embeds the
+  # DearMEP snippet should have its URL listed here.
+  cors:
+    origins:
+      - http://localhost:8000
+      - https://staging.chatcontrol.dearmep.eu
+      - https://chatcontrol.dearmep.eu
+      - https://dearmep.eu
 
   # Rate limit configuration. How often can certain actions/requests be
   # performed before considering it an attack on the service?
@@ -100,6 +112,13 @@ api:
       small_block_limit: 100 per minute
       large_block_limit: 300 per minute
 
+    # Requests that send SMS messages. This is basically just the phone number
+    # verification.
+    sms:
+      ip_limit: 3 per second, 25 per 8 hours
+      small_block_limit: 100 per 8 hours
+      large_block_limit: 300 per 8 hours
+
 
 # User authentication.
 authentication:
@@ -108,6 +127,31 @@ authentication:
   # are managed via a non-permanent JWT session cookie that will get deleted
   # once the user closes their browser window or logs out manually.
   session:
+
+    # To log a User in, an SMS verification code is sent to their phone and
+    # needs to be entered into the application to prove their ownership over
+    # that phone number. If the correct code is entered, it will be marked as
+    # used. However, a malicious person might try to spam a victim's phone by
+    # sending verification codes to it. Therefore, we limit the number of codes
+    # that can be in "unused" state for a given phone number. If this amount is
+    # reached, no more verification SMS will be sent to that number,
+    # effectively disallowing them from logging in again. This restriction does
+    # not time out on its own, to ensure that we never sent more than this
+    # number of codes to someone who might not even know who we are. However,
+    # a successful login _will_ reset this number: Only unused codes _after_
+    # the last successful login (if any) will be counted.
+    max_unused_codes: 3
+
+    # Additionally, an attacker might try to incur costs for us by using a
+    # phone they indeed control to log in hundreds of times. Therefore, we also
+    # limit the number of _successful_ logins that can be performed per phone
+    # number.
+    max_logins: 10
+
+    # The `max_logins` number above will only consider logins that took place
+    # (to be exact: were requested) in the last `max_logins_cutoff_days` days.
+    # In other words, in this example you could log in 10 times every 5 days.
+    max_logins_cutoff_days: 5
 
     # How long until the session times out due to inactivity. Any API request
     # with a valid token will reset this timeout.
@@ -120,9 +164,91 @@ authentication:
     # days or even months.
     authentication_timeout: 86400
 
+  # Various secrets used by the server. Customize these for your installation,
+  # and keep them hidden from the public!
+  secrets:
+
+    # Application-wide pepper value for hashes.
+    pepper: CHANGE THIS
+
+
+# Options regarding the after-call feedback functionality.
+feedback:
+
+  # How long (in seconds) until the feedback token expires and the User will no
+  # longer be able to use it to enter feedback about that specific call.
+  token_timeout: 604800  # one week
+
 
 # Options regarding phone calls and SMS.
 telephony:
+  # If set to true, do not actually send out SMS and make calls.
+  # This is useful for developing the application.
+  dry_run: true
+
+  # Calling codes that we allow Users to have. This corresponds to the "country
+  # code" part of an international phone number. For example, the number
+  # +491751234567 has a country code of 49. Note that these are not simply
+  # treated as being prefixes of the phone number; we actually know the codes
+  # of all of the world's countries and extract these. Therefore, a value of 4
+  # 4 will not match all country codes that start with 4, but actually match no
+  # country at all, because none of them has a country code of 4.
+  allowed_calling_codes:
+    - 30   # Greece
+    - 31   # Netherlands
+    - 32   # Belgium
+    - 33   # France
+    - 34   # Spain
+    - 351  # Portugal
+    - 352  # Luxembourg
+    - 353  # Republic of Ireland
+    - 356  # Malta
+    - 357  # Cyprus
+    - 358  # Finland
+    - 359  # Bulgaria
+    - 36   # Hungary
+    - 370  # Lithuania
+    - 371  # Latvia
+    - 372  # Estonia
+    - 385  # Croatia
+    - 386  # Slovenia
+    - 39   # Italy
+    - 40   # Romania
+    - 420  # Czech Republic
+    - 421  # Slovakia
+    - 43   # Austria
+    - 45   # Denmark
+    - 46   # Sweden
+    - 48   # Poland
+    - 49   # Germany
+
+  # A list of numbers/prefixes to be explicitly blocked, even if they are from
+  # an allowed country and an allowed type.
+  blocked_numbers:
+    # By providing an internationally formatted phone number, you are blocking
+    # all numbers that start with these digits. The number is converted to
+    # E.164 format, removing characters like `-`, `(`, `)`, `.`, ` `. Instead
+    # of listing single numbers here, you can also provide whole prefixes like
+    # `+49175`. Note that you should wrap the number in quotes, else YAML could
+    # iterpret it as an integer.
+    - "+1 202-501-4444"
+    # Alternatively, you can block the hash of a number as it appears in the
+    # database. This is useful if you identified someone abusing the system,
+    # but you do not know their phone number (since the database stores it in
+    # hashed format only for privacy reasons). Wrapping these hashes in quotes
+    # is recommended, too.
+    - "7p+gxtb2W3Fgw7cAm/fmHMcb8GogN2D8m4B+Xc1ZRTw="
+
+  # A list of numbers/prefixes to be explicitly allowed, even if they are not
+  # from an allowed country, not of an allowed type or even match an entry on
+  # the `blocked_numbers` list. In other words, this list has precedence over
+  # everything else.
+  approved_numbers:
+    # As in `blocked_numbers`, you can provide a E.164 prefix. All numbers with
+    # a canonical form that starts like this will be allowed.
+    - "+491751234567"  # would've been allowed anyway as it's a mobile number
+    # And, as before, you can also use a hash to specify a singular number.
+    - "bxsT9xkkRFk1Kl4sO8pGl2nCgYuDManlCzKkRGTGE1U="
 
   # Verifying phone numbers by sending an SMS to that number.
   sms_verification:
@@ -135,13 +261,6 @@ telephony:
     # It cannot be used again before being manually unlocked by an admin. This
     # is to prevent spamming a victim with codes, incurring costs.
     max_unused: 3
-
-    # How many verifications may be requested (possibly for different phone
-    # numbers, think call party behind a NAT) per IP address?
-    per_ip_limit: 3 per second, 10 per 6 hours
-
-    # How many SMS messages may the system send overall?
-    send_limit: 5 per second, 100 per hour
 
   # The phone provider, currently only `46elks`
   # (API CREDENTIALS) https://46elks.com/account for Basic Auth
@@ -214,6 +333,10 @@ l10n:
       sv: "{code} är din verifikationkod för {campaign}. Ignorera detta meddelande ifall du tror att du har fått det av misstag."
       fr: "Voici, ton code de vérification pour {campaign}: {code}. Si tu penses avoir reçu ce code par erreur, ignore-le."
       pt: "O teu código de verificação para a campanha {campaign}: {code}. Se não solicitaste este código, podes ignorá-lo."
+
+  feedback_survey_sms:
+      en: "How was your phone call with the {campaign} campaign? Your experience help us improve the tool and always pick politicians that are most likely to be convinced by citizens. Click here, it only takes a minute: {URL}"
+      de: "Wie war dein Anruf bei der {campaign} Kampagne? Deine Erfahrung hilft uns das Tool zu verbessern und die Abgeordneten auszuwählen, die am ehesten überzeugt werden können. Klick hier, es dauert nur eine Minute: {URL}"
 
   frontend_strings:
     # Main title of the campaign.
@@ -360,7 +483,7 @@ l10n:
       en: I have read and accept the {{ policyLink }}.
       de: Ich habe die {{ policyLink }} gelesen und akzeptiere sie.
       sv: Jag har läst {{ policyLink }} och godkänner dem.
-      fr: J'ai lu le {{ policylink }} et je l'accepte.
+      fr: J'ai lu le {{ policyLink }} et je l'accepte.
       da: Jeg har læst {{ policyLink }} og accepteret den.
       pt: Li e aceito a {{ policyLink }}.
 
@@ -378,7 +501,10 @@ l10n:
 
     verification.enterNumber.policyLinkUrl:
       en: /pages/privacy/en/
-      # fr: TBD
+      de: /pages/privacy/de/
+      sv: /pages/privacy/sv/
+      fr: /pages/privacy/fr/
+      pt: /pages/privacy/pt/
 
     # Button text of the button that lets the user send a verification code to the specified phone number
     verification.enterNumber.sendCode:
@@ -396,7 +522,7 @@ l10n:
       en: Please check you phone. We've sent a code to {{ number }}.
       de: Wir haben einen Code an {{ number }} geschickt. Bitte schau auf deinem Telefon nach.
       sv: Vi har skickat en kod till {{ number }}. Kolla din telefon.
-      fr: Nous t'avons envoyé le code de vérification à {{number}}. Merci de confirmer que le code est bien arrivé.
+      fr: Nous t'avons envoyé le code de vérification à {{ number }}. Merci de confirmer que le code est bien arrivé.
       da: Venligst tjek din telefon. Vi har sendt koden til {{ number }}.
       pt: Verifica o teu telefone. Enviámos um código para {{ number }}.
 
@@ -438,7 +564,7 @@ l10n:
       en: 'Succesfully verified with the number: {{ number }}'
       de: '{{ number }} wurde erfolgreich verifiziert'
       sv: 'Ditt nummer {{ number }} är nu verifierat'
-      fr: 'Nous avons réussi à vérifier ton numéro de téléphone: { number }}'
+      fr: 'Nous avons réussi à vérifier ton numéro de téléphone: {{ number }}'
       da: Din nummer {{ number }} er verificeret nu
       pt: 'Número verificado com sucesso: {{ number }}'
 
@@ -589,6 +715,7 @@ l10n:
     select-mep.search.placeholder:
       en: Search
       de: Suche
+      sv: Sök
       fr: Rechercher
       da: Søg
       pt: Pesquisar
@@ -597,6 +724,7 @@ l10n:
     select-mep.autocomplete-empty:
       en: Not found
       de: Nicht gefunden
+      sv: Hittades inte
       fr: Aucun résultat n'a été trouvé
       da: Ikke fundet
       pt: Sem resultados
@@ -605,9 +733,10 @@ l10n:
     # {{ id }} placeholder is replaced with the MEP-ID from the API
     select-mep.portraitCreditHtml:
       en: portrait © European Parliament (<a href="https://www.europarl.europa.eu/meps/en/{{id}}/" target="_blank">source</a>)
-      de: Portrait © Europäisches Parlament (<a href="https://www.europarl.europa.eu/meps/en/{{id}}/" target="_blank">source</a>)
+      de: Portrait © Europäisches Parlament (<a href="https://www.europarl.europa.eu/meps/de/{{id}}/" target="_blank">source</a>)
+      sv: Porträtt © Europaparlamentet (<a href="https://www.europarl.europa.eu/meps/sv/{{id}}/" target="_blank">source</a>)
       fr: portait © Parlement européen (<a href="https://www.europarl.europa.eu/meps/fr/{{id}}/" target="_blank">source</a>)
-      da: Portræt © Europäisches Parlament (<a href="https://www.europarl.europa.eu/meps/en/{{id}}/" target="_blank">kilde</a>)
+      da: Portræt © Europa-Parlamentet (<a href="https://www.europarl.europa.eu/meps/da/{{id}}/" target="_blank">kilde</a>)
       pt: retrato © Parlamento Europeu (<a href="https://www.europarl.europa.eu/meps/pt/{{id}}/" target="_blank">fonte</a>)
 
   # Translation strings for the talking-points that will be displayed during the call or while scheduling a call

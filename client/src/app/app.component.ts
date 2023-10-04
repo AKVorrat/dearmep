@@ -49,9 +49,41 @@ export class AppComponent implements OnInit, OnChanges {
   @Input("api")
   public apiUrl = "./"
 
-  // eslint-disable-next-line @angular-eslint/no-input-rename
-  @Input("disable-calling")
-  public disableCalling = false
+  /**
+   * This parameter hides the call-scheduling functionality. By default scheduling is enabled.
+   *
+   * NOTE: Sceduling is currently disabled by default as the backend does not yet support the functionality.
+   *
+   * It can be applied in the HTML code by simply specifying the attribute-name:
+   *
+   *  <dear-mep disable-scheduling></dear-mep>
+   *
+   * If the attribute is present, the value of this property is '' otherwise it is undefined.
+   * The getter 'disableScheduling' converts this value into a boolean accordinly.
+   */
+  @Input()
+  public 'disable-scheduling': '' | undefined = '' // NOTE: This default will be changed to false as soon as scheduling is implemented in the backend.
+
+  public get disableScheduling(): boolean {
+    return this['disable-scheduling'] !== undefined
+  }
+
+  /**
+   * This parameter hides the calling functionality. By default calling is enabled.
+   *
+   * It can be applied in the HTML code by simply specifying the attribute-name:
+   *
+   *  <dear-mep disable-calling></dear-mep>
+   *
+   * If the attribute is present, the value of this property is '' otherwise it is undefined.
+   * The getter 'disableCalling' converts this value into a boolean accordinly.
+   */
+  @Input()
+  public 'disable-calling': '' | undefined = undefined
+
+  public get disableCalling(): boolean {
+    return this['disable-calling'] !== undefined
+  }
 
   /**
    * If the country the user is in cannot be detected by the backend or
@@ -69,10 +101,10 @@ export class AppComponent implements OnInit, OnChanges {
   public defaultCountry?: string
 
   constructor(
-    private readonly assetsBaseUrlService: BaseUrlService,
+    private readonly baseUrlService: BaseUrlService,
     private readonly callingStateManagerService: CallingStateManagerService,
     private readonly l10nService: L10nService,
-  ) {}
+  ) { }
 
   public ngOnInit() {
     if (!this.hostUrl) {
@@ -81,8 +113,9 @@ export class AppComponent implements OnInit, OnChanges {
       console.error(`DearMEP: Invalid attirbute 'host'. Only absolute URLs are allowed for this option.`)
     }
 
-    this.styleUrl$ = this.assetsBaseUrlService.toAbsoluteUrl$("./styles.css")
-    this.flagsStyleUrl$ = this.assetsBaseUrlService.toAbsoluteUrl$("./flags.css")
+    this.styleUrl$ = this.baseUrlService.toAbsoluteAssetUrl$("./dear-mep-inner.css")
+    this.flagsStyleUrl$ = this.baseUrlService.toAbsoluteAssetUrl$("./flags.css")
+
     this.shouldDisplayTalkingPoints$ = this.callingStateManagerService.getStep$().pipe(
       map(step => step !== CallingStep.Home && step !== CallingStep.HomeAuthenticated)
     );
@@ -97,20 +130,22 @@ export class AppComponent implements OnInit, OnChanges {
   }
 
   public ngOnChanges(changes: SimpleChanges): void {
-    if ((changes["hostUrl"] && this.hostUrl) ||
-        (changes["assetsUrl"] && this.assetsUrl)) {
-      const assetsUrl = this.getAssetsUrl()
-      this.assetsBaseUrlService.setBaseUrl(assetsUrl)
+    if (changes["hostUrl"] || changes["assetsUrl"]) {
+      const assetsUrl = UrlUtil.toAbsolute(
+        this.assetsUrl,
+        this.hostUrl
+      )
+      this.baseUrlService.setAssetsUrl(assetsUrl)
+    }
+    if (changes["hostUrl"] || changes["apiUrl"]) {
+      const apiUrl = UrlUtil.toAbsolute(
+        this.apiUrl,
+        this.hostUrl
+      )
+      this.baseUrlService.setAPIUrl(apiUrl)
     }
     if (changes["defaultCountry"]) {
       this.l10nService.setDefaultCountry(this.defaultCountry?.toUpperCase())
     }
-  }
-
-  private getAssetsUrl(): string {
-    return UrlUtil.toAbsolute(
-      this.assetsUrl,
-      this.hostUrl
-    )
   }
 }

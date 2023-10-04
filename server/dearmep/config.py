@@ -2,15 +2,16 @@ from datetime import date
 from functools import lru_cache
 import logging
 from pathlib import Path
-import re
-from typing import Any, ClassVar, Dict, List, Optional, Union, Tuple, Literal
+from typing import Any, ClassVar, Dict, List, Literal, Optional, Union, Tuple
 
-from pydantic import BaseModel, BaseSettings, ConstrainedStr, DirectoryPath, \
-    Field, FilePath, ValidationError, HttpUrl, validator
+from pydantic import AnyHttpUrl, BaseModel, BaseSettings, DirectoryPath, \
+    Field, FilePath, PositiveInt, ValidationError, validator
 from pydantic.fields import ModelField
 from pydantic.utils import deep_update
 import yaml
 from yaml.parser import ParserError
+
+from .models import Language
 
 
 _logger = logging.getLogger(__name__)
@@ -31,10 +32,6 @@ class ConfigNotLoaded(Exception):
     pass
 
 
-class Language(ConstrainedStr):
-    regex = re.compile(r"^[a-zA-Z]{2,8}(-[a-zA-Z0-9]{1,8})*$")
-
-
 class IPRateLimits(BaseModel):
     ip_limit: str
     small_block_limit: str
@@ -42,23 +39,23 @@ class IPRateLimits(BaseModel):
 
 
 class GeneralConfig(BaseModel):
-    base_url: HttpUrl
+    base_url: AnyHttpUrl
+
+
+class CorsConfig(BaseModel):
+    """Allowed access for other web hosts to this backend via Ajax"""
+    origins: List[Union[Literal["*"], AnyHttpUrl]]
 
 
 class APIRateLimitConfig(BaseModel):
     simple: IPRateLimits
     computational: IPRateLimits
+    sms: IPRateLimits
 
 
 class APIConfig(BaseModel):
+    cors: CorsConfig
     rate_limits: APIRateLimitConfig
-
-
-class SMSVerificationConfig(BaseModel):
-    timeout: int
-    max_unused: int
-    per_ip_limit: str
-    send_limit: str
 
 
 class ElksConfig(BaseModel):
@@ -68,10 +65,23 @@ class ElksConfig(BaseModel):
     allowed_ips: Tuple[str, ...]
 
 
-class TelephonyConfig(BaseModel):
-    sms_verification: SMSVerificationConfig
-    provider: ElksConfig
-    audio_source: HttpUrl
+class SecretsConfig(BaseModel):
+    pepper: str
+
+
+class SessionConfig(BaseModel):
+    max_logins: PositiveInt
+    max_logins_cutoff_days: PositiveInt
+    max_unused_codes: PositiveInt
+
+
+class AuthenticationConfig(BaseModel):
+    secrets: SecretsConfig
+    session: SessionConfig
+
+
+class FeedbackConfig(BaseModel):
+    token_timeout: PositiveInt
 
 
 class ContactTimespanFilterTimespan(BaseModel):
@@ -199,11 +209,22 @@ class L10nConfig(BaseModel):
         return v
 
 
+class TelephonyConfig(BaseModel):
+    allowed_calling_codes: List[int]
+    blocked_numbers: List[str] = []
+    approved_numbers: List[str] = []
+    dry_run: bool = False
+    provider: ElksConfig
+    audio_source: AnyHttpUrl
+
+
 class Config(BaseModel):
     """The main application configuration supplied via the config file."""
     api: APIConfig
+    authentication: AuthenticationConfig
     contact_timespan_filter: Optional[ContactTimespanFilterConfig]
     database: DatabaseConfig
+    feedback: FeedbackConfig
     l10n: L10nConfig
     telephony: TelephonyConfig
     general: GeneralConfig

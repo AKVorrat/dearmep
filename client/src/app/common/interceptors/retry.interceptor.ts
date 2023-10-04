@@ -25,80 +25,57 @@ export class RetryInterceptor implements HttpInterceptor {
   intercept(request: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
     return next.handle(request).pipe(
       retry({
-        delay: (error: HttpErrorResponse, retryCount: number) => this.shouldRetry(error, retryCount)
+        delay: (error: HttpErrorResponse | TimeoutError | unknown, retryCount: number) => this.shouldRetry(error, retryCount)
       })
     );
   }
 
-  private shouldRetry(error: any, retryCount: number): Observable<any> {
-    const status: number = error.status
+  private shouldRetry(error: HttpErrorResponse | TimeoutError | unknown, retryCount: number) {
+    if (error instanceof HttpErrorResponse) {
+      const httpError: HttpErrorResponse = error
 
-    if (status === 429) {
-      return this.shouldRetryRateLimit(error, retryCount)
-    } else if (status >= 500 && status < 600) {
-      return this.shouldRetryServerError(error, retryCount)
-    } else if (error.name === "TimeoutError") {
-      return this.shouldRetryTimeout(error, retryCount)
-    } else if (typeof status === 'number' && !isNaN(status) && status !== 0) {
-      return this.fail(error) // all response errors, such as 4xx => fail without retry
+      if (httpError.status === 429) {
+        const retryDelay = this.getRetryAfter(httpError, this.rateLimitMinRetryInterval)
+        return this.shouldRetryAfter(error, retryCount, this.rateLimitMaxRetries, retryDelay, "Server-Rate-Limit", httpError.url)
+      } else if (httpError.status >= 500 && httpError.status < 600) {
+        return this.shouldRetryAfter(error, retryCount, this.serverErrorMaxRetries, this.serverErrorRetryInterval, "Server-Error", httpError.url)
+      } else {
+        return this.fail(error) // all response errors, such as 4xx => fail without retry
+      }
+
+    } else if (error instanceof TimeoutError && error.name === "TimeoutError") {
+        return this.shouldRetryAfter(error, retryCount, this.timeoutMaxRetries, this.timeoutRetryInterval, "Timeout-Error")
     } else {
-      return this.shouldRetryConnectionError(error, retryCount)
+      return this.shouldRetryAfter(error, retryCount, this.connectionErrorMaxRetries, this.connectionErrorInterval)
     }
   }
 
-  private shouldRetryRateLimit(error: HttpErrorResponse, retryCount: number): Observable<any> {
-    if (retryCount > this.rateLimitMaxRetries) {
-      console.error(`Server-Rate-Limit encountered. Reached max retreis. Failing! (url: ${error.url}).`)
+  private shouldRetryAfter(error: unknown, retryCount: number, maxRetryCount: number, retryInterval: number, errorName = "HttpError", url: string | null = "unknown") {
+    if (retryCount > maxRetryCount) {
+      console.error(`${errorName} encountered. Reached max retreis. Failing! (url: ${url}).`)
       return this.fail(error)
     }
+    console.error(`${errorName} encountered. Retrying after ${retryInterval / 1000.0}s (url: ${url}).`)
+    return this.reatryAfter(retryInterval)
+  }
 
-    // retry interval is taken from retry-after header
+  private getRetryAfter(error: HttpErrorResponse, minRetryAfter: number): number {
     const retryAfterHeader = error.headers.get("retry-after")
+
     let retryAfter = parseFloat(retryAfterHeader || '') * 1000
+
     if (isNaN(retryAfter)) {
       retryAfter = this.rateLimitMinRetryInterval
     }
-    const retryDelay = Math.max(retryAfter, this.rateLimitMinRetryInterval)
 
-    console.error(`Server-Rate-Limit encountered. Retrying after ${retryDelay / 1000.0}s (url: ${error.url}).`)
-    return this.reatryAfter(retryDelay)
+    return Math.max(retryAfter, minRetryAfter)
   }
 
-  private shouldRetryServerError(error: HttpErrorResponse, retryCount: number): Observable<any> {
-    if (retryCount > this.serverErrorMaxRetries) {
-      console.error(`Server-Error encountered. Reached max retreis. Failing! (url: ${error.url}).`)
-      return this.fail(error)
-    }
-
-    console.error(`Server-Error encountered. Retrying after ${this.serverErrorRetryInterval / 1000.0}s (url: ${error.url}).`)
-    return this.reatryAfter(this.serverErrorRetryInterval)
-  }
-
-  private shouldRetryTimeout(error: TimeoutError, retryCount: number): Observable<any> {
-    if (retryCount > this.timeoutMaxRetries) {
-      console.error(`Timeout-Error encountered. Reached max retreis. Failing!`)
-      return this.fail(error)
-    }
-
-    console.error(`Timeout-Error encountered. Retrying after ${this.timeoutRetryInterval / 1000.0}s.`)
-    return this.reatryAfter(this.timeoutRetryInterval)
-  }
-
-  private shouldRetryConnectionError(error: TimeoutError, retryCount: number): Observable<any> {
-    if (retryCount > this.connectionErrorMaxRetries) {
-      console.error(`Connection-Error encountered. Reached max retreis. Failing!`)
-      return this.fail(error)
-    }
-
-    console.error(`Connection-Error encountered. Retrying after ${this.connectionErrorInterval / 1000.0}s.`)
-    return this.reatryAfter(this.connectionErrorInterval)
-  }
-
-  private reatryAfter(timeout: number) {
+  private reatryAfter(timeout: number): Observable<void> {
     return of(undefined).pipe(delay(timeout))
   }
 
-  private fail(error: any) {
+  private fail(error: unknown): Observable<void> {
     return throwError(() => error)
   }
 }

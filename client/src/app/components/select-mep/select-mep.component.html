@@ -17,7 +17,7 @@
             <span [classList]="'flag:' + mep.country"></span>
             <span class="mep-name">{{ mep.name }}</span>
             <ng-container *ngFor="let group of mep.groups">
-              <img *ngIf="group.logo" [src]="group.logo" class="dmep-group-icon">
+              <img *ngIf="group.logo" [src]="group.logo | toAbsolute: 'api'" class="dmep-group-icon">
             </ng-container>
           </div>
         </mat-option>

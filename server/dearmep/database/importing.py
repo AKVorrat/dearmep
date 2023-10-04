@@ -1,13 +1,13 @@
 from __future__ import annotations
 from pathlib import Path
-from typing import Callable, Dict, Iterable, Optional, Type
+from typing import Callable, Dict, Iterable, Optional, Set, Type
 
 from sqlmodel import SQLModel, Session
 
 from ..convert.dump import DumpFormatException
 from ..convert.image import image2blob
 from .models import Contact, Destination, DestinationDump, DestinationGroup, \
-    DestinationGroupDump, DumpableModels
+    DestinationGroupDump, DestinationID, DumpableModels, SwayabilityImport
 
 
 class Importer:
@@ -90,3 +90,27 @@ class Importer:
                 raise DumpFormatException(f"unknown type: {obj_type}")
             model: SQLModel = self._dump2db[obj_type](obj)
             session.add(model)
+
+
+def import_swayability(
+    session: Session,
+    objs: Iterable[SwayabilityImport],
+    *,
+    ignore_unknown: bool = False,
+) -> Set[DestinationID]:
+    """Import endorsement for Destinations.
+
+    If `ignore_unknown` is set, IDs not found in the database will be ignored.
+    A set of ignored IDs will be returned.
+    """
+    ignored: Set[DestinationID] = set()
+    for obj in objs:
+        dest = session.get(Destination, obj.id)
+        if not dest:
+            if ignore_unknown:
+                ignored.add(obj.id)
+                continue
+            raise KeyError(f"no such Destination: {obj.id}")
+        if obj.endorsement is not None:
+            dest.base_endorsement = obj.endorsement
+    return ignored

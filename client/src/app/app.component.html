@@ -13,7 +13,7 @@
     <dmep-talking-points class="dmep-layout-left" *ngIf="shouldDisplayTalkingPoints$ | async"></dmep-talking-points>
 
     <dmep-language-switch class="dmep-layout-right"></dmep-language-switch>
-    <dmep-calling class="dmep-layout-right" *ngIf="!disableCalling"></dmep-calling>
+    <dmep-calling class="dmep-layout-right" *ngIf="!disableCalling" [disableScheduling]="disableScheduling"></dmep-calling>
 
   </div>
 

@@ -1,5 +1,7 @@
 from __future__ import annotations
 from argparse import _SubParsersAction, ArgumentParser
+import csv
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -9,7 +11,11 @@ from ..config import APP_NAME, CMD_NAME, Config
 from ..convert import dump
 from ..database import importing as db_importing
 from ..database.connection import get_session
-from ..progress import FlexiBytesReader
+from ..database.models import SwayabilityImport
+from ..progress import FlexiBytesReader, FlexiStrReader
+
+
+_logger = logging.getLogger(__name__)
 
 
 def import_destinations(ctx: Context):
@@ -31,6 +37,26 @@ def import_destinations(ctx: Context):
                         dump.read_dump_json(input_stream),
                     )
         session.commit()
+
+
+def import_swayability(ctx: Context):
+    Config.load()
+    input: FlexiStrReader = ctx.args.input
+
+    with get_session() as session:
+        with ctx.task_factory() as tf:
+            with tf.create_task("reading and importing CSV") as task:
+                input.set_task(task)
+                with input as input_stream:
+                    csvr = csv.DictReader(input_stream)
+                    ignored = db_importing.import_swayability(session, map(
+                        SwayabilityImport.parse_obj, csvr
+                    ), ignore_unknown=ctx.args.ignore_unknown)
+                session.commit()
+    if ignored:
+        _logger.warning(
+            "Ignored the following IDs which were not found in the database: "
+            f"{', '.join(ignored)}")
 
 
 def add_parser(subparsers: _SubParsersAction, help_if_no_subcommand, **kwargs):
@@ -72,5 +98,22 @@ def add_parser(subparsers: _SubParsersAction, help_if_no_subcommand, **kwargs):
         "{short_name} and {long_name} (as given in the JSON)",
     )
     destinations.set_defaults(func=import_destinations, raw_stdout=True)
+
+    swayability = subsub.add_parser(
+        "swayability",
+        help="import data to calculate the priority of Destinations",
+        description="Read a CSV file which provides Swayability data for "
+        "Destinations. The CSV file is required to have an `id` column that "
+        "references the Destination's ID. A `endorsement` column can be used "
+        "to set the Base Endorsement value for the destination.",
+    )
+    FlexiStrReader.add_as_argument(swayability)
+    swayability.add_argument(
+        "--ignore-unknown", action="store_true",
+        help="If the CSV contains IDs which are not found in the database, "
+        "ignore these. If this option is not set, unknown IDs will instead "
+        "cause the import to abort.",
+    )
+    swayability.set_defaults(func=import_swayability)
 
     help_if_no_subcommand(parser)

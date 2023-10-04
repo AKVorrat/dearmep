@@ -2,6 +2,7 @@ import logging
 from typing import Optional
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
 from starlette_exporter import PrometheusMiddleware, handle_metrics
 from starlette_exporter.optional_metrics import request_body_size, \
@@ -32,16 +33,28 @@ def require_operation_id(app: FastAPI):
             )
 
 
+def setup_cors(app: FastAPI, config: Config):
+    allowed_origins = config.api.cors.origins
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=allowed_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+
 def create_app(config_dict: Optional[dict] = None) -> FastAPI:
     if config_dict is None:
-        Config.load()
+        config = Config.load()
     else:
-        Config.load_dict(config_dict)
+        config = Config.load_dict(config_dict)
 
     app = FastAPI(
         title=APP_NAME,
         version=__version__,
     )
+    setup_cors(app, config)
 
     app.include_router(api_v1.router, prefix="/api/v1")
     elks.mount_router(app, "/phone")

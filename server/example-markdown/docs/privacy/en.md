@@ -78,7 +78,7 @@ Once a call that lasted above a certain duration is concluded, a user will be as
 We ask if the user believes to have successfully convinced the politician, if there was a technical problem and optional additional feedback.
 This information is complemented with the politician they have called, the country of the user and the first digits of their telephone number, which only reveal their country code and provider, but not them as a subscriber.
 
-Calling Feedback is kept intentionally pseudonymous to allow the sharing of this information with campaigns that also also implement this iteration of DearMEP without revealing any personal information of users.
+Calling Feedback is kept intentionally pseudonymous to allow the sharing of this information with campaigns that also implement this iteration of DearMEP without revealing any personal information of users.
 
 In the interface of the feedback tool, the user is informed that if they wish to be contacted by us, they have to provide contact information in the additional feedback text box.
 If the user provides personal information like e-mail addresses or a telephone number in that feedback text box, we rely on their informed consent as legal basis for that processing (Art. 6 (1) (a) GDPR).
