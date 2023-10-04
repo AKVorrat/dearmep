@@ -4,7 +4,7 @@ from datetime import datetime
 from dearmep.database.models import Call, Destination
 from dearmep.database import connection
 from sqlmodel import Session
-from sqlalchemy import exists, and_
+from sqlalchemy import and_, select
 from sqlalchemy.orm import joinedload
 
 
@@ -56,15 +56,14 @@ def end_call(call: Call):
 @session
 def destination_is_in_call(destination_id: str, session: Session):
     """ returns True if the destination is in a call """
-    query = session.query(
-        exists().where(
-            and_(Call.destination_id == destination_id,
-                 Call.connected_at.isnot(None),  # type: ignore
-                 Call.ended_at.is_(None)  # type: ignore
-                 )
+    stmt = select(Call).where(
+        and_(
+            Call.destination_id == destination_id,
+            Call.connected_at.isnot(None),  # type: ignore
+            Call.ended_at.is_(None)  # type: ignore
         )
-    )
-    in_call = session.execute(query).scalar()
+    ).exists()
+    in_call = session.query(stmt).scalar()
     return in_call
 
 
