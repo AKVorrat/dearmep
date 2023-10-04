@@ -98,10 +98,11 @@ def mount_router(app: FastAPI, prefix: str):
         provider_cfg.username,
         provider_cfg.password,
     )
-    phone_numbers.extend(get_numbers(
-        phone_numbers=phone_numbers,
-        auth=auth,
-    ))
+    if not config.telephony.dry_run:
+        phone_numbers.extend(get_numbers(
+            phone_numbers=phone_numbers,
+            auth=auth,
+        ))
 
     def verify_origin(request: Request):
         """ Makes sure the request is coming from a 46elks IP """
