@@ -4,12 +4,12 @@ from typing import Any, Dict, List, Optional, TypedDict, Union
 from uuid import uuid4
 
 from pydantic import UUID4, BaseModel
-from sqlmodel import Column, Enum, Field, Relationship, SQLModel, TIMESTAMP, \
-    and_, case, or_, func, text
+from sqlmodel import Column, Enum, Field, JSON, Relationship, SQLModel, \
+    String, TIMESTAMP, and_, case, or_, func, text
 
 from ..config import Config, ConfigNotLoaded, Language
 from ..models import CountryCode, FeedbackConvinced, FeedbackText, \
-    FeedbackToken, Score, UserPhone, VerificationCode
+    FeedbackToken, MediaListItem, Score, UserPhone, VerificationCode
 
 
 class _SchemaExtra(TypedDict):
@@ -523,8 +523,7 @@ class DestinationSelectionLogBase(SQLModel):
         description="ID of the phone call that relates to this log, if any.",
     )
     timestamp: Optional[datetime] = Field(
-        index=True,
-        sa_column=auto_timestamp_column(),
+        sa_column=auto_timestamp_column(index=True),
         description="Timestamp of when the selection took place.",
     )
     event: DestinationSelectionLogEvent = Field(
@@ -622,6 +621,28 @@ class SwayabilityImport(BaseModel):
     endorsement: Optional[Score] = Field(
         None,
         description="Base Endorsement value to set.",
+    )
+
+
+class MediaList(SQLModel, table=True):
+    __tablename__ = "medialists"
+    id: UUID4 = Field(
+        sa_column=Column(
+            String, primary_key=True, default=lambda: str(uuid4())),
+        description="ID of the media list.",
+    )
+    created_at: datetime = Field(
+        sa_column=auto_timestamp_column(index=True),
+    )
+    items: List[MediaListItem] = Field(
+        sa_column=Column(JSON),
+    )
+    format: str = Field(
+        description="The format of the desired output, compatible to ffmpeg's "
+        "`-f` option, e.g. `ogg`.",
+    )
+    mimetype: str = Field(
+        description="The MIME type the output is going to have.",
     )
 
 

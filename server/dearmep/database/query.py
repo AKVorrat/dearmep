@@ -3,6 +3,7 @@ from typing import Callable, Dict, List, NamedTuple, Optional, Union, cast
 from secrets import randbelow
 import re
 import backoff
+from pydantic import UUID4
 
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError, NoResultFound
@@ -10,12 +11,13 @@ from sqlalchemy.sql import label
 from sqlmodel import and_, case, col, column, or_
 
 from ..config import Config
+from ..convert.blobfile import BlobOrFile
 from ..models import CountryCode, DestinationSearchGroup, \
     DestinationSearchResult, FeedbackToken, Language, PhoneRejectReason, \
     SearchResult, UserPhone, VerificationCode
 from .connection import Session, select
 from .models import Blob, Destination, DestinationID, \
-    DestinationSelectionLog, DestinationSelectionLogEvent, \
+    DestinationSelectionLog, DestinationSelectionLogEvent, MediaList, \
     NumberVerificationRequest, UserFeedback
 
 import logging
@@ -346,3 +348,29 @@ def get_user_feedback_by_token(
     if not (feedback := session.get(UserFeedback, token)):
         raise NotFound(f"unknown token `{token}`")
     return feedback
+
+
+def add_medialist(
+    session: Session,
+    items: List[BlobOrFile],
+    *,
+    format: str,
+    mimetype: str,
+) -> UUID4:
+    mlist = MediaList(
+        items=[item.as_medialist_item() for item in items],
+        format=format,
+        mimetype=mimetype,
+    )
+    with session.begin_nested():
+        session.add(mlist)
+    return mlist.id
+
+
+def get_medialist_by_id(
+    session: Session,
+    id: UUID4,
+) -> MediaList:
+    if not (mlist := session.get(MediaList, str(id))):
+        raise NotFound(f"no such medialist: `{str(id)}`")
+    return mlist

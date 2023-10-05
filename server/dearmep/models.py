@@ -75,6 +75,9 @@ class LanguageMixin(BaseModel):
     )
 
 
+MediaListItem = Union[int, str]
+
+
 class SearchResultLimit(ConstrainedInt):
     """The number of search results to return."""
     gt = 0
