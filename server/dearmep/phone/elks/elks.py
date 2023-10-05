@@ -49,9 +49,11 @@ def initiate_call(
     config: Config
 ) -> InitialElkResponseState:
     """ Initiate a Phone call via 46elks """
-    auth: Tuple[str, str] = (
-        config.telephony.provider.username,
-        config.telephony.provider.password,
+    provider_cfg = config.telephony.provider
+    elks_url = config.general.base_url + "/phone"
+    auth = (
+        provider_cfg.username,
+        provider_cfg.password,
     )
 
     phone_number = choose_from_number(
@@ -65,8 +67,8 @@ def initiate_call(
         data={
             "to": user_phone_number,
             "from": phone_number.number,
-            "voice_start": f"{config.general.base_url}/phone/voice-start",
-            "whenhangup": f"{config.general.base_url}/phone/hangup",
+            "voice_start": f"{elks_url}/voice-start",
+            "whenhangup": f"{elks_url}/hangup",
             "timeout": 13
         }
     )
@@ -94,6 +96,7 @@ def mount_router(app: FastAPI, prefix: str):
 
     config = Config.get()
     provider_cfg = config.telephony.provider
+    elks_url = config.general.base_url + prefix
     auth = (
         provider_cfg.username,
         provider_cfg.password,
@@ -140,7 +143,7 @@ def mount_router(app: FastAPI, prefix: str):
         return {
             "ivr": f"{config.telephony.audio_source}"
                    f"/connect-prompt.{call.user_language}.ogg",
-            "next": f"{config.general.base_url}/phone/next",
+            "next": f"{elks_url}/next",
             "timeout": 1,
             "repeat": 1,
         }
@@ -287,6 +290,6 @@ def mount_router(app: FastAPI, prefix: str):
         number_MEP = "+4940428990"  # die Uhrzeit
         connect = {
             "connect": number_MEP,
-            "next": f"{config.general.base_url}/phone/goodbye",
+            "next": f"{elks_url}/goodbye",
         }
         return connect
