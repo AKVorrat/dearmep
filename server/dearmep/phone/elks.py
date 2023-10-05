@@ -20,6 +20,13 @@ Duration = int
 FinalState = Literal["success", "failed", "busy"]
 
 
+# This list is from <https://46elks.com/docs/verify-callback-origin>.
+elks_ips: Tuple[str, ...] = (
+    "176.10.154.199", "85.24.146.132", "185.39.146.243",
+    "2001:9b0:2:902::199",
+)
+
+
 def include_router(
     parent: Union[APIRouter, FastAPI],
     base_url: str,
@@ -39,18 +46,13 @@ def include_router(
 
     router = APIRouter()
 
-    # This list is from <https://46elks.com/docs/verify-callback-origin>.
-    elks_ips: Tuple[str, ...] = (
-        "176.10.154.199", "85.24.146.132", "185.39.146.243",
-        "2001:9b0:2:902::199",
-    )
-
+    allowed_ips = elks_ips
     if allow_localhost:
-        elks_ips += ("::1", "127.0.0.1")
+        allowed_ips += ("::1", "127.0.0.1")
 
     async def verify_origin(request: Request):
         client_ip = None if request.client is None else request.client.host
-        if client_ip not in elks_ips:
+        if client_ip not in allowed_ips:
             logger.debug(f"refusing {client_ip}, not a 46elks IP")
             raise HTTPException(
                 status.HTTP_403_FORBIDDEN,

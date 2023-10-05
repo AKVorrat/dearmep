@@ -2,11 +2,12 @@ from __future__ import annotations
 from base64 import b64encode
 import enum
 from hashlib import sha256
+from ipaddress import IPv4Network, IPv6Network
 import json
 import re
-import secrets
 from typing import Any, Dict, Generic, List, Literal, Optional, Tuple, \
     TypeVar, Union
+import secrets
 
 from canonicaljson import encode_canonical_json
 import phonenumbers
@@ -16,6 +17,7 @@ from pydantic.generics import GenericModel
 
 
 T = TypeVar("T")
+IPNetwork = Union[IPv4Network, IPv6Network]
 
 MAX_SEARCH_RESULT_LIMIT = 20
 

@@ -1,13 +1,14 @@
 import ipaddress
 import logging
 from time import time
-from typing import Dict, Literal, Optional, Tuple, Union
+from typing import Dict, Literal, Optional, Tuple, Union, Set
 
 from fastapi import Depends, HTTPException, Request, routing, status
 import limits
 from prometheus_client import Counter
 
 from .config import Config, IPRateLimits
+from .models import IPNetwork
 
 
 NETSIZES: Dict[str, Union[None, Tuple[int, int]]] = {
@@ -50,7 +51,7 @@ def ip_network(
     v4len: int = 32,
     v6len: int = 128,
 ) -> str:
-    net: Union[ipaddress.IPv4Network, ipaddress.IPv6Network] = (
+    net: IPNetwork = (
         ipaddress.IPv4Network((addr, v4len), strict=False)
         if isinstance(addr, ipaddress.IPv4Address)
         else ipaddress.IPv6Network((addr, v6len), strict=False))
@@ -59,6 +60,8 @@ def ip_network(
 
 class Limit:
     """Dependency for rate limiting calls of an endpoint."""
+
+    not_limited_ip_networks: Set[IPNetwork] = set()
 
     @staticmethod
     def reset_all_limits():
@@ -92,6 +95,10 @@ class Limit:
                 "rate limiting skipped")
             return
 
+        for unlimited_nework in Limit.not_limited_ip_networks:
+            if addr in unlimited_nework:
+                return
+
         for size_name, netsizes in NETSIZES.items():
             limit = self.limits[size_name]
             identifiers = (  # this is a tuple with one item
@@ -113,3 +120,10 @@ class Limit:
                 f"second{'' if reset_in == 1 else 's'}",
                 headers={"Retry-After": str(reset_in)},
             )
+
+    @classmethod
+    def allow_unlimited(cls, subnets: Set[IPNetwork]):
+        """
+        Exclude specific IP subnets from the limits.
+        """
+        cls.not_limited_ip_networks.update(subnets)
