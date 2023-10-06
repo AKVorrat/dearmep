@@ -481,7 +481,7 @@ def get_concatenated_media(
     with get_session() as session:
         mlist = query.get_medialist_by_id(session, id)
     items = [
-        blobfile.BlobOrFile.from_medialist_item(item)
+        blobfile.BlobOrFile.from_medialist_item(item, session=session)
         for item in mlist.items
     ]
 

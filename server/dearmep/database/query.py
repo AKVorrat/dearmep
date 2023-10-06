@@ -16,7 +16,7 @@ from ..models import CountryCode, DestinationSearchGroup, \
     DestinationSearchResult, FeedbackToken, Language, PhoneRejectReason, \
     SearchResult, UserPhone, VerificationCode
 from .connection import Session, select
-from .models import Blob, Destination, DestinationID, \
+from .models import Blob, BlobID, Destination, DestinationID, \
     DestinationSelectionLog, DestinationSelectionLogEvent, MediaList, \
     NumberVerificationRequest, UserFeedback
 
@@ -47,11 +47,31 @@ def get_available_countries(session: Session) -> List[str]:
         else []
 
 
+def get_blob_by_id(session: Session, id: BlobID) -> Blob:
+    if not (blob := session.get(Blob, id)):
+        raise NotFound(f"no blob with ID {id}")
+    return blob
+
+
 def get_blob_by_name(session: Session, name: str) -> Blob:
     try:
         return session.exec(select(Blob).where(Blob.name == name)).one()
     except NoResultFound:
         raise NotFound(f"no blob named `{name}`")
+
+
+def get_blobs_by_names(
+    session: Session,
+    names: List[str],
+) -> Dict[str, Blob]:
+    blobs = session.exec(
+        select(Blob)
+        .where(col(Blob.name).in_(names))
+    ).all()
+    return {
+        blob.name: blob
+        for blob in blobs
+    }
 
 
 def get_destination_by_id(
@@ -350,15 +370,23 @@ def get_user_feedback_by_token(
     return feedback
 
 
-def add_medialist(
+def store_medialist(
     session: Session,
     items: List[BlobOrFile],
     *,
     format: str,
     mimetype: str,
 ) -> UUID4:
+    mlitems = [item.as_medialist_item() for item in items]
+
+    if existing := session.exec(
+        select(MediaList)
+        .where(MediaList.items == mlitems)
+    ).first():
+        return existing.id
+
     mlist = MediaList(
-        items=[item.as_medialist_item() for item in items],
+        items=mlitems,
         format=format,
         mimetype=mimetype,
     )
