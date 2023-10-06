@@ -110,7 +110,6 @@ def mount_router(app: FastAPI, prefix: str):
     def verify_origin(request: Request):
         """ Makes sure the request is coming from a 46elks IP """
         client_ip = None if request.client is None else request.client.host
-        # config = config
         whitelisted_ips: Tuple[str, ...] = provider_cfg.allowed_ips
         if client_ip not in whitelisted_ips:
             logger.debug(f"refusing {client_ip}, not a 46elks IP")
