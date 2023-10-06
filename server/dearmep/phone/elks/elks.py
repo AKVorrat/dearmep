@@ -3,14 +3,19 @@
 from datetime import datetime
 import logging
 from typing import Tuple, List, Literal, Any, Dict, Optional
-from pydantic import Json
+from pydantic import Json, UUID4
 
 from fastapi import FastAPI, APIRouter, Depends, \
     HTTPException, Request, Form, status
+from fastapi.responses import StreamingResponse
 
 import requests
+import os
 
 from dearmep.config import Config, Language
+from dearmep.convert import blobfile, ffmpeg
+from dearmep.database.connection import get_session
+from dearmep.database import query
 
 from .models import InitialCallElkResponse, InitialElkResponseState, Number
 from .ongoing_calls import Call
@@ -268,6 +273,40 @@ def mount_router(app: FastAPI, prefix: str):
         return {
             "play": f"{config.telephony.audio_source}/final-tune.ogg",
         }
+
+    @router.get(
+        "/medialists/{id}/concat", operation_id="getConcatMedia",
+        response_class=StreamingResponse,
+        responses={
+            200: {
+                "content": {"application/octet-stream": {}},
+                "description": "The concatenated media.",
+            },
+        },
+    )
+    def get_concatenated_media(
+        id: UUID4,
+    ):
+        """ Get a concatenated media list as a stream for 46 elks IVR """
+
+        def _stream_and_delete_file(name: str):
+            try:
+                fobj = open(name, "rb")
+                yield from fobj
+            finally:
+                os.unlink(name)
+
+        with get_session() as session:
+            medialist = query.get_medialist_by_id(session, id)
+            items = [
+                blobfile.BlobOrFile.from_medialist_item(item, session=session)
+                for item in medialist.items
+            ]
+        with ffmpeg.concat(items, medialist.format, delete=False) as concat:
+            return StreamingResponse(
+                _stream_and_delete_file(concat.name),
+                media_type=medialist.mimetype
+            )
 
     app.include_router(router)
 

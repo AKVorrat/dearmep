@@ -1,15 +1,13 @@
 from datetime import datetime
-import os
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 from fastapi import APIRouter, Depends, HTTPException, Header, Query, \
     Response, status
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse
 from prometheus_client import Counter
-from pydantic import BaseModel, UUID4
+from pydantic import BaseModel
 
 from ..config import Config, Language, all_frontend_strings
-from ..convert import blobfile, ffmpeg
 from ..database.connection import get_session
 from ..database.models import Blob, Destination, DestinationGroupListItem, \
     DestinationID, DestinationRead, DestinationSelectionLogEvent, \
@@ -456,35 +454,3 @@ def submit_call_feedback(
         feedback.additional = submission.additional
         session.add(feedback)
         session.commit()
-
-
-@router.get(
-    "/medialists/{id}/concat", operation_id="getConcatMedia",
-    response_class=StreamingResponse,
-    responses={
-        200: {
-            "content": {"application/octet-stream": {}},
-            "description": "The concatenated media.",
-        },
-    },
-)
-def get_concatenated_media(
-    id: UUID4,
-):
-    def stream_and_delete_file(name: str):
-        try:
-            fobj = open(name, "rb")
-            yield from fobj
-        finally:
-            os.unlink(name)
-
-    with get_session() as session:
-        mlist = query.get_medialist_by_id(session, id)
-    items = [
-        blobfile.BlobOrFile.from_medialist_item(item, session=session)
-        for item in mlist.items
-    ]
-
-    with ffmpeg.concat(items, mlist.format, delete=False) as concat:
-        return StreamingResponse(
-            stream_and_delete_file(concat.name), media_type=mlist.mimetype)
