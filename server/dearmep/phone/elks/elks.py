@@ -4,18 +4,19 @@ from datetime import datetime
 import logging
 from typing import Tuple, List, Literal, Any, Dict, Optional
 from pydantic import Json, UUID4
+from pathlib import Path
 
 from fastapi import FastAPI, APIRouter, Depends, \
     HTTPException, Request, Form, status
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse
 
 import requests
-import os
 
 from dearmep.config import Config, Language
 from dearmep.convert import blobfile, ffmpeg
 from dearmep.database.connection import get_session
 from dearmep.database import query
+from dearmep.phone import ivr_audio
 
 from .models import InitialCallElkResponse, InitialElkResponseState, Number
 from .ongoing_calls import Call
@@ -31,12 +32,12 @@ def debug(locals: Optional[Dict[str, Any]] = None, header: str = "") -> None:
     import inspect
     import pprint
     line = 20 * "*"
-    space = 20 * " "
     whereami = inspect.currentframe().f_back.f_code.co_name
 
     if locals:
+        schmocals = {k: v for k, v in locals.items() if k not in ("config",)}
         logstr = f"\n\n{line} debug {line}  {whereami}() {header}\n"
-        logstr += f"local variables:\n{pprint.pformat(locals)}"
+        logstr += f"local variables:\n{pprint.pformat(schmocals)}"
         logstr += f"\n{line}{line}{line}\n"
     else:
         logstr = f"\n\n{line} call {line}  {whereami}()\n"
@@ -72,7 +73,7 @@ def initiate_call(
         data={
             "to": user_phone_number,
             "from": phone_number.number,
-            "voice_start": f"{elks_url}/voice-start",
+            "voice_start": f"{elks_url}/instant_main_menu",
             "whenhangup": f"{elks_url}/hangup",
             "timeout": 13
         }
@@ -132,28 +133,46 @@ def mount_router(app: FastAPI, prefix: str):
         prefix=prefix
     )
 
-    @router.post("/voice-start")
-    def voice_start(
+    @router.post("/instant_main_menu")
+    def instant_main_menu(
         callid: str = Form(),
         direction: Literal["incoming", "outgoing"] = Form(),
         from_nr: str = Form(alias="from"),
         to_nr: str = Form(alias="to"),
         result: Literal["newoutgoing"] = Form(),
     ):
-        """ Begin playback of an IVR to user """
+        """ Initial IVR playback of Insant Call """
 
         call = ongoing_calls.get_call(callid)
 
-        return {
-            "ivr": f"{config.telephony.audio_source}"
-                   f"/connect-prompt.{call.user_language}.ogg",
-            "next": f"{elks_url}/next",
-            "timeout": 1,
-            "repeat": 1,
-        }
+        with get_session() as session:
+            medialist = blobfile.get_blobs_or_files(
+                names=ivr_audio.Flows.instant(
+                    flow="main_menu",
+                    destination_id=call.destination_id,
+                ),
+                session=session,
+                folder=Path("/home/v/dearmep-infos/ivr_audio"),
+                languages=("de", "en", ""),
+                suffix=".ogg",
+            )
+            medialist_id = query.store_medialist(
+                format="ogg",
+                mimetype="audio/ogg",
+                items=medialist,
+                session=session
+            )
 
-    @router.post("/next")
-    def next(
+        response = {
+            "ivr": f"{elks_url}/medialist/{medialist_id}/concat.ogg",
+            "next": f"{elks_url}/instant_next",
+            "timeout": 5,
+            "repeat": 2,
+        }
+        return response
+
+    @router.post("/instant_next")
+    def next_route(
         callid: str = Form(),
         direction: Literal["incoming", "outgoing"] = Form(),
         from_nr: str = Form(alias="from"),
@@ -178,33 +197,14 @@ def mount_router(app: FastAPI, prefix: str):
 
         if result == "5":
 
+            # playback IVR arguments
             playback_arguments = {
                 "ivr": f"{config.telephony.audio_source}"
                        f"/playback_arguments.{call.user_language}.ogg",
-                "next": f"{config.general.base_url}"
-                        "/phone/ivr_arguments_playback",
+                "next": f"{elks_url}/instant_next",
             }
 
             return playback_arguments
-
-    @router.post("/ivr_arguments_playback")
-    def ivr_arguments_playback(
-        callid: str = Form(),
-        direction: Literal["incoming", "outgoing"] = Form(),
-        from_nr: str = Form(alias="from"),
-        to_nr: str = Form(alias="to"),
-        result: str = Form(),
-    ):
-        """ Check the users entered number from the arguments playback """
-
-        call = ongoing_calls.get_call(callid)
-
-        if result == "1":
-            return elk_connect(call, from_nr)
-
-        return {
-            "play": f"{config.telephony.audio_source}/final-tune.ogg",
-        }
 
     @router.post("/hangup")
     def hangup(
@@ -260,8 +260,8 @@ def mount_router(app: FastAPI, prefix: str):
         if not start:
             return
 
-    @router.post("/goodbye")
-    def goodbye(
+    @router.post("/thanks_for_calling")
+    def thanks_for_calling(
             callid: str = Form(),
             direction: Literal["incoming", "outgoing"] = Form(),
             from_nr: str = Form(alias="from"),
@@ -274,43 +274,25 @@ def mount_router(app: FastAPI, prefix: str):
             "play": f"{config.telephony.audio_source}/final-tune.ogg",
         }
 
-    @router.get(
-        "/medialists/{id}/concat", operation_id="getConcatMedia",
-        response_class=StreamingResponse,
-        responses={
-            200: {
-                "content": {"application/octet-stream": {}},
-                "description": "The concatenated media.",
-            },
-        },
-    )
-    def get_concatenated_media(
-        id: UUID4,
-    ):
+    @router.get("/medialist/{medialist_id}/concat.ogg")
+    def get_concatenated_media(medialist_id: UUID4):
         """ Get a concatenated media list as a stream for 46 elks IVR """
 
-        def _stream_and_delete_file(name: str):
-            try:
-                fobj = open(name, "rb")
-                yield from fobj
-            finally:
-                os.unlink(name)
-
         with get_session() as session:
-            medialist = query.get_medialist_by_id(session, id)
+            medialist = query.get_medialist_by_id(session, medialist_id)
             items = [
                 blobfile.BlobOrFile.from_medialist_item(item, session=session)
                 for item in medialist.items
             ]
         with ffmpeg.concat(items, medialist.format, delete=False) as concat:
-            return StreamingResponse(
-                _stream_and_delete_file(concat.name),
+            return FileResponse(
+                concat.name,
                 media_type=medialist.mimetype
             )
 
     app.include_router(router)
 
-    # reused functions to craft responses to 46 elk
+    # reused functions to craft responses to 46 elk #
     def elk_connect(
         call: Call,
         from_nr: str
@@ -328,6 +310,6 @@ def mount_router(app: FastAPI, prefix: str):
         number_MEP = "+4940428990"  # die Uhrzeit
         connect = {
             "connect": number_MEP,
-            "next": f"{elks_url}/goodbye",
+            "next": f"{elks_url}/thanks_for_calling",
         }
         return connect
