@@ -4,7 +4,6 @@ from datetime import datetime
 import logging
 from typing import Tuple, List, Literal, Any, Dict, Optional
 from pydantic import Json, UUID4
-from pathlib import Path
 
 from fastapi import FastAPI, APIRouter, Depends, \
     HTTPException, Request, Form, status
@@ -19,7 +18,6 @@ from dearmep.database import query
 from dearmep.phone import ivr_audio
 
 from .models import InitialCallElkResponse, InitialElkResponseState, Number
-from .ongoing_calls import Call
 from . import ongoing_calls
 from .utils import get_numbers, choose_from_number
 from .metrics import elks_metrics
@@ -145,31 +143,18 @@ def mount_router(app: FastAPI, prefix: str):
 
         call = ongoing_calls.get_call(callid)
 
-        with get_session() as session:
-            medialist = blobfile.get_blobs_or_files(
-                names=ivr_audio.Flows.instant(
-                    flow="main_menu",
-                    destination_id=call.destination_id,
-                ),
-                session=session,
-                folder=Path("/home/v/dearmep-infos/ivr_audio"),
-                languages=("de", "en", ""),
-                suffix=".ogg",
-            )
-            medialist_id = query.store_medialist(
-                format="ogg",
-                mimetype="audio/ogg",
-                items=medialist,
-                session=session
-            )
+        medialist_id = ivr_audio.medialist_id(
+            flow="main_menu",
+            call_type="instant",
+            destination_id=call.destination_id
+        )
 
-        response = {
+        return {
             "ivr": f"{elks_url}/medialist/{medialist_id}/concat.ogg",
             "next": f"{elks_url}/instant_next",
             "timeout": 5,
             "repeat": 2,
         }
-        return response
 
     @router.post("/instant_next")
     def next_route(
@@ -180,7 +165,11 @@ def mount_router(app: FastAPI, prefix: str):
         result: str = Form(),
         why: Optional[str] = Form(default=None),
     ):
-        """ Check the users entered number from voice-start """
+        """
+        Check the entered number from instant_main_menu
+         1: connect
+         5: arguments
+        """
 
         if str(result) == "failed" and why == "noinput":
             """
@@ -193,18 +182,46 @@ def mount_router(app: FastAPI, prefix: str):
         call = ongoing_calls.get_call(callid)
 
         if result == "1":
-            return elk_connect(call, from_nr)
+            """ user wants to get connected """
+            medialist_id = ivr_audio.medialist_id(
+                flow="connecting",
+                call_type="instant",
+                destination_id=call.destination_id
+            )
 
-        if result == "5":
-
-            # playback IVR arguments
-            playback_arguments = {
-                "ivr": f"{config.telephony.audio_source}"
-                       f"/playback_arguments.{call.user_language}.ogg",
-                "next": f"{elks_url}/instant_next",
+            return {
+                "play": f"{elks_url}/medialist/{medialist_id}/concat.ogg",
+                "next": f"{elks_url}/instant_connect"
             }
 
-            return playback_arguments
+        if result == "5":
+            """ user wants to listen to some arguments """
+            pass
+
+    @router.post("/instant_connect")
+    def instant_connect(
+        callid: str = Form(),
+        direction: Literal["incoming", "outgoing"] = Form(),
+        from_nr: str = Form(alias="from"),
+        to_nr: str = Form(alias="to"),
+        result: str = Form(),
+        why: Optional[str] = Form(default=None),
+    ):
+        call = ongoing_calls.get_call(callid)
+
+        number_MEP = ongoing_calls.get_mep_number(call)
+
+        elks_metrics.inc_start(
+            destination_number=number_MEP,
+            our_number=from_nr
+        )
+        ongoing_calls.connect_call(call)
+        number_MEP = "+4940428990"  # TODO DEV die Uhrzeit
+        connect = {
+            "connect": number_MEP,
+            "next": f"{elks_url}/thanks_for_calling",
+        }
+        return connect
 
     @router.post("/hangup")
     def hangup(
@@ -291,25 +308,3 @@ def mount_router(app: FastAPI, prefix: str):
             )
 
     app.include_router(router)
-
-    # reused functions to craft responses to 46 elk #
-    def elk_connect(
-        call: Call,
-        from_nr: str
-    ):
-        """ Dict Response to connect an user with a destination """
-
-        number_MEP = ongoing_calls.get_mep_number(call)
-
-        elks_metrics.inc_start(
-            destination_number=number_MEP,
-            our_number=from_nr
-        )
-        ongoing_calls.connect_call(call)
-        # DEV
-        number_MEP = "+4940428990"  # die Uhrzeit
-        connect = {
-            "connect": number_MEP,
-            "next": f"{elks_url}/thanks_for_calling",
-        }
-        return connect
