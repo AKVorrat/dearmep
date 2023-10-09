@@ -16,6 +16,7 @@ from dearmep.convert import blobfile, ffmpeg
 from dearmep.database import query
 from dearmep.database.connection import get_session
 from dearmep.phone import ivr_audio
+from dearmep.phone.ivr_audio import Flow, CallType
 
 from .models import InitialCallElkResponse, InitialElkResponseState, Number
 from . import ongoing_calls
@@ -161,8 +162,8 @@ def mount_router(app: FastAPI, prefix: str):
         ):
             # Mep is available, so we connect the call
             medialist_id = medialist.get(
-                flow="connecting",
-                call_type="instant",
+                flow=Flow.connecting,
+                call_type=CallType.instant,
                 destination_id=call.destination_id,
                 language=call.user_language,
                 session=session
@@ -192,8 +193,8 @@ def mount_router(app: FastAPI, prefix: str):
         # we ask the user if they want to talk to the new suggested
         # MEP instead
         medialist_id = medialist.get(
-            flow="mep_unavailable",
-            call_type="instant",
+            flow=Flow.me_unavailable,
+            call_type=CallType.instant,
             destination_id=call.destination_id,
             language=call.user_language,
             group_id=group.id,
@@ -230,9 +231,9 @@ def mount_router(app: FastAPI, prefix: str):
         with get_session() as session:
             call = ongoing_calls.get_call(callid=callid, session=session)
             medialist_id = medialist.get(
-                flow="main_menu",
+                flow=Flow.main_menu,
                 destination_id=call.destination_id,
-                call_type="instant",
+                call_type=CallType.instant,
                 language=call.user_language,
                 session=session
             )
@@ -272,8 +273,8 @@ def mount_router(app: FastAPI, prefix: str):
                 """ user wants to listen to some arguments """
 
                 medialist_id = medialist.get(
-                    flow="arguments",
-                    call_type="instant",
+                    flow=Flow.arguments,
+                    call_type=CallType.instant,
                     destination_id=call.destination_id,
                     language=call.user_language,
                     session=session
@@ -335,8 +336,8 @@ def mount_router(app: FastAPI, prefix: str):
                 call = ongoing_calls.get_call(callid, session)
 
                 medialist_id = medialist.get(
-                    flow="try_again_later",
-                    call_type="instant",
+                    flow=Flow.try_again_later,
+                    call_type=CallType.instant,
                     destination_id=call.destination_id,
                     language=call.user_language,
                     session=session

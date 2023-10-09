@@ -1,4 +1,5 @@
-from typing import Literal, Optional
+from enum import Enum
+from typing import Optional
 from pydantic import UUID4
 from pathlib import Path
 from sqlmodel import Session
@@ -7,14 +8,20 @@ from dearmep.models import Language
 from dearmep.database import query
 from dearmep.convert import blobfile
 
-Flow = Literal[
-    "main_menu",
-    "connecting",
-    "mep_unavailable",
-    "try_again_later",
-    "arguments",
-]
-# maps the group_id to the group name in the audio blobs/files
+
+class CallType(Enum):
+    instant = "instant"
+    scheduled = "scheduled"
+
+
+class Flow(Enum):
+    main_menu = "main_menu"
+    connecting = "connecting"
+    mep_unavailable = "mep_unavailable"
+    try_again_later = "try_again_later"
+    arguments = "arguments"
+
+
 groups = {
     "G:Verts/ALE": "group_verts_ale",
     "G:ECR": "group_ecr",
@@ -47,7 +54,7 @@ class Medialist:
         self,
         flow: Flow,
         destination_id: str,
-        call_type: Literal["instant", "scheduled"],
+        call_type: CallType,
         session: Session,
         language: str,
         group_id: Optional[str] = None,
@@ -64,8 +71,8 @@ class Medialist:
         if group_id:
             group = groups[group_id]
 
-        if call_type == "instant":
-            if flow == "main_menu":
+        if call_type == CallType.instant:
+            if flow == Flow.main_menu:
                 names = (  # type: ignore
                     "campaign_greeting",
                     "main_choice_instant_1",
@@ -73,11 +80,11 @@ class Medialist:
                     "main_choice_instant_2",
                     "main_choice_arguments",
                 )
-            elif flow == "connecting":
+            elif flow == Flow.connecting:
                 names = (  # type: ignore
                     "connect_connecting",
                 )
-            elif flow == "mep_unavailable":
+            elif flow == Flow.mep_unavailable:
                 names = (  # type: ignore
                     "connect_unavailable",
                     "connect_alternative_1",
@@ -86,12 +93,12 @@ class Medialist:
                     group,
                     "connect_alternative_3",
                 )
-            elif flow == "try_again_later":
+            elif flow == Flow.try_again_later:
                 names = (  # type: ignore
                     "connect_try_again_later",
                     "generic_goodbye",
                 )
-            elif flow == "arguments":
+            elif flow == Flow.arguments:
                 names = (  # type: ignore
                     "arguments_campaign_intro",
                     "arguments_choice_cancel_1",
@@ -112,9 +119,9 @@ class Medialist:
                 raise ValueError(
                     "Flow name not found. "
                     "Please check the flow name and try again. "
-                    f"Allowed names: {Flow.__args__}"  # type: ignore
+                    f"Allowed names: {list(Flow)}"
                 )
-        elif call_type == "scheduled":
+        elif call_type == CallType.scheduled:
             raise NotImplementedError(
                 "Scheduled calls are not implemented."
             )
