@@ -141,11 +141,13 @@ def mount_router(app: FastAPI, prefix: str):
         to_nr: str = Form(alias="to"),
         result: Literal["newoutgoing"] = Form(),
     ):
-        """ Initial IVR playback of Insant Call """
+        """
+        Initial IVR playback of Insant Call
+        User picks up the Phone. We play the main menu.
+        """
 
         with get_session() as session:
             call = ongoing_calls.get_call(callid=callid, session=session)
-
             medialist_id = ivr_audio.medialist_id(
                 flow="main_menu",
                 call_type="instant",
