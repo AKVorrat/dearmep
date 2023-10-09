@@ -131,6 +131,16 @@ def mount_router(app: FastAPI, prefix: str):
                 },
             )
 
+    def check_no_input(result, why):
+        """
+        Check if no input by user. Either we are on voice mail OR user did not
+        enter a number and timeout has passed in IVR. We got hung up by elks.
+        """
+        return True if (
+            str(result) == "failed"
+            and str(why) == "noinput"
+        ) else False
+
     router = APIRouter(
         dependencies=[Depends(verify_origin)],
         include_in_schema=False,
@@ -182,13 +192,8 @@ def mount_router(app: FastAPI, prefix: str):
          5: arguments
         """
 
-        if str(result) == "failed" and why == "noinput":
-            """
-            No input by user. Either we are on
-            voice mail OR user did not enter a number
-            and time has passed. We hang up.
-            """
-            return {"hangup": "reject"}
+        if check_no_input(result, why):
+            return
 
         with get_session() as session:
             call = ongoing_calls.get_call(callid, session)
