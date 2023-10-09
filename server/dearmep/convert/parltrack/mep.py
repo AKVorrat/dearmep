@@ -142,6 +142,7 @@ def convert_person(raw_mep: Dict[str, Any]) -> Iterable[DumpableModels]:
         groups=groups,
         contacts=contacts,
         portrait=f"{raw_mep['UserID']}.jpg",
+        name_audio=f"{raw_mep['UserID']}.mp3",
     )
 
 

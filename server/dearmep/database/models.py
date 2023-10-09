@@ -335,6 +335,7 @@ class DestinationDump(DestinationBase):
     contacts: List[ContactDump] = []
     groups: List[DestinationGroupID] = []
     portrait: Optional[str]
+    name_audio: Optional[str]
 
 
 class DestinationRead(DestinationBase):

@@ -64,9 +64,6 @@ def concat(
     with NamedTemporaryFile("rb", prefix="ffconcat.", delete=delete) as output:
         with build_concat_listfile(inputs) as clist:
             run((
-                "-hide_banner",  # be less verbose
-                "-nostdin",  # noninteractive
-                "-y",  # allow overwriting output file
                 "-safe", "0",  # accept absolute paths
                 "-i", clist.name,  # input filename list
                 "-c", "copy",  # only copy streams, don't re-encode
@@ -78,9 +75,13 @@ def concat(
 
 def run(args, passthru=False, **kwargs) -> subprocess.CompletedProcess:
     """Run an ffmpeg subprocess."""
-    completed = subprocess.run(  # type: ignore[call-overload]
-        ("ffmpeg", *args),
-        **{
+    completed = subprocess.run((  # type: ignore[call-overload]
+        "ffmpeg",
+        "-hide_banner",  # be less verbose
+        "-nostdin",  # noninteractive
+        "-y",  # allow overwriting output file
+        *args,
+    ), **{
             "stdout": None if passthru else subprocess.DEVNULL,
             "stderr": None if passthru else subprocess.DEVNULL,
             **kwargs,

@@ -4,6 +4,7 @@ from typing import Callable, Dict, Iterable, Optional, Set, Type
 
 from sqlmodel import SQLModel, Session
 
+from ..convert.audio import audio2blob
 from ..convert.dump import DumpFormatException
 from ..convert.image import image2blob
 from .models import Contact, Destination, DestinationDump, DestinationGroup, \
@@ -17,6 +18,7 @@ class Importer:
         portrait_template: Optional[str] = None,
         fallback_portrait: Optional[Path] = None,
         logo_template: Optional[str] = None,
+        name_audio_template: Optional[str] = None,
     ) -> None:
         self._dump2db: Dict[Type[DumpableModels], Callable] = {
             DestinationGroupDump: self._create_destination_group,
@@ -25,6 +27,7 @@ class Importer:
         self._groups: Dict[str, DestinationGroup] = {}
         self._portrait_tpl = portrait_template
         self._logo_tpl = logo_template
+        self._name_tpl = name_audio_template
 
         self._fallback_portrait = image2blob(
             "portrait", fallback_portrait,
@@ -56,6 +59,18 @@ class Importer:
                 )
         if not dest.portrait and self._fallback_portrait:
             dest.portrait = self._fallback_portrait
+
+        if self._name_tpl:
+            name_path = Path(self._name_tpl.format(
+                id=dest.id,
+                filename=input.name_audio,
+            ))
+            if name_path.exists():
+                dest.name_audio = audio2blob(
+                    "name_audio", name_path,
+                    description=f"pronounced name of Destination {dest.id}",
+                )
+
         return dest
 
     def _create_destination_group(

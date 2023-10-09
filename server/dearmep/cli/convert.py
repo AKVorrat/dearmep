@@ -1,13 +1,15 @@
 from __future__ import annotations
 from argparse import _SubParsersAction, ArgumentParser
 import logging
+from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:
     from . import Context
 from ..config import APP_NAME, CMD_NAME
-from ..convert import dump
-from ..convert.europarl import portrait, rollcallvote
+from ..convert import ActionIfExists, audio, dump
+from ..convert.audio import AUDIO_EXTENSION, AUDIO_FORMAT, AUDIO_SAMPLERATE
+from ..convert.europarl import media, rollcallvote
 from ..convert.parltrack import mep
 from ..convert.tabular import CSVStreamTabular, Tabular
 from ..http_client import DEFAULT_MASS_DOWNLOAD_JOBS
@@ -15,6 +17,7 @@ from ..progress import FlexiBytesReader
 
 
 MEP_PORTRAIT_FILE_PATTERN = "{id}.jpg"
+MEP_NAME_AUDIO_FILE_PATTERN = "{id}.mp3"
 
 
 _logger = logging.getLogger(__name__)
@@ -27,6 +30,27 @@ def tabular_class(ctx: Context):
         return CSVStreamTabular
     else:
         return Tabular
+
+
+def convert_audio(ctx: Context):
+    args = ctx.args
+    for input in args.input:
+        out_path = Path(input).with_suffix(f".{AUDIO_EXTENSION}")
+
+        if out_path.exists():
+            if args.existing == ActionIfExists.SKIP.value:
+                continue
+            if args.existing == ActionIfExists.FAIL.value:
+                raise FileExistsError(out_path)
+            if out_path.resolve() == input.resolve():
+                raise ValueError(
+                    "input & output refer to the same file, cannot overwrite")
+
+        audio.convert_file(
+            input,
+            out_path,
+        )
+        print(out_path)
 
 
 def parltrack_meps(ctx: Context):
@@ -45,8 +69,10 @@ def europarl_portraits(ctx: Context):
     ids = set(ctx.args.ID)
     with ctx.task_factory() as tf:
         task = tf.create_task("downloading portraits", total=len(ids))
-        portrait.download_portraits(
-            ids, ctx.args.filename_template, ctx.args.jobs,
+        media.download_portraits(
+            ids,
+            filename_pattern=ctx.args.filename_template,
+            jobs=ctx.args.jobs,
             skip_existing=ctx.args.existing == "skip",
             overwrite=ctx.args.existing == "overwrite",
             not_found=ctx.args.not_found,
@@ -54,6 +80,26 @@ def europarl_portraits(ctx: Context):
         )
     _logger.warning(
         "The European Parliament requests attribution for using these photos. "
+        "Please see <https://www.europarl.europa.eu/legal-notice/> for more."
+    )
+
+
+def europarl_name_audio(ctx: Context):
+    ctx.setup_logging()
+    ids = set(ctx.args.ID)
+    with ctx.task_factory() as tf:
+        task = tf.create_task("downloading name audio", total=len(ids))
+        media.download_name_audio(
+            ids,
+            filename_pattern=ctx.args.filename_template,
+            jobs=ctx.args.jobs,
+            skip_existing=ctx.args.existing == "skip",
+            overwrite=ctx.args.existing == "overwrite",
+            not_found=ctx.args.not_found,
+            task=task,
+        )
+    _logger.warning(
+        "The European Parliament requests attribution for using these files. "
         "Please see <https://www.europarl.europa.eu/legal-notice/> for more."
     )
 
@@ -90,6 +136,58 @@ def add_parser(subparsers: _SubParsersAction, help_if_no_subcommand, **kwargs):
         )
         parser.set_defaults(func=func, raw_stdout=True)
 
+    def ep_download_template(
+        parser: ArgumentParser,
+        func: Callable,
+        *,
+        default_pattern: str,
+        can_save_notfound: bool,
+    ):
+        parser.add_argument(
+            "-f", "--filename-template", metavar="TEMPLATE",
+            default=default_pattern,
+            help="Python .format() string template to determine target "
+            "filename, {id} will be replaced by the MEP's ID (default: "
+            f"{default_pattern})",
+        )
+        parser.add_argument(
+            "-j", "--jobs", metavar="N",
+            default=DEFAULT_MASS_DOWNLOAD_JOBS, type=int,
+            help="the number of parallel download jobs to run (default: "
+            f"{DEFAULT_MASS_DOWNLOAD_JOBS})",
+        )
+        choices = (media.STOP, media.IGNORE, media.SAVE) \
+            if can_save_notfound else (media.STOP, media.IGNORE)
+        help = [
+            "what to do if there is no media for the given ID: 'stop' the "
+            "whole download process (default)",
+            "'ignore' this ID",
+        ]
+        if can_save_notfound:
+            help.append(
+                "'save' the placeholder that will be returned by the EuroParl "
+                "server under the destination filename")
+        parser.add_argument(
+            "-n", "--not-found", metavar="ACTION",
+            choices=choices,
+            default=media.STOP,
+            help=", or ".join((", ".join(help[:-1]), help[-1])),
+        )
+        parser.add_argument(
+            "-e", "--existing", metavar="ACTION",
+            choices=("stop", "skip", "overwrite"), default="stop",
+            help="what to do if the target file already exists: 'stop' the "
+            "whole download process (default), 'skip' downloading this file "
+            "(keeping the existing file as is), or 'overwrite' (download "
+            "again)",
+        )
+        parser.add_argument(
+            "ID",
+            help="the numerical MEP ID to download the media for",
+            nargs="+", type=int,
+        )
+        parser.set_defaults(func=func)
+
     parser: ArgumentParser = subparsers.add_parser(
         "convert",
         help="convert data formats into others",
@@ -103,41 +201,25 @@ def add_parser(subparsers: _SubParsersAction, help_if_no_subcommand, **kwargs):
         description="Download portrait images of Members of the European "
         "Parliament from the Parliament's server.",
     )
-    mep_portraits.add_argument(
-        "-f", "--filename-template", metavar="TEMPLATE",
-        default=MEP_PORTRAIT_FILE_PATTERN,
-        help="Python .format() string template to determine target filename, "
-        "{id} will be replaced by the MEP's ID (default: "
-        f"{MEP_PORTRAIT_FILE_PATTERN})",
+    ep_download_template(
+        mep_portraits,
+        europarl_portraits,
+        default_pattern=MEP_PORTRAIT_FILE_PATTERN,
+        can_save_notfound=True,
     )
-    mep_portraits.add_argument(
-        "-j", "--jobs", metavar="N",
-        default=DEFAULT_MASS_DOWNLOAD_JOBS, type=int,
-        help="the number of parallel download jobs to run (default: "
-        f"{DEFAULT_MASS_DOWNLOAD_JOBS})",
+
+    mep_name_audio = subsub.add_parser(
+        "europarl.name-audio",
+        help="name audio files of Members of the European Parliament",
+        description="Download audio files containing the name of Members of "
+        "the European Parliament from the Parliament's server.",
     )
-    mep_portraits.add_argument(
-        "-n", "--not-found", metavar="ACTION",
-        choices=(portrait.STOP, portrait.IGNORE, portrait.SAVE),
-        default=portrait.STOP,
-        help="what to do if there is no portrait for the given ID: 'stop' the "
-        "whole download process (default), 'ignore' this ID, or 'save' the "
-        "placeholder image that will be returned by the EuroParl server under "
-        "the destination filename",
+    ep_download_template(
+        mep_name_audio,
+        europarl_name_audio,
+        default_pattern=MEP_NAME_AUDIO_FILE_PATTERN,
+        can_save_notfound=False,
     )
-    mep_portraits.add_argument(
-        "-e", "--existing", metavar="ACTION",
-        choices=("stop", "skip", "overwrite"), default="stop",
-        help="what to do if the target file already exists: 'stop' the whole "
-        "download process (default), 'skip' downloading this file (keeping "
-        "the existing file as is), or 'overwrite' (download again)",
-    )
-    mep_portraits.add_argument(
-        "ID",
-        help="the numerical MEP ID to download portraits for",
-        nargs="+", type=int,
-    )
-    mep_portraits.set_defaults(func=europarl_portraits)
 
     rcv = subsub.add_parser(
         "europarl.rollcallvote",
@@ -188,5 +270,24 @@ def add_parser(subparsers: _SubParsersAction, help_if_no_subcommand, **kwargs):
         help='include MEPs that are marked in the input as being "inactive"',
     )
     meps.set_defaults(func=parltrack_meps, raw_stdout=True, lz=True)
+
+    audio = subsub.add_parser(
+        "audio",
+        help="audio files",
+        description="Convert an audio file into the format recommended by "
+        f"{APP_NAME}: {AUDIO_SAMPLERATE} Hz {AUDIO_FORMAT}, mono.",
+    )
+    audio.add_argument(
+        "input", metavar="INPUT_FILE", type=Path, nargs="+",
+        help="name of the input file(s)",
+    )
+    audio.add_argument(
+        "-e", "--existing", default="fail",
+        choices=tuple(action.value for action in ActionIfExists),
+        help="what to do if an output file already exists: 'skip' the "
+        "conversion and do nothing, 'overwrite' it, or 'fail' and exit with "
+        "an error code",
+    )
+    audio.set_defaults(func=convert_audio)
 
     help_if_no_subcommand(parser)
