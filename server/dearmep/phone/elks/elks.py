@@ -193,7 +193,7 @@ def mount_router(app: FastAPI, prefix: str):
         # we ask the user if they want to talk to the new suggested
         # MEP instead
         medialist_id = medialist.get(
-            flow=Flow.me_unavailable,
+            flow=Flow.mep_unavailable,
             call_type=CallType.instant,
             destination_id=call.destination_id,
             language=call.user_language,
