@@ -28,13 +28,14 @@ def medialist_id(
     to the ffmpeg concat endpoint in `elks.get_concatenated_media` to play the
     flow to the user in IVR or play responses.
     """
+    destination_name = destination_id  # for readability
 
     if call_type == "instant":
         if flow == "main_menu":
             names = (  # type: ignore
                 "campaign_greeting",
                 "main_choice_instant_1",
-                f"destination-{destination_id}",
+                destination_name,
                 "main_choice_instant_2",
                 "main_choice_arguments",
             )
@@ -46,7 +47,7 @@ def medialist_id(
             names = (  # type: ignore
                 "connect_unavailable",
                 "connect_alternative_1",
-                f"destination-{destination_id}",
+                destination_name,
                 "connect_alternative_2",
                 "group",  # TODO Group
                 "connect_alternative_3",
