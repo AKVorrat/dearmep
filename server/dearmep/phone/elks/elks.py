@@ -188,6 +188,46 @@ def mount_router(app: FastAPI, prefix: str):
 
             if result == "1":
                 """ user wants to get connected """
+
+                if ongoing_calls.destination_is_in_call(
+                    destination_id=call.destination_id,
+                    session=session
+                ):
+                    # MEP is in our list of ongoing calls
+                    # we get a new suggestion
+                    new_destination = query.get_random_destination(session)
+                    group = [g for g
+                             in new_destination.groups
+                             if g.type == "parl_group"][0]
+
+                    ongoing_calls.remove_call(callid, session)
+                    ongoing_calls.add_call(
+                        provider="46elks",
+                        provider_call_id=callid,
+                        user_language=call.user_language,
+                        destination_id=new_destination.id,
+                        session=session
+                    )
+                    call = ongoing_calls.get_call(callid, session)
+
+                    # we ask the user if they want to talk to the new suggested
+                    # MEP instead
+                    medialist_id = ivr_audio.medialist_id(
+                        flow="mep_unavailable",
+                        call_type="instant",
+                        destination_id=call.destination_id,
+                        group_id=group.id,
+                        session=session
+                    )
+                    return {
+                        "ivr": f"{elks_url}/medialist"
+                               f"/{medialist_id}/concat.ogg",
+                        "next": f"{elks_url}/instant_next",
+                        "timeout": 10,
+                        "repeat": 2,
+                    }
+
+                # Mep is available, so we connect the call
                 medialist_id = ivr_audio.medialist_id(
                     flow="connecting",
                     call_type="instant",

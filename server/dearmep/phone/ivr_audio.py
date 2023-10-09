@@ -1,8 +1,8 @@
 from typing import Tuple, Literal, Optional
 from pydantic import UUID4
 from pathlib import Path
+from sqlmodel import Session
 
-from dearmep.database.connection import get_session
 from dearmep.database import query
 from dearmep.convert import blobfile
 
@@ -13,7 +13,7 @@ Flow = Literal[
     "try_again_later"
 ]
 
-from sqlmodel import Session
+
 def medialist_id(
     flow: Flow,
     destination_id: str,
