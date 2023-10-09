@@ -2,23 +2,11 @@ from dearmep.config import Language
 from typing import Optional
 from datetime import datetime
 from dearmep.database.models import Call, Destination
-from dearmep.database import connection
 from sqlmodel import Session
 from sqlalchemy import and_, select
 from sqlalchemy.orm import joinedload
 
 
-def session(func):
-    def wrapper(*args, **kwargs):
-        if "session" in kwargs:
-            return func(*args, **kwargs)
-        with connection.get_session() as session:
-            result = func(*args, **kwargs, session=session)
-            return result
-    return wrapper
-
-
-@session
 def get_call(callid: str, session: Session) -> Optional[Call]:
     call = (session.query(Call)
             .filter(Call.provider_call_id == callid)
@@ -29,7 +17,6 @@ def get_call(callid: str, session: Session) -> Optional[Call]:
     return call
 
 
-@session
 def remove_call(callid: str, session: Session):
     """ removes a call from the database """
     call = get_call(callid, session=session)
@@ -37,23 +24,20 @@ def remove_call(callid: str, session: Session):
     session.commit()
 
 
-def connect_call(call: Call):
+def connect_call(call: Call, session: Session):
     """ sets a call as connected in database """
-    with connection.get_session() as session:
-        call.connected_at = datetime.now()
-        session.add(call)
-        session.commit()
+    call.connected_at = datetime.now()
+    session.add(call)
+    session.commit()
 
 
-def end_call(call: Call):
+def end_call(call: Call, session: Session):
     """ sets a call as ended in database """
-    with connection.get_session() as session:
-        call.ended_at = datetime.now()
-        session.add(call)
-        session.commit()
+    call.ended_at = datetime.now()
+    session.add(call)
+    session.commit()
 
 
-@session
 def destination_is_in_call(destination_id: str, session: Session):
     """ returns True if the destination is in a call """
     stmt = select(Call).where(
@@ -67,7 +51,6 @@ def destination_is_in_call(destination_id: str, session: Session):
     return in_call
 
 
-@session
 def add_call(
     provider: str,
     provider_call_id: str,

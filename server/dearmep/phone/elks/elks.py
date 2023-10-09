@@ -13,8 +13,8 @@ import requests
 
 from dearmep.config import Config, Language
 from dearmep.convert import blobfile, ffmpeg
-from dearmep.database.connection import get_session
 from dearmep.database import query
+from dearmep.database.connection import get_session
 from dearmep.phone import ivr_audio
 
 from .models import InitialCallElkResponse, InitialElkResponseState, Number
@@ -85,12 +85,14 @@ def initiate_call(
         logger.warn(f"Call failed from our number: {phone_number.number}")
         return response_data.state
 
-    ongoing_calls.add_call(
-        provider="46elks",
-        provider_call_id=response_data.callid,
-        user_language=user_language,
-        destination_id=destination_id,
-    )
+    with get_session() as session:
+        ongoing_calls.add_call(
+            provider="46elks",
+            provider_call_id=response_data.callid,
+            user_language=user_language,
+            destination_id=destination_id,
+            session=session
+        )
 
     return response_data.state
 
@@ -141,13 +143,15 @@ def mount_router(app: FastAPI, prefix: str):
     ):
         """ Initial IVR playback of Insant Call """
 
-        call = ongoing_calls.get_call(callid)
+        with get_session() as session:
+            call = ongoing_calls.get_call(callid=callid, session=session)
 
-        medialist_id = ivr_audio.medialist_id(
-            flow="main_menu",
-            call_type="instant",
-            destination_id=call.destination_id
-        )
+            medialist_id = ivr_audio.medialist_id(
+                flow="main_menu",
+                call_type="instant",
+                destination_id=call.destination_id,
+                session=session
+            )
 
         return {
             "ivr": f"{elks_url}/medialist/{medialist_id}/concat.ogg",
@@ -179,20 +183,22 @@ def mount_router(app: FastAPI, prefix: str):
             """
             return {"hangup": "reject"}
 
-        call = ongoing_calls.get_call(callid)
+        with get_session() as session:
+            call = ongoing_calls.get_call(callid, session)
 
-        if result == "1":
-            """ user wants to get connected """
-            medialist_id = ivr_audio.medialist_id(
-                flow="connecting",
-                call_type="instant",
-                destination_id=call.destination_id
-            )
+            if result == "1":
+                """ user wants to get connected """
+                medialist_id = ivr_audio.medialist_id(
+                    flow="connecting",
+                    call_type="instant",
+                    destination_id=call.destination_id,
+                    session=session
+                )
 
-            return {
-                "play": f"{elks_url}/medialist/{medialist_id}/concat.ogg",
-                "next": f"{elks_url}/instant_connect"
-            }
+                return {
+                    "play": f"{elks_url}/medialist/{medialist_id}/concat.ogg",
+                    "next": f"{elks_url}/instant_connect"
+                }
 
         if result == "5":
             """ user wants to listen to some arguments """
@@ -207,21 +213,22 @@ def mount_router(app: FastAPI, prefix: str):
         result: str = Form(),
         why: Optional[str] = Form(default=None),
     ):
-        call = ongoing_calls.get_call(callid)
+        with get_session() as session:
+            call = ongoing_calls.get_call(callid, session)
 
-        number_MEP = ongoing_calls.get_mep_number(call)
+            number_MEP = ongoing_calls.get_mep_number(call)
 
-        elks_metrics.inc_start(
-            destination_number=number_MEP,
-            our_number=from_nr
-        )
-        ongoing_calls.connect_call(call)
-        number_MEP = "+4940428990"  # TODO DEV die Uhrzeit
-        connect = {
-            "connect": number_MEP,
-            "next": f"{elks_url}/thanks_for_calling",
-        }
-        return connect
+            elks_metrics.inc_start(
+                destination_number=number_MEP,
+                our_number=from_nr
+            )
+            ongoing_calls.connect_call(call, session)
+            number_MEP = "+4940428990"  # TODO DEV die Uhrzeit
+            connect = {
+                "connect": number_MEP,
+                "next": f"{elks_url}/thanks_for_calling",
+            }
+            return connect
 
     @router.post("/hangup")
     def hangup(
@@ -250,32 +257,33 @@ def mount_router(app: FastAPI, prefix: str):
             logger.critical(f"Call id: {callid} failed. "
                             f"state: {state}, direction: {direction}")
 
-        call = ongoing_calls.get_call(callid)
-        if not call:
-            logger.critical("call not found")
-            return
+        with get_session() as session:
+            call = ongoing_calls.get_call(callid, session)
+            if not call:
+                logger.critical("call not found")
+                return
 
-        if bool(call.connected_at):
-            connected_seconds = (
-                datetime.now() - call.connected_at).total_seconds()
-            elks_metrics.observe_connect_time(
-                destination_id=call.destination_id,
-                duration=round(connected_seconds)
+            if bool(call.connected_at):
+                connected_seconds = (
+                    datetime.now() - call.connected_at).total_seconds()
+                elks_metrics.observe_connect_time(
+                    destination_id=call.destination_id,
+                    duration=round(connected_seconds)
+                )
+            if cost:
+                elks_metrics.observe_cost(
+                    destination_id=call.destination_id,
+                    cost=cost
+                )
+            elks_metrics.inc_end(
+                destination_number=call.destination_id,
+                our_number=from_nr
             )
-        if cost:
-            elks_metrics.observe_cost(
-                destination_id=call.destination_id,
-                cost=cost
-            )
-        elks_metrics.inc_end(
-            destination_number=call.destination_id,
-            our_number=from_nr
-        )
-        ongoing_calls.remove_call(callid)
+            ongoing_calls.remove_call(callid, session)
 
-        # exit if error
-        if not start:
-            return
+            # exit if error
+            if not start:
+                return
 
     @router.post("/thanks_for_calling")
     def thanks_for_calling(

@@ -13,11 +13,12 @@ Flow = Literal[
     "try_again_later"
 ]
 
-
+from sqlmodel import Session
 def medialist_id(
     flow: Flow,
     destination_id: str,
     call_type: Literal["instant", "scheduled"],
+    session: Session,
     group_id: Optional[str] = None,
     languages: Tuple[str, ...] = ("de", "en", ""),
     folder: Path = Path("/home/v/dearmep-infos/ivr_audio"),
@@ -67,18 +68,18 @@ def medialist_id(
             f"Allowed names: {Flow.__args__}"  # type: ignore
         )
 
-    with get_session() as session:
-        medialist = blobfile.get_blobs_or_files(
-            names=names,
-            session=session,
-            folder=folder,
-            languages=languages,
-            suffix=".ogg",
-        )
-        medialist_id = query.store_medialist(
-            format="ogg",
-            mimetype="audio/ogg",
-            items=medialist,
-            session=session
-        )
-        return medialist_id
+    # with get_session() as session:
+    medialist = blobfile.get_blobs_or_files(
+        names=names,
+        session=session,
+        folder=folder,
+        languages=languages,
+        suffix=".ogg",
+    )
+    medialist_id = query.store_medialist(
+        format="ogg",
+        mimetype="audio/ogg",
+        items=medialist,
+        session=session
+    )
+    return medialist_id
