@@ -100,6 +100,7 @@ def initiate_call(
 def mount_router(app: FastAPI, prefix: str):
     """ Mount the 46elks router to the app """
 
+    # configuration
     config = Config.get()
     provider_cfg = config.telephony.provider
     elks_url = config.general.base_url + prefix
@@ -117,6 +118,7 @@ def mount_router(app: FastAPI, prefix: str):
         fallback_language="en"
     )
 
+    # helpers
     def verify_origin(request: Request):
         """ Makes sure the request is coming from a 46elks IP """
         client_ip = None if request.client is None else request.client.host
@@ -141,6 +143,15 @@ def mount_router(app: FastAPI, prefix: str):
             and str(why) == "noinput"
         ) else False
 
+    def get_alternative_destination(session):
+        """ make sure that we fetch someone not in our calllist """
+        new_destination = query.get_random_destination(session)
+        if ongoing_calls.destination_is_in_call(
+                new_destination.id, session):
+            return get_alternative_destination()
+        return new_destination
+
+    # Router and routes
     router = APIRouter(
         dependencies=[Depends(verify_origin)],
         include_in_schema=False,
@@ -207,7 +218,8 @@ def mount_router(app: FastAPI, prefix: str):
                 ):
                     # MEP is in our list of ongoing calls
                     # we get a new suggestion
-                    new_destination = query.get_random_destination(session)
+                    new_destination = get_alternative_destination(session)
+
                     group = [g for g
                              in new_destination.groups
                              if g.type == "parl_group"][0]
@@ -235,7 +247,7 @@ def mount_router(app: FastAPI, prefix: str):
                     return {
                         "ivr": f"{elks_url}/medialist"
                                f"/{medialist_id}/concat.ogg",
-                        "next": f"{elks_url}/instant_next",
+                        "next": f"{elks_url}/instant_alternative",
                         "timeout": 10,
                         "repeat": 2,
                     }
@@ -256,6 +268,56 @@ def mount_router(app: FastAPI, prefix: str):
         if result == "5":
             """ user wants to listen to some arguments """
             pass
+
+    @router.post("/instant_alternative")
+    def instant_alternative(
+        callid: str = Form(),
+        direction: Literal["incoming", "outgoing"] = Form(),
+        from_nr: str = Form(alias="from"),
+        to_nr: str = Form(alias="to"),
+        result: str = Form(),
+        why: Optional[str] = Form(default=None),
+    ):
+        """
+        Check the entered number after we asked the user
+        if they want to talk to a newly suggested MEP instead
+         1: connect
+         2: try again later, quit
+        """
+
+        if check_no_input(result, why):
+            return
+
+        if result == "1":
+            with get_session() as session:
+                call = ongoing_calls.get_call(callid, session)
+
+                medialist_id = medialist.get(
+                    flow="connecting",
+                    call_type="instant",
+                    destination_id=call.destination_id,
+                    language=call.user_language,
+                    session=session
+                )
+                return {
+                    "play": f"{elks_url}/medialist/{medialist_id}/concat.ogg",
+                    "next": f"{elks_url}/instant_connect"
+                }
+
+        if result == "2":
+            with get_session() as session:
+                call = ongoing_calls.get_call(callid, session)
+
+                medialist_id = medialist.get(
+                    flow="try_again_later",
+                    call_type="instant",
+                    destination_id=call.destination_id,
+                    language=call.user_language,
+                    session=session
+                )
+                return {
+                    "play": f"{elks_url}/medialist/{medialist_id}/concat.ogg",
+                }
 
     @router.post("/instant_connect")
     def instant_connect(
