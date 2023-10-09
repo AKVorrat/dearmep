@@ -279,8 +279,8 @@ telephony:
       - "::1"
 
   # absolute Url of audio files which are played in phone calls
-  # also accepts IP addresses with or without port
-  audio_source: "https://campaign.com/audio"
+  # must be a folder on the local filesystem of the server
+  audio_source: "/var/dearmep/audio"
 
 # Localization options.
 l10n:

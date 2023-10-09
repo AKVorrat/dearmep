@@ -215,7 +215,7 @@ class TelephonyConfig(BaseModel):
     approved_numbers: List[str] = []
     dry_run: bool = False
     provider: ElksConfig
-    audio_source: AnyHttpUrl
+    audio_source: Path
 
 
 class Config(BaseModel):

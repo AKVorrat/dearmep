@@ -112,6 +112,10 @@ def mount_router(app: FastAPI, prefix: str):
             phone_numbers=phone_numbers,
             auth=auth,
         ))
+    medialist = ivr_audio.Medialist(
+        folder=config.telephony.audio_source,
+        fallback_language="en"
+    )
 
     def verify_origin(request: Request):
         """ Makes sure the request is coming from a 46elks IP """
@@ -148,10 +152,11 @@ def mount_router(app: FastAPI, prefix: str):
 
         with get_session() as session:
             call = ongoing_calls.get_call(callid=callid, session=session)
-            medialist_id = ivr_audio.medialist_id(
+            medialist_id = medialist.get(
                 flow="main_menu",
-                call_type="instant",
                 destination_id=call.destination_id,
+                call_type="instant",
+                language=call.user_language,
                 session=session
             )
 
@@ -214,10 +219,11 @@ def mount_router(app: FastAPI, prefix: str):
 
                     # we ask the user if they want to talk to the new suggested
                     # MEP instead
-                    medialist_id = ivr_audio.medialist_id(
+                    medialist_id = medialist.get(
                         flow="mep_unavailable",
                         call_type="instant",
                         destination_id=call.destination_id,
+                        language=call.user_language,
                         group_id=group.id,
                         session=session
                     )
@@ -230,13 +236,13 @@ def mount_router(app: FastAPI, prefix: str):
                     }
 
                 # Mep is available, so we connect the call
-                medialist_id = ivr_audio.medialist_id(
+                medialist_id = medialist.get(
                     flow="connecting",
                     call_type="instant",
                     destination_id=call.destination_id,
+                    language=call.user_language,
                     session=session
                 )
-
                 return {
                     "play": f"{elks_url}/medialist/{medialist_id}/concat.ogg",
                     "next": f"{elks_url}/instant_connect"
