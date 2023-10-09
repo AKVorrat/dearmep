@@ -11,8 +11,20 @@ Flow = Literal[
     "main_menu",
     "connecting",
     "mep_unavailable",
-    "try_again_later"
+    "try_again_later",
+    "arguments",
 ]
+# maps the group_id to the group name in the audio blobs/files
+groups = {
+    "G:Verts/ALE": "group_verts_ale",
+    "G:ECR": "group_ecr",
+    "G:PPE": "group_ppe",
+    "G:S&D": "group_s_d",
+    "G:RE": "group_re",
+    "G:NA": "group_na",
+    "G:GUE/NGL": "group_gue_ngl",
+    "G:ID": "group_id",
+}
 
 
 class Medialist:
@@ -49,6 +61,9 @@ class Medialist:
         destination_name = destination_id  # for readability
         languages = (language, self.fallback_language, "")  # "" string needed
 
+        if group_id:
+            group = groups[group_id]
+
         if call_type == "instant":
             if flow == "main_menu":
                 names = (  # type: ignore
@@ -68,7 +83,7 @@ class Medialist:
                     "connect_alternative_1",
                     destination_name,
                     "connect_alternative_2",
-                    "group",  # TODO Group
+                    group,
                     "connect_alternative_3",
                 )
             elif flow == "try_again_later":
@@ -76,17 +91,39 @@ class Medialist:
                     "connect_try_again_later",
                     "generic_goodbye",
                 )
-
-        try:
-            assert names
-        except UnboundLocalError:
+            elif flow == "arguments":
+                names = (  # type: ignore
+                    "arguments_campaign_intro",
+                    "arguments_choice_cancel_1",
+                    destination_name,
+                    "arguments_choice_cancel_2",
+                    "argument_1",
+                    "argument_2",
+                    "argument_3",
+                    "argument_4",
+                    "argument_5",
+                    "argument_6",
+                    "argument_7",
+                    "argument_8",
+                    "argument_extra",
+                    "arguments_end",
+                )
+            else:
+                raise ValueError(
+                    "Flow name not found. "
+                    "Please check the flow name and try again. "
+                    f"Allowed names: {Flow.__args__}"  # type: ignore
+                )
+        elif call_type == "scheduled":
+            raise NotImplementedError(
+                "Scheduled calls are not implemented."
+            )
+        else:
             raise ValueError(
-                "Flow name not found. "
-                "Please check the flow name and try again. "
-                f"Allowed names: {Flow.__args__}"  # type: ignore
+                "call_type not found. Please check the name again. "
+                "Allowed names: instant"
             )
 
-        # with get_session() as session:
         medialist = blobfile.get_blobs_or_files(
             names=names,
             session=session,

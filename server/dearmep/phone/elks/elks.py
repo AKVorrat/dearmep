@@ -144,12 +144,68 @@ def mount_router(app: FastAPI, prefix: str):
         ) else False
 
     def get_alternative_destination(session):
-        """ make sure that we fetch someone not in our calllist """
+        """
+        get a new suggestion for a MEP to talk to. Make sure that we fetch
+        someone not in our calllist """
         new_destination = query.get_random_destination(session)
         if ongoing_calls.destination_is_in_call(
                 new_destination.id, session):
             return get_alternative_destination()
         return new_destination
+
+    def instant_connect_to_mep(call, callid, session):
+
+        if not ongoing_calls.destination_is_in_call(
+            destination_id=call.destination_id,
+            session=session
+        ):
+            # Mep is available, so we connect the call
+            medialist_id = medialist.get(
+                flow="connecting",
+                call_type="instant",
+                destination_id=call.destination_id,
+                language=call.user_language,
+                session=session
+            )
+            return {
+                "play": f"{elks_url}/medialist/{medialist_id}/concat.ogg",
+                "next": f"{elks_url}/instant_connect"
+            }
+
+        # MEP is in our list of ongoing calls we get a new suggestion
+        new_destination = get_alternative_destination(session)
+
+        group = [g for g
+                 in new_destination.groups
+                 if g.type == "parl_group"][0]
+
+        ongoing_calls.remove_call(callid, session)
+        ongoing_calls.add_call(
+            provider="46elks",
+            provider_call_id=callid,
+            user_language=call.user_language,
+            destination_id=new_destination.id,
+            session=session
+        )
+        call = ongoing_calls.get_call(callid, session)
+
+        # we ask the user if they want to talk to the new suggested
+        # MEP instead
+        medialist_id = medialist.get(
+            flow="mep_unavailable",
+            call_type="instant",
+            destination_id=call.destination_id,
+            language=call.user_language,
+            group_id=group.id,
+            session=session
+        )
+        return {
+            "ivr": f"{elks_url}/medialist"
+                   f"/{medialist_id}/concat.ogg",
+            "next": f"{elks_url}/instant_alternative",
+            "timeout": 10,
+            "repeat": 2,
+        }
 
     # Router and routes
     router = APIRouter(
@@ -210,64 +266,44 @@ def mount_router(app: FastAPI, prefix: str):
             call = ongoing_calls.get_call(callid, session)
 
             if result == "1":
-                """ user wants to get connected """
+                return instant_connect_to_mep(call, callid, session)
 
-                if ongoing_calls.destination_is_in_call(
-                    destination_id=call.destination_id,
-                    session=session
-                ):
-                    # MEP is in our list of ongoing calls
-                    # we get a new suggestion
-                    new_destination = get_alternative_destination(session)
+            if result == "5":
+                """ user wants to listen to some arguments """
 
-                    group = [g for g
-                             in new_destination.groups
-                             if g.type == "parl_group"][0]
-
-                    ongoing_calls.remove_call(callid, session)
-                    ongoing_calls.add_call(
-                        provider="46elks",
-                        provider_call_id=callid,
-                        user_language=call.user_language,
-                        destination_id=new_destination.id,
-                        session=session
-                    )
-                    call = ongoing_calls.get_call(callid, session)
-
-                    # we ask the user if they want to talk to the new suggested
-                    # MEP instead
-                    medialist_id = medialist.get(
-                        flow="mep_unavailable",
-                        call_type="instant",
-                        destination_id=call.destination_id,
-                        language=call.user_language,
-                        group_id=group.id,
-                        session=session
-                    )
-                    return {
-                        "ivr": f"{elks_url}/medialist"
-                               f"/{medialist_id}/concat.ogg",
-                        "next": f"{elks_url}/instant_alternative",
-                        "timeout": 10,
-                        "repeat": 2,
-                    }
-
-                # Mep is available, so we connect the call
                 medialist_id = medialist.get(
-                    flow="connecting",
+                    flow="arguments",
                     call_type="instant",
                     destination_id=call.destination_id,
                     language=call.user_language,
                     session=session
                 )
                 return {
-                    "play": f"{elks_url}/medialist/{medialist_id}/concat.ogg",
-                    "next": f"{elks_url}/instant_connect"
+                    "ivr": f"{elks_url}/medialist/{medialist_id}/concat.ogg",
+                    "next": f"{elks_url}/arguments",
                 }
 
-        if result == "5":
-            """ user wants to listen to some arguments """
-            pass
+    @router.post("/arguments")
+    def ivr_choice_arguments(
+        callid: str = Form(),
+        direction: Literal["incoming", "outgoing"] = Form(),
+        from_nr: str = Form(alias="from"),
+        to_nr: str = Form(alias="to"),
+        result: str = Form(),
+        why: Optional[str] = Form(default=None),
+    ):
+        """
+        Check the entered number after we played arguments to the user
+         1: connect
+        """
+        if check_no_input(result, why):
+            return
+
+        with get_session() as session:
+            call = ongoing_calls.get_call(callid, session)
+
+            if result == "1":
+                return instant_connect_to_mep(call, callid, session)
 
     @router.post("/instant_alternative")
     def instant_alternative(
@@ -288,21 +324,11 @@ def mount_router(app: FastAPI, prefix: str):
         if check_no_input(result, why):
             return
 
-        if result == "1":
-            with get_session() as session:
-                call = ongoing_calls.get_call(callid, session)
+        with get_session() as session:
+            call = ongoing_calls.get_call(callid, session)
 
-                medialist_id = medialist.get(
-                    flow="connecting",
-                    call_type="instant",
-                    destination_id=call.destination_id,
-                    language=call.user_language,
-                    session=session
-                )
-                return {
-                    "play": f"{elks_url}/medialist/{medialist_id}/concat.ogg",
-                    "next": f"{elks_url}/instant_connect"
-                }
+            if result == "1":
+                return instant_connect_to_mep(call, callid, session)
 
         if result == "2":
             with get_session() as session:
