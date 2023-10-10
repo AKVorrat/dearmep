@@ -40,6 +40,7 @@ class IPRateLimits(BaseModel):
 
 class GeneralConfig(BaseModel):
     base_url: AnyHttpUrl
+    phone_call_threshhold: PositiveInt
 
 
 class CorsConfig(BaseModel):

@@ -274,6 +274,10 @@ class Call(SQLModel, table=True):
         description="The user's language.",
         **_example("en"),
     )
+    user_id: Optional[UserPhone] = Field(
+        index=True,
+        description="ID [PhoneNumber] to reuse for this call",
+    )
     destination_id: DestinationID = Field(
         foreign_key="destinations.id",
         description="The Destination this Call belongs to.",

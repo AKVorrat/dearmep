@@ -54,16 +54,18 @@ def destination_is_in_call(destination_id: str, session: Session):
 def add_call(
     provider: str,
     provider_call_id: str,
-    user_language: Language,
     destination_id: str,
+    user_language: Language,
+    user_id,
     session: Session
 ) -> Call:
     """ adds a call to the database """
     call = Call(
         provider=provider,
         provider_call_id=provider_call_id,
-        user_language=user_language,
         destination_id=destination_id,
+        user_language=user_language,
+        user_id=user_id,
     )
     session.add(call)
     session.commit()

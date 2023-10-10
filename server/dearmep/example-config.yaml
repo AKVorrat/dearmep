@@ -20,6 +20,13 @@ general:
   # also accepts IP addresses with or without port
   base_url: https://example-campaign.com
 
+  # The threshold after which a call is considered successful. The reason for
+  # this is that we give lower weight to connected calls that lasted shorter
+  # than the specified value, because employees may have answered instead of
+  # MEPs. Short calls indicate that there was no meaningful conversation with
+  # MEPs. In seconds.
+  phone_call_threshhold: 35
+
 
 # Database configuration.
 database:

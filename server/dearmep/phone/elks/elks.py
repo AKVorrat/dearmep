@@ -13,7 +13,9 @@ import requests
 
 from dearmep.config import Config, Language
 from dearmep.convert import blobfile, ffmpeg
+from dearmep.models import UserPhone
 from dearmep.database import query
+from dearmep.database.models import DestinationSelectionLogEvent
 from dearmep.database.connection import get_session
 from dearmep.phone import ivr_audio
 from dearmep.phone.ivr_audio import Flow, CallType
@@ -87,13 +89,23 @@ def initiate_call(
         return response_data.state
 
     with get_session() as session:
+        user_id = UserPhone(user_phone_number)
         ongoing_calls.add_call(
             provider="46elks",
             provider_call_id=response_data.callid,
             user_language=user_language,
+            user_id=user_id,
             destination_id=destination_id,
             session=session
         )
+        query.log_destination_selection(
+            session=session,
+            destination=query.get_destination_by_id(session, destination_id),
+            event=DestinationSelectionLogEvent.CALLING_USER,
+            user_id=user_id,
+            call_id=response_data.callid
+        )
+        session.commit()
 
     return response_data.state
 
@@ -103,6 +115,7 @@ def mount_router(app: FastAPI, prefix: str):
 
     # configuration
     config = Config.get()
+    phone_call_threshhold = config.general.phone_call_threshhold
     provider_cfg = config.telephony.provider
     elks_url = config.general.base_url + prefix
     auth = (
@@ -168,12 +181,20 @@ def mount_router(app: FastAPI, prefix: str):
                 language=call.user_language,
                 session=session
             )
+            query.log_destination_selection(
+                session=session,
+                destination=call.destination,
+                event=DestinationSelectionLogEvent.CALLING_DESTINATION,
+                user_id=call.user_id,
+                call_id=call.provider_call_id
+            )
+            session.commit()
             return {
                 "play": f"{elks_url}/medialist/{medialist_id}/concat.ogg",
                 "next": f"{elks_url}/instant_connect"
             }
 
-        # MEP is in our list of ongoing calls we get a new suggestion
+        # MEP is in our list of ongoing calls: we get a new suggestion
         new_destination = get_alternative_destination(session)
 
         group = [g for g
@@ -185,6 +206,7 @@ def mount_router(app: FastAPI, prefix: str):
             provider="46elks",
             provider_call_id=callid,
             user_language=call.user_language,
+            user_id=call.user_id,
             destination_id=new_destination.id,
             session=session
         )
@@ -200,6 +222,15 @@ def mount_router(app: FastAPI, prefix: str):
             group_id=group.id,
             session=session
         )
+        query.log_destination_selection(
+            session=session,
+            destination=new_destination,
+            event=DestinationSelectionLogEvent.IVR_SUGGESTED,
+            user_id=call.user_id,
+            call_id=call.provider_call_id
+        )
+        session.commit()
+
         return {
             "ivr": f"{elks_url}/medialist"
                    f"/{medialist_id}/concat.ogg",
@@ -237,6 +268,14 @@ def mount_router(app: FastAPI, prefix: str):
                 language=call.user_language,
                 session=session
             )
+            query.log_destination_selection(
+                session=session,
+                call_id=call.provider_call_id,
+                destination=call.destination,
+                event=DestinationSelectionLogEvent.IN_MENU,
+                user_id=call.user_id
+            )
+            session.commit()
 
         return {
             "ivr": f"{elks_url}/medialist/{medialist_id}/concat.ogg",
@@ -370,6 +409,14 @@ def mount_router(app: FastAPI, prefix: str):
                 "connect": number_MEP,
                 "next": f"{elks_url}/thanks_for_calling",
             }
+            query.log_destination_selection(
+                session=session,
+                destination=call.destination,
+                event=DestinationSelectionLogEvent.DESTINATION_CONNECTED,
+                user_id=call.user_id,
+                call_id=call.provider_call_id
+            )
+            session.commit()
             return connect
 
     @router.post("/hangup")
@@ -412,6 +459,32 @@ def mount_router(app: FastAPI, prefix: str):
                     destination_id=call.destination_id,
                     duration=round(connected_seconds)
                 )
+                if connected_seconds <= phone_call_threshhold:
+                    query.log_destination_selection(
+                        session=session,
+                        destination=call.destination,
+                        event=DestinationSelectionLogEvent.FINISHED_SHORT_CALL,
+                        user_id=call.user_id,
+                        call_id=call.provider_call_id
+                    )
+                else:
+                    query.log_destination_selection(
+                        session=session,
+                        destination=call.destination,
+                        event=DestinationSelectionLogEvent.FINISHED_CALL,
+                        user_id=call.user_id,
+                        call_id=call.provider_call_id
+                    )
+                session.commit()
+            else:
+                query.log_destination_selection(
+                    session=session,
+                    destination=call.destination,
+                    event=DestinationSelectionLogEvent.CALL_ABORTED,
+                    user_id=call.user_id,
+                    call_id=call.provider_call_id
+                )
+                session.commit()
             if cost:
                 elks_metrics.observe_cost(
                     destination_id=call.destination_id,
@@ -425,6 +498,14 @@ def mount_router(app: FastAPI, prefix: str):
 
             # exit if error
             if not start:
+                query.log_destination_selection(
+                    session=session,
+                    destination=call.destination,
+                    event=DestinationSelectionLogEvent.CALLING_USER_FAILED,
+                    user_id=call.user_id,
+                    call_id=call.provider_call_id
+                )
+                session.commit()
                 return
 
     @router.post("/thanks_for_calling")

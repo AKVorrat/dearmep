@@ -1,5 +1,6 @@
 # mypy: ignore-errors
 from fastapi.testclient import TestClient
+from dearmep.models import UserPhone
 from dearmep.phone.elks import ongoing_calls
 from dearmep.database.connection import get_session
 import secrets
@@ -13,16 +14,18 @@ def test_ongoing_calls_interface(client: TestClient):
         provider_call_id = secrets.token_hex(10)
         user_language = "en"
         destination_id = "38595"
+        user_id = UserPhone("+49123456789")
 
         # we don't find the call in the database
         assert not ongoing_calls.get_call(provider_call_id, session)
 
         # call gets created
         ongoing_calls.add_call(
-            provider,
-            provider_call_id,
-            user_language,
-            destination_id,
+            provider=provider,
+            provider_call_id=provider_call_id,
+            user_language=user_language,
+            destination_id=destination_id,
+            user_id=user_id,
             session=session,
 
         )
