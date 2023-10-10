@@ -4,7 +4,6 @@ from pydantic import UUID4
 from pathlib import Path
 from sqlmodel import Session
 
-from dearmep.models import Language
 from dearmep.database import query
 from dearmep.convert import blobfile
 
@@ -42,7 +41,7 @@ class Medialist:
     def __init__(
             self,
             folder: Path,
-            fallback_language: Language,
+            fallback_language: str,
     ):
         self.folder = folder
         self.fallback_language = fallback_language

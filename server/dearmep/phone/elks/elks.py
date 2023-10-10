@@ -1,8 +1,6 @@
-# mypy: ignore-errors
-# Still in dev
 from datetime import datetime
 import logging
-from typing import Tuple, List, Literal, Any, Dict, Optional
+from typing import Tuple, List, Literal, Any, Optional
 from pydantic import Json, UUID4
 
 from fastapi import FastAPI, APIRouter, Depends, \
@@ -27,23 +25,6 @@ from .metrics import elks_metrics
 
 
 logger = logging.getLogger(__name__)
-
-
-def debug(locals: Optional[Dict[str, Any]] = None, header: str = "") -> None:
-    import inspect
-    import pprint
-    line = 20 * "*"
-    whereami = inspect.currentframe().f_back.f_code.co_name
-
-    if locals:
-        schmocals = {k: v for k, v in locals.items() if k not in ("config",)}
-        logstr = f"\n\n{line} debug {line}  {whereami}() {header}\n"
-        logstr += f"local variables:\n{pprint.pformat(schmocals)}"
-        logstr += f"\n{line}{line}{line}\n"
-    else:
-        logstr = f"\n\n{line} call {line}  {whereami}()\n"
-
-    logger.debug(logstr)
 
 
 phone_numbers: List[Number] = []
@@ -448,11 +429,8 @@ def mount_router(app: FastAPI, prefix: str):
 
         with get_session() as session:
             call = ongoing_calls.get_call(callid, session)
-            if not call:
-                logger.critical("call not found")
-                return
 
-            if bool(call.connected_at):
+            if call.connected_at:
                 connected_seconds = (
                     datetime.now() - call.connected_at).total_seconds()
                 elks_metrics.observe_connect_time(

@@ -5,6 +5,7 @@ from dearmep.phone.elks import ongoing_calls
 from dearmep.database.connection import get_session
 import secrets
 import datetime
+import pytest
 
 
 def test_ongoing_calls_interface(client: TestClient):
@@ -17,7 +18,9 @@ def test_ongoing_calls_interface(client: TestClient):
         user_id = UserPhone("+49123456789")
 
         # we don't find the call in the database
-        assert not ongoing_calls.get_call(provider_call_id, session)
+        with pytest.raises(ongoing_calls.CallError) as excinfo:
+            call = ongoing_calls.get_call(provider_call_id, session)
+        assert f"Call {provider_call_id} not found" in str(excinfo.value)
 
         # call gets created
         ongoing_calls.add_call(
@@ -65,5 +68,7 @@ def test_ongoing_calls_interface(client: TestClient):
         # call is removed
         ongoing_calls.remove_call(provider_call_id, session)
         # call is not in database
-        call = ongoing_calls.get_call(provider_call_id, session)
-        assert not call
+        # we don't find the call in the database
+        with pytest.raises(ongoing_calls.CallError) as excinfo:
+            call = ongoing_calls.get_call(provider_call_id, session)
+        assert f"Call {provider_call_id} not found" in str(excinfo.value)

@@ -1,5 +1,4 @@
 from dearmep.config import Language
-from typing import Optional
 from datetime import datetime
 from dearmep.database.models import Call, Destination
 from sqlmodel import Session
@@ -7,14 +6,20 @@ from sqlalchemy import and_, select
 from sqlalchemy.orm import joinedload
 
 
-def get_call(callid: str, session: Session) -> Optional[Call]:
+class CallError(Exception):
+    pass
+
+
+def get_call(callid: str, session: Session) -> Call:
     call = (session.query(Call)
             .filter(Call.provider_call_id == callid)
             .options(
             joinedload(Call.destination)
             .joinedload(Destination.contacts)
-            ).one_or_none())
-    return call
+            ).first())
+    if not call:
+        raise CallError(f"Call {callid} not found")
+    return call  # type: ignore
 
 
 def remove_call(callid: str, session: Session):
