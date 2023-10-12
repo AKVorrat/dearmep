@@ -97,7 +97,8 @@ def mount_router(app: FastAPI, prefix: str):
     # configuration
     config = Config.get()
     phone_call_threshhold = config.general.phone_call_threshhold
-    provider_cfg = config.telephony.provider
+    telephony_cfg = config.telephony
+    provider_cfg = telephony_cfg.provider
     elks_url = config.general.base_url + prefix
     auth = (
         provider_cfg.username,
@@ -378,18 +379,20 @@ def mount_router(app: FastAPI, prefix: str):
         with get_session() as session:
             call = ongoing_calls.get_call(callid, session)
 
-            number_MEP = ongoing_calls.get_mep_number(call)
+            connect_number = ongoing_calls.get_mep_number(call)
 
             elks_metrics.inc_start(
-                destination_number=number_MEP,
+                destination_number=connect_number,
                 our_number=from_nr
             )
             ongoing_calls.connect_call(call, session)
-            number_MEP = "+4940428990"  # TODO DEV die Uhrzeit
             connect = {
-                "connect": number_MEP,
+                "connect": connect_number,
                 "next": f"{elks_url}/thanks_for_calling",
             }
+            if telephony_cfg.test_call:
+                connect.update({"connect": telephony_cfg.test_call})
+
             query.log_destination_selection(
                 session=session,
                 destination=call.destination,

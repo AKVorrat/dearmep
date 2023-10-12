@@ -217,6 +217,7 @@ class TelephonyConfig(BaseModel):
     dry_run: bool = False
     provider: ElksConfig
     audio_source: Path
+    test_call: str = ""
 
 
 class Config(BaseModel):

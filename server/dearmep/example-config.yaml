@@ -289,6 +289,13 @@ telephony:
   # must be a folder on the local filesystem of the server
   audio_source: "/var/dearmep/audio"
 
+  # If you set the following variable test_call to a phone number, it will get
+  # called instead of the MEP when doing the final connect step. Only use this
+  # for testing the IVR and Scheduled call flows if you don't want to actually
+  # call the MEP. Leave commented out if you don't know what that means.
+  #
+  # test_call: "+4940428990" # a german robot doing time announcements
+
 # Localization options.
 l10n:
   # The languages your campaign is available in. You have to use a language tag
