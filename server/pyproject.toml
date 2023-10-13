@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "DearMEP"
-version = "0.1.0-dev.9999999999"
+version = "1.0.0-dev.9999999999"
 description = "DearMEP helps people contact their representatives."
 authors = ["Tim Weber"]
 license = "AGPL-3.0"

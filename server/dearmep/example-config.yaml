@@ -81,9 +81,28 @@ api:
   cors:
     origins:
       - http://localhost:8000
-      - https://staging.chatcontrol.dearmep.eu
-      - https://chatcontrol.dearmep.eu
+
       - https://dearmep.eu
+      - https://chatcontrol.dearmep.eu
+      - https://staging.chatcontrol.dearmep.eu
+
+      - https://chatkontrolle.eu
+      - https://chat-kontrolle.eu
+      - https://digitalegesellschaft.de
+
+      - https://digitalcourage.de
+
+      - https://chatcontrol.pt
+
+      - https://stopscanningme.eu
+      - https://stopchatcontrol.eu
+      - https://mullvad.net
+      - https://www.patrick-breyer.de
+      - https://chatcontrol.eu
+      - https://epicenter.works
+      - https://en.epicenter.works
+      - https://stopscanning.us
+      - https://stopscanning.me
 
   # Rate limit configuration. How often can certain actions/requests be
   # performed before considering it an attack on the service?

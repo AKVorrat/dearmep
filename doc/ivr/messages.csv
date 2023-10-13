@@ -1,77 +1,78 @@
 ID,Comment,de,en,fr
-campaign_greeting,,"Hallo! Das ist ein automatisierter Anruf der Kampagne gegen die Chatkontrolle.",,
-generic_please_press,"Generic prompt to press a key. Will be followed by a digit.","Bitte drücke die",,
-generic_choice_press,"Generic fragment after a menu choice. Will be followed by a digit.","Dann drücke die",,
-key_1,"Key on the phone. May be followed by the rest of a sentence or not, keep the pronunciation open for that.","1",,
-key_2,"Key on the phone. May be followed by the rest of a sentence or not, keep the pronunciation open for that.","2",,
-key_3,"Key on the phone. May be followed by the rest of a sentence or not, keep the pronunciation open for that.","3",,
-key_4,"Key on the phone. May be followed by the rest of a sentence or not, keep the pronunciation open for that.","4",,
-key_5,"Key on the phone. May be followed by the rest of a sentence or not, keep the pronunciation open for that.","5",,
-key_6,"Key on the phone. May be followed by the rest of a sentence or not, keep the pronunciation open for that.","6",,
-key_7,"Key on the phone. May be followed by the rest of a sentence or not, keep the pronunciation open for that.","7",,
-key_8,"Key on the phone. May be followed by the rest of a sentence or not, keep the pronunciation open for that.","8",,
-key_9,"Key on the phone. May be followed by the rest of a sentence or not, keep the pronunciation open for that.","9",,
-key_0,"Key on the phone. May be followed by the rest of a sentence or not, keep the pronunciation open for that.","0",,
-generic_on_keypad,"Short introduction fragment to help non tech-savvy people find the key. Follows a digit.","auf der Tastatur deines Telefons.",,
-generic_invalid_input,"When the User pressed a digit that is not a valid choice.","Das ist keine gültige Auswahl.",,
-generic_no_input,"When the User does not press a digit at all.","Wir haben keine Auswahl von dir erhalten. Deshalb legen wir jetzt auf.",,
-generic_thank_you,"Short interjection, e.g. after a choice has been made.","Vielen Dank!",,
-generic_goodbye,"Used before hanging up on the User.","Bis bald!",,
-captcha_intro,"Instead of playing the whole menu to a mailbox, we may ask for a digit first and add this as an explanation.","Dadurch wissen wir, dass wir mit einem Menschen sprechen, und nicht mit einer Mailbox.",,
-main_choice_instant_1,"Followed by a name.","Du möchtest mit",,
-main_choice_instant_2,"Follows a name.","verbunden werden? Dann drücke die 1.",,
-main_scheduled_intro,"Explains to the User why we’re calling right now.","Du hattest uns gebeten, dich zu diesem Termin anzurufen.",,
-main_choice_scheduled_1,"Followed by a name.","Wir würden dich jetzt gern mit",,
-main_choice_scheduled_2,"Follows a name. Followed by a parliamentary group.","von der Fraktion",,
-main_choice_scheduled_3,"Follows a parliamentary group.","verbinden. Wenn du damit einverstanden bist, drücke die 1.",,
-main_choice_postpone,,"Wenn du gerade keine Zeit hast, drücke die 2.",,
-main_choice_unsubscribe,,"Wenn du von uns zu diesem Termin in Zukunft nicht mehr angerufen werden möchtest, drücke die 3.",,
-main_choice_arguments,,"Wenn du zur Vorbereitung erst einmal eine Liste mit Argumenten hören möchtest, drücke die 5.",,
-main_choice_blocklist,,"Wenn du auf dieser Nummer nie wieder von uns angerufen werden möchtest, drücke die 9.",,
-connect_connecting,,"Alles klar! Wir verbinden dich. Einen Moment bitte. Dein Gespräch wird selbstverständlich nicht aufgezeichnet.",,
-connect_unavailable,,"Diese Person ist aktuell anscheinend bereits im Gespräch.",,
-connect_alternative_1,"Followed by a name.","Dürfen wir dich stattdessen mit",,
-connect_alternative_2,"Follows a name. Followed by a parliamentary group.","von der Fraktion",,
-connect_alternative_3,"Follows a parliamentary group.","verbinden? Dann drücke die 1. Ansonsten drücke die 2.",,
-connect_no_alternative,,"Aktuell können wir dir leider niemand anderen anbieten.",,
-connect_try_again_later,,"Bitte versuche es später noch einmal, oder wähle auf unserer Website jemand anderen aus.",,
-connect_will_retry,,"Wir werden dich zum nächsten vereinbarten Termin erneut anrufen.",,
-postpone_choice_snooze,,"Sollen wir dich in etwa einer Viertelstunde nochmal anrufen? Dann drücke die 1.",,
-postpone_choice_other_scheduled_1,"Followed by a weekday.","Wenn wir uns erst wie geplant am",,
-postpone_choice_other_scheduled_2,"Follows a weekday.","wieder melden sollen, drücke die 2 oder lege einfach auf.",,
-postpone_choice_next_week,,"Wenn wir uns einfach nächste Woche wieder melden sollen, drücke die 2 oder lege einfach auf.",,
-postpone_choice_delete_1,"Followed by a weekday.","Wenn du nicht mehr jeden",,
-postpone_choice_delete_2,"Follows a weekday.","angerufen werden möchtest, drücke die 3.",,
-postpone_snoozed,"We will hang up after this.","Alles klar, bis gleich!",,
-postpone_skipped,"We will hang up after this.","So machen wir’s. Bis dann!",,
-delete_has_others,"There may be one other scheduled call, or two, or more.","Du hast noch mindestens einen anderen wöchentlichen Termin bei uns hinterlegt.",,
-delete_choice_all,"For deleting all scheduled calls, not just today's.","Wenn wir alle deine Anruftermine löschen sollen, drücke die 1.",,
-delete_choice_this_1,"For deleting only today's scheduled call. Followed by a weekday.","Wenn wir nur den Termin jeden",,
-delete_choice_this_2,"Follows a weekday.","löschen sollen, drücke die 2.",,
-delete_all_deleted,,"Alles klar. Du wirst in Zukunft nicht mehr automatisch von uns angerufen. Wenn du automatische Anrufe wieder aktivieren möchtest, kannst du das über unsere Website tun.",,
-delete_this_deleted_1,"Followed by a weekday.","Alles klar. Wir werden dich am",,
-delete_this_deleted_2,"Follows a weekday.","nicht mehr automatisch anrufen. Andere konfigurierte Termine bleiben bestehen. Du kannst sie über unsere Website einsehen, anpassen, oder löschen.",,
-arguments_campaign_intro,,"Okay. Hier sind ein paar Argumente gegen die Chatkontrolle.",,
-arguments_choice_cancel_1,"Followed by a name.","Du kannst jederzeit die 1 drücken, um von uns direkt mit",,
-arguments_choice_cancel_2,"Follows a name.","verbunden zu werden.",,
-arguments_end,,"Alles klar? Dann drücke jetzt die 1, um verbunden zu werden.",,
-blocklist_choice_confirm,,"Bist du sicher? Wir würden deine Nummer auf unsere interne Blockliste setzen. Du wirst dann nicht mehr zu automatisierten Terminen angerufen und kannst auch nicht mehr über unsere Website direkt Anrufe zu Abgeordneten aufbauen. Du müsstest uns eine E-Mail schreiben, falls du von der Blockliste jemals wieder entfernt werden möchtest. Drück die 9, wenn wir dich auf diese Blockliste setzen sollen.",,
-blocklist_choice_unsubscribe_1,"Followed by a weekday.","Wenn du hingegen einfach nur nicht mehr jeden",,
-blocklist_choice_unsubscribe_2,"Follows a weekday.","von uns angerufen werden möchtest, drücke die 3.",,
-blocklist_choice_back,,"Oder drücke die 0, um zurück ins Hauptmenü zu kommen.",,
-blocklist_confirmed,"We will hang up after this.","Alles klar. Sorry für die Störung, und hab noch einen schönen Tag.",,
-weekday_1,,"Montag",,
-weekday_2,,"Dienstag",,
-weekday_3,,"Mittwoch",,
-weekday_4,,"Donnerstag",,
-weekday_5,,"Freitag",,
-weekday_6,,"Samstag",,
-weekday_7,,"Sonntag",,
-group_ppe,,"Europäische Volkspartei (Christdemokraten)",,
-group_s_d,,"Progressive Allianz der Sozialdemokraten",,
-group_re,,"Renew Europe (Liberale)",,
-group_verts_ale,,"Die Grünen / Europäische Freie Allianz",,
-group_ecr,,"Europäische Konservative und Reformer",,
-group_id,,"Identität und Demokratie",,
-group_gue_ngl,,"Die Linke im Europäischen Parlament",,
-group_na,,"fraktionslos",,
+campaign_greeting,,"Hallo! Das ist ein automatisierter Anruf der Kampagne gegen die Chatkontrolle.","Hello, this is an automated call from the Campaign Against Chat Control.","Bonjour, il s'agit d'un appel automatisé de la campagne contre le contrôle des chats."
+generic_please_press,"Generic prompt to press a key. Will be followed by a digit.","Bitte drücke die","Please press the","Veuillez appuyer sur la touche"
+generic_choice_press,"Generic fragment after a menu choice. Will be followed by a digit.","Dann drücke die","Then press the","Appuyez ensuite sur la touche"
+key_1,"Key on the phone. May be followed by the rest of a sentence or not, keep the pronunciation open for that.","1","1","1"
+key_2,"Key on the phone. May be followed by the rest of a sentence or not, keep the pronunciation open for that.","2","2","2"
+key_3,"Key on the phone. May be followed by the rest of a sentence or not, keep the pronunciation open for that.","3","3","3"
+key_4,"Key on the phone. May be followed by the rest of a sentence or not, keep the pronunciation open for that.","4","3","4"
+key_5,"Key on the phone. May be followed by the rest of a sentence or not, keep the pronunciation open for that.","5","5","5"
+key_6,"Key on the phone. May be followed by the rest of a sentence or not, keep the pronunciation open for that.","6","6","6"
+key_7,"Key on the phone. May be followed by the rest of a sentence or not, keep the pronunciation open for that.","7","7","7"
+key_8,"Key on the phone. May be followed by the rest of a sentence or not, keep the pronunciation open for that.","8","8","8"
+key_9,"Key on the phone. May be followed by the rest of a sentence or not, keep the pronunciation open for that.","9","9","9"
+key_0,"Key on the phone. May be followed by the rest of a sentence or not, keep the pronunciation open for that.","0","0","0"
+generic_on_keypad,"Short introduction fragment to help non tech-savvy people find the key. Follows a digit.","auf der Tastatur deines Telefons.","on the keypad of your phone.","sur le clavier de votre téléphone."
+generic_invalid_input,"When the User pressed a digit that is not a valid choice.","Das ist keine gültige Auswahl.","This is not a valid selection.","La selection n’est pas valable."
+generic_no_input,"When the User does not press a digit at all.","Wir haben keine Auswahl von dir erhalten. Deshalb legen wir jetzt auf.","We have not received a selection from you. That is why we are hanging up now.","Nous n'avons pas reçu de sélection de votre part. C'est pourquoi nous raccrochons maintenant."
+generic_thank_you,"Short interjection, e.g. after a choice has been made.","Vielen Dank!","Thank you very much!","Merci beaucoup !"
+generic_goodbye,"Used before hanging up on the User.","Bis bald!","See you soon!","A bientôt !"
+captcha_intro,"Instead of playing the whole menu to a mailbox, we may ask for a digit first and add this as an explanation.","Dadurch wissen wir, dass wir mit einem Menschen sprechen, und nicht mit einer Mailbox.","This is how we know we are talking to a human being and not a voicemail.","C’est pour vérifier que nous parlons à un être humain et non à une boîte vocale."
+main_choice_instant_1,"Followed by a name.","Du möchtest mit","Do you want us to connect you with ","Voulez-vous que nous vous mettions en contact avec "
+main_choice_instant_2,"Follows a name.","verbunden werden? Dann drücke die 1.","Then press 1.","Appuyez sur 1."
+main_scheduled_intro,"Explains to the User why we’re calling right now.","Du hattest uns gebeten, dich zu diesem Termin anzurufen.","You asked us to call you for this appointment.","Vous nous avez demandé de vous appeler pour ce rendez-vous."
+main_choice_scheduled_1,"Followed by a name.","Wir würden dich jetzt gern mit","We would like to connect you now with","Nous aimerions vous mettre en contact avec"
+main_choice_scheduled_2,"Follows a name. Followed by a parliamentary group.","von der Fraktion","From the Group","Du groupe"
+main_choice_scheduled_3,"Follows a parliamentary group.","verbinden. Wenn du damit einverstanden bist, drücke die 1.","If you agree, press 1.","Si vous êtes d'accord, appuyez sur 1."
+main_choice_postpone,,"Wenn du gerade keine Zeit hast, drücke die 2.","If you don't have time right now, press 2.","Si vous n'avez pas le temps maintenant, appuyez sur 2."
+main_choice_unsubscribe,,"Wenn du von uns zu diesem Termin in Zukunft nicht mehr angerufen werden möchtest, drücke die 3.","If you do not want us to call you at this time in the future, press 3.","Si vous ne souhaitez pas que nous vous rappelions à cette date à l'avenir, appuyez sur 3."
+main_choice_arguments,,"Wenn du zur Vorbereitung erst einmal eine Liste mit Argumenten hören möchtest, drücke die 5.","If you want to hear a list of arguments first to prepare, press 5.","Si vous voulez entendre une liste d'arguments à préparer en premier, appuyez sur 5."
+main_choice_blocklist,,"Wenn du auf dieser Nummer nie wieder von uns angerufen werden möchtest, drücke die 9.","If you never want us to call you on this number again, press 9.","Si vous souhaitez que nous ne vous rappelions plus jamais à ce numéro, appuyez sur 9."
+connect_connecting,,"Alles klar! Wir verbinden dich. Einen Moment bitte. Dein Gespräch wird selbstverständlich nicht aufgezeichnet.","All clear! We'll connect you. One moment, please. Of course, your conversation will not be recorded.","Rien à signaler ! Nous vous connectons. Un instant, s'il vous plaît. Bien entendu, votre conversation ne sera pas enregistrée."
+connect_unavailable,,"Diese Person ist aktuell anscheinend bereits im Gespräch.","This person is apparently already in conversation.","Cette personne est apparemment déjà en conversation."
+connect_alternative_1,"Followed by a name.","Dürfen wir dich stattdessen mit","May we instead connect you to","Pouvons-nous plutôt vous mettre en contact avec"
+connect_alternative_2,"Follows a name. Followed by a parliamentary group.","von der Fraktion","From the Group","Du groupe"
+connect_alternative_3,"Follows a parliamentary group.","verbinden? Dann drücke die 1. Ansonsten drücke die 2.","Then press 1. Otherwise press 2.","Appuyez alors sur 1. Sinon, appuyez sur 2."
+connect_no_alternative,,"Aktuell können wir dir leider niemand anderen anbieten.","Unfortunately, we can't offer you anyone else at the moment.","Malheureusement, nous ne pouvons vous proposer personne d'autre pour le moment."
+connect_try_again_later,,"Bitte versuche es später noch einmal, oder wähle auf unserer Website jemand anderen aus.","Please try again later, or select someone else on our website.","Veuillez réessayer plus tard, ou sélectionnez quelqu'un d'autre sur notre site web."
+connect_will_retry,,"Wir werden dich zum nächsten vereinbarten Termin erneut anrufen.","We will call you again at the next agreed date.","Nous vous rappellerons à la prochaine date convenue."
+postpone_choice_snooze,,"Sollen wir dich in etwa einer Viertelstunde nochmal anrufen? Dann drücke die 1.","Shall we call you again in about fifteen minutes? Then press 1.","Pouvons-nous vous rappeler dans un quart d'heure ? Appuyez ensuite sur la touche 1."
+postpone_choice_other_scheduled_1,"Followed by a weekday.","Wenn wir uns erst wie geplant am","If we should only get back to you at the agreed date,","Si nous ne prenons contact avec vous qu'à la date convenue,"
+postpone_choice_other_scheduled_2,"Follows a weekday.","wieder melden sollen, drücke die 2 oder lege einfach auf.","press 2 or simply hang up.","appuyez sur 2 ou raccrochez simplement."
+postpone_choice_next_week,,"Wenn wir uns einfach nächste Woche wieder melden sollen, drücke die 2 oder lege einfach auf.","If you just want us to get back to you next week, press 2 or just hang up.","Si vous souhaitez simplement que nous vous rappelions la semaine prochaine, appuyez sur 2 ou raccrochez."
+postpone_choice_delete_1,"Followed by a weekday.","Wenn du nicht mehr jeden","If you don't want to be called every","Si vous ne voulez pas qu'on vous appelle tous les"
+postpone_choice_delete_2,"Follows a weekday.","angerufen werden möchtest, drücke die 3.","press 3.","appuyez sur 3."
+postpone_snoozed,"We will hang up after this.","Alles klar, bis gleich!","All right, see you in a minute!","D'accord, on se voit dans une minute !"
+postpone_skipped,"We will hang up after this.","So machen wir’s. Bis dann!","That's how we do it. See you then!","C'est ainsi que nous procédons. A bientôt !"
+delete_has_others,"There may be one other scheduled call, or two, or more.","Du hast noch mindestens einen anderen wöchentlichen Termin bei uns hinterlegt.","You have at least one other weekly appointment on file with us.","Vous avez au moins un autre rendez-vous hebdomadaire dans nos dossiers."
+delete_choice_all,"For deleting all scheduled calls, not just today's.","Wenn wir alle deine Anruftermine löschen sollen, drücke die 1.","If you want us to delete all your call appointments, press 1.","Si vous souhaitez que nous supprimions tous vos rendez-vous téléphoniques, appuyez sur 1."
+delete_choice_this_1,"For deleting only today's scheduled call. Followed by a weekday.","Wenn wir nur den Termin jeden","If we only should delete the appointment every","Si nous devions seulement supprimer le rendez-vous chaque"
+delete_choice_this_2,"Follows a weekday.","löschen sollen, drücke die 2.","press  2.","appuyez sur 2."
+delete_all_deleted,,"Alles klar. Du wirst in Zukunft nicht mehr automatisch von uns angerufen. Wenn du automatische Anrufe wieder aktivieren möchtest, kannst du das über unsere Website tun.","All right. You will no longer receive automatic calls from us. If you want to reactivate automatic calls, you can do so via our website.","Très bien. Vous ne recevrez plus d'appels automatiques de notre part. Si vous souhaitez réactiver les appels automatiques, vous pouvez le faire via notre site web."
+delete_this_deleted_1,"Followed by a weekday.","Alles klar. Wir werden dich am","All right. We'll no longer call automatically every ","D'accord. Nous n'appellerons plus automatiquement chaque "
+delete_this_deleted_2,"Follows a weekday.","nicht mehr automatisch anrufen. Andere konfigurierte Termine bleiben bestehen. Du kannst sie über unsere Website einsehen, anpassen, oder löschen.","Other configured appointments remain. You can view, adjust or delete them via our website.","Les autres rendez-vous configurés sont maintenus. Vous pouvez les consulter, les modifier ou les supprimer via notre site web."
+arguments_campaign_intro,,"Okay. Hier sind ein paar Argumente gegen die Chatkontrolle.","Okay. Here are a few arguments against chat control.","Voici quelques arguments contre le contrôle des chats."
+arguments_choice_cancel_1,"Followed by a name.","Du kannst jederzeit die 1 drücken, um von uns direkt mit","You can press 1 at any time to be contacted directly with","Vous pouvez à tout moment appuyer sur la touche 1 pour être contacté directement par"
+arguments_choice_cancel_2,"Follows a name.","verbunden zu werden.",,""
+arguments_end,,"Alles klar? Dann drücke jetzt die 1, um verbunden zu werden.","All clear? Then press 1 now to be connected.","Tout est clair ? Appuyez maintenant sur le 1 pour être connecté."
+blocklist_choice_confirm,,"Bist du sicher? Wir würden deine Nummer auf unsere interne Blockliste setzen. Du wirst dann nicht mehr zu automatisierten Terminen angerufen und kannst auch nicht mehr über unsere Website direkt Anrufe zu Abgeordneten aufbauen. Du müsstest uns eine E-Mail schreiben, falls du von der Blockliste jemals wieder entfernt werden möchtest. Drück die 9, wenn wir dich auf diese Blockliste setzen sollen.","Are you sure? We would put your number on our internal block list. You will then no longer be called for automated appointments, nor will you be able to set up calls directly to MPs via our website. You would have to email us if you ever wanted to be removed from the block list. Press 9 if you want us to put you on this blocklist.","En êtes-vous sûr ? Nous inscrirons votre numéro sur notre liste de blocage interne. Vous ne serez alors plus appelé pour des rendez-vous automatisés, et vous ne pourrez plus passer d'appels directement aux députés par l'intermédiaire de notre site web. Vous devrez nous envoyer un courriel si vous souhaitez que votre numéro soit retiré de la liste de blocage. Appuyez sur 9 si vous souhaitez que nous vous inscrivions sur cette liste de blocage."
+blocklist_choice_unsubscribe_1,"Followed by a weekday.","Wenn du hingegen einfach nur nicht mehr jeden","If, on the other hand, you just don't want us to call every","Si, en revanche, vous ne voulez pas que nous appelions tous les"
+blocklist_choice_unsubscribe_2,"Follows a weekday.","von uns angerufen werden möchtest, drücke die 3.",", press 3.","appuyez sur 3."
+blocklist_choice_back,,"Oder drücke die 0, um zurück ins Hauptmenü zu kommen.","Or press 0 to return to the main menu.","Ou appuyez sur 0 pour revenir au menu principal."
+blocklist_confirmed,"We will hang up after this.","Alles klar. Sorry für die Störung, und hab noch einen schönen Tag.","All right. Sorry for the interruption, and have a nice day.","Je suis d'accord. Désolé pour cette interruption et bonne journée."
+weekday_1,,"Montag","Monday","Lundi"
+weekday_2,,"Dienstag","Tuesday","Mardi"
+weekday_3,,"Mittwoch","Wednesday","Mercredi"
+weekday_4,,"Donnerstag","Thursday","Jeudi"
+weekday_5,,"Freitag","Friday","Vendredi"
+weekday_6,,"Samstag","Saturday","Samedi"
+weekday_7,,"Sonntag","Sunday","Dimanche"
+group_ppe,,"Europäische Volkspartei (Christdemokraten)","European People's Party (Christian Democrats)","Parti populaire européen (démocrates-chrétiens)"
+group_s_d,,"Progressive Allianz der Sozialdemokraten","Progressive Alliance of Socialists and Democrats","Alliance progressiste des socialistes et démocrates"
+group_re,,"Renew Europe (Liberale)","Renew Europe (Liberals)","Renouveler l'Europe (Libéraux)"
+group_verts_ale,,"Die Grünen / Europäische Freie Allianz","The Greens / European Free Alliance","Les Verts / Alliance libre européenne"
+group_ecr,,"Europäische Konservative und Reformer","European Conservatives and Reformists","Conservateurs et réformistes européens"
+group_id,,"Identität und Demokratie","Identity and democracy","Identité et démocratie"
+group_gue_ngl,,"Die Linke im Europäischen Parlament","The Left in the European Parliament","La gauche au Parlement européen"
+group_na,,"fraktionslos","Non-attached","Non attachés"
+argument_extra,"Prepended to the argument list.","Das Wichtigste bei Ihrem Gespräch mit dem Politiker ist, dass Sie ihn bitten, im Plenum für die Genehmigung von Änderungen der Verordnung über sexuellen Kindesmissbrauch zu stimmen. Andernfalls wird es keine ordnungsgemäße Abstimmung im Plenum geben. Nochmal: Bitten Sie den Politiker, im Plenum für die Zulassung von Änderungsanträgen zur Verordnung über sexuellen Kindesmissbrauch zu stimmen. Sollte der Politiker Sie nach einer konkreten Abstimmungsempfehlung fragen, können Sie sich auf NGOs für digitale Rechte wie European Digital Rights, Electronic Frontier Foundation oder Epicenter.works berufen.","First, the most important thing in your conversation with the Politician is that you ask them to vote in plenary for allowing amendments to the Child Sexual Abuse Regulation. Without this, there will not be a proper vote in plenary. To repeat: ask the Politician to vote in plenary to allow for amendments on the Child Sexual Abuse Regulation. Should the Politician ask you about concrete recommendation for what to vote, you can reference digital rights NGOs like European Digital Rights, Electronic Frontier Foundation or Epicenter.works.","Tout d'abord, la chose la plus importante dans votre conversation avec le politicien est que vous lui demandiez de voter en plénière pour autoriser les amendements au règlement sur les abus sexuels envers les enfants. Sans cela, il n'y aura pas de vote correct en plénière. Je répète : demandez à l'homme politique de voter en plénière pour autoriser les amendements au règlement sur les abus sexuels envers les enfants. Si l'homme politique vous demande une recommandation concrète de vote, vous pouvez vous référer à des ONG de défense des droits numériques telles que European Digital Rights, Electronic Frontier Foundation ou Epicenter.works."
