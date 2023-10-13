@@ -3,6 +3,7 @@ from typing import Optional
 from pydantic import UUID4
 from pathlib import Path
 from sqlmodel import Session
+from random import shuffle
 
 from dearmep.database import query
 from dearmep.convert import blobfile
@@ -98,11 +99,7 @@ class Medialist:
                     "generic_goodbye",
                 )
             elif flow == Flow.arguments:
-                names = (  # type: ignore
-                    "arguments_campaign_intro",
-                    "arguments_choice_cancel_1",
-                    destination_name,
-                    "arguments_choice_cancel_2",
+                arguments = [
                     "argument_1",
                     "argument_2",
                     "argument_3",
@@ -110,8 +107,15 @@ class Medialist:
                     "argument_5",
                     "argument_6",
                     "argument_7",
-                    "argument_8",
+                    "argument_8"]
+                shuffle(arguments)
+                names = (  # type: ignore
+                    "arguments_campaign_intro",
+                    "arguments_choice_cancel_1",
+                    destination_name,
+                    "arguments_choice_cancel_2",
                     "argument_extra",
+                    *arguments,
                     "arguments_end",
                 )
             else:
