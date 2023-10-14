@@ -20,10 +20,6 @@ from .models import Blob, BlobID, Destination, DestinationID, \
     DestinationSelectionLog, DestinationSelectionLogEvent, MediaList, \
     NumberVerificationRequest, UserFeedback
 
-import logging
-
-logger = logging.getLogger(__name__)
-
 
 class NotFound(Exception):
     pass
