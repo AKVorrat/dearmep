@@ -2,7 +2,7 @@ from datetime import datetime
 
 from sqlalchemy import and_, select
 from sqlalchemy.orm import joinedload
-from sqlmodel import Session
+from sqlmodel import Session, col
 
 from ...config import Language
 from ...database.models import Call, Destination
@@ -50,8 +50,8 @@ def destination_is_in_call(destination_id: str, session: Session):
     stmt = select(Call).where(
         and_(
             Call.destination_id == destination_id,
-            Call.connected_at.isnot(None),  # type: ignore
-            Call.ended_at.is_(None)  # type: ignore
+            col(Call.connected_at).isnot(None),
+            col(Call.ended_at).is_(None),
         )
     ).exists()
     in_call = session.query(stmt).scalar()
