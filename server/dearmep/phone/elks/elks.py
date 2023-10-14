@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 phone_numbers: List[Number] = []
 
 
-def initiate_call(
+def start_elks_call(
     user_phone_number: str,
     user_language: Language,
     destination_id: str,

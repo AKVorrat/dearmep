@@ -23,7 +23,7 @@ from ..models import MAX_SEARCH_RESULT_LIMIT, CountryCode, \
     UserPhone, PhoneNumberVerificationRequest, SMSCodeVerificationRequest
 from ..phone.abstract import get_phone_service
 from ..ratelimit import Limit, client_addr
-from ..phone.elks.elks import initiate_call, InitialElkResponseState
+from ..phone.elks.elks import InitialElkResponseState, start_elks_call
 
 
 l10n_autodetect_total = Counter(
@@ -299,21 +299,21 @@ def get_suggested_destination(
     dependencies=(simple_rate_limit,),
     status_code=status.HTTP_204_NO_CONTENT,
 )
-def post_initiate_call(
+def initiate_call(
     language: Language,
     destination_id: DestinationID,
-    user_phone: str
+    user_phone: str,
 ):
     """
     Selects a phone number based on MEP's country
     and initiates a call to the user.
     """
 
-    call_state: InitialElkResponseState = initiate_call(
+    call_state: InitialElkResponseState = start_elks_call(
         user_phone_number=user_phone,
         user_language=language,
         destination_id=destination_id,
-        config=Config.get()
+        config=Config.get(),
     )
 
     if call_state == "failed":
