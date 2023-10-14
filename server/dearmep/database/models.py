@@ -261,12 +261,12 @@ class Call(SQLModel, table=True):
         index=True,
     )
     connected_at: Optional[datetime] = Field(
-        default=None,
+        None,
         description="Timestamp of when the call was connected.",
         **_example("2021-01-01 00:00:00"),
     )
     ended_at: Optional[datetime] = Field(
-        default=None,
+        None,
         description="Timestamp of when the call was ended.",
         **_example("2021-01-01 00:00:00"),
     )
