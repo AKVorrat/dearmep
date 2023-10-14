@@ -274,17 +274,16 @@ class Call(SQLModel, table=True):
         description="The user's language.",
         **_example("en"),
     )
-    user_id: Optional[UserPhone] = Field(
+    user_id: UserPhone = Field(
         index=True,
         description="ID [PhoneNumber] to reuse for this call",
     )
     destination_id: DestinationID = Field(
+        index=True,
         foreign_key="destinations.id",
         description="The Destination this Call belongs to.",
     )
-    destination: "Destination" = Relationship(
-        back_populates="calls",
-    )
+    destination: "Destination" = Relationship()
 
 
 class Destination(DestinationBase, table=True):
@@ -294,9 +293,6 @@ class Destination(DestinationBase, table=True):
         "Usually, this will e.g. list the family name first, but the campaign "
         "is free to handle this as they please.",
         **_example("MIERSCHEID Jakob Maria"),
-    )
-    calls: List[Call] = Relationship(
-        back_populates="destination",
     )
     contacts: List[Contact] = Relationship(
         back_populates="destination",
