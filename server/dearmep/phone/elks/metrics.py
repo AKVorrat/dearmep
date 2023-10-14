@@ -1,4 +1,4 @@
-from prometheus_client import Summary, Counter
+from prometheus_client import Counter, Summary
 
 
 class ElksMetrics:

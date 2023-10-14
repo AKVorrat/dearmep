@@ -1,18 +1,17 @@
+import logging
 from datetime import date
 from functools import lru_cache
-import logging
 from pathlib import Path
-from typing import Any, ClassVar, Dict, List, Literal, Optional, Union, Tuple
+from typing import Any, ClassVar, Dict, List, Literal, Optional, Tuple, Union
 
+import yaml
 from pydantic import AnyHttpUrl, BaseModel, BaseSettings, DirectoryPath, \
     Field, FilePath, PositiveInt, ValidationError, validator
 from pydantic.fields import ModelField
 from pydantic.utils import deep_update
-import yaml
 from yaml.parser import ParserError
 
 from .models import Language
-
 
 _logger = logging.getLogger(__name__)
 

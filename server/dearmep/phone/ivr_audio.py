@@ -1,12 +1,13 @@
 from enum import Enum
-from typing import Optional
-from pydantic import UUID4
 from pathlib import Path
-from sqlmodel import Session
 from random import shuffle
+from typing import Optional
 
-from dearmep.database import query
-from dearmep.convert import blobfile
+from pydantic import UUID4
+from sqlmodel import Session
+
+from ..convert import blobfile
+from ..database import query
 
 
 class CallType(Enum):

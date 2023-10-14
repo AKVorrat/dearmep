@@ -1,12 +1,11 @@
-import requests
 import logging
-
-from typing import List, Tuple
 from random import choice
+from typing import List, Tuple
 
+import requests
+
+from ...config import Language
 from .models import Number
-
-from dearmep.config import Language
 
 logger = logging.getLogger(__name__)
 
