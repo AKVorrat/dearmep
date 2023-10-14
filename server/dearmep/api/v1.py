@@ -295,8 +295,9 @@ def get_suggested_destination(
 @router.post(
     "/initiate-call",
     operation_id="initiateCall",
+    responses=rate_limit_response,  # type: ignore[arg-type]
     dependencies=(simple_rate_limit,),
-    status_code=status.HTTP_204_NO_CONTENT
+    status_code=status.HTTP_204_NO_CONTENT,
 )
 def post_initiate_call(
     language: Language,
