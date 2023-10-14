@@ -303,10 +303,8 @@ telephony:
       - "2001:9b0:2:902::199"
       - "127.0.0.1"
       - "::1"
-
-  # absolute Url of audio files which are played in phone calls
-  # must be a folder on the local filesystem of the server
-  audio_source: "/var/dearmep/audio"
+  # Local path to audio files to be played in phone calls.
+  audio_source: /var/dearmep/audio
 
   # If you set the following variable test_call to a phone number, it will get
   # called instead of the MEP when doing the final connect step. Only use this
