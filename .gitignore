@@ -17,4 +17,3 @@ openapi.json
 
 # Dotenv files.
 *.env
-server/.envrc
