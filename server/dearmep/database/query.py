@@ -396,7 +396,6 @@ def get_recommended_destination(
             # making sure that there is log at all
             for i, dest in enumerate(destinations):
                 if dest.id == latest_log.destination_id:
-                    # TODO: make configurable
                     weights[i] = 0.00001
                     break
 
@@ -414,7 +413,6 @@ def get_recommended_destination(
     for i, dest in enumerate(destinations):
         for dest_log in destination_logs_recent_calls:
             if dest.id == dest_log.destination_id:
-                # make configurable
                 weights[i] = 0.1
                 break
 
