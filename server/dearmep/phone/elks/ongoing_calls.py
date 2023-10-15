@@ -88,6 +88,8 @@ def add_call(
 def get_mep_number(call: Call) -> str:
     """ returns the MEP number of the call """
     query = [x for x in call.destination.contacts if x.type == "phone"]
-    if not query:
-        return ""
-    return query[0].contact
+    try:
+        return query[0].contact
+    except IndexError:
+        raise CallError(
+            f"Destination {call.destination_id} has no phone number to call")
