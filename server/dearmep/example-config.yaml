@@ -14,19 +14,6 @@ campaign:
   # The name of the campaign.
   name: Stop Scanning Me!
 
-general:
-  # The absolute url where this software is to be found
-  # example https://example.com
-  # also accepts IP addresses with or without port
-  base_url: https://example-campaign.com
-
-  # The threshold after which a call is considered successful. The reason for
-  # this is that we give lower weight to connected calls that lasted shorter
-  # than the specified value, because employees may have answered instead of
-  # MEPs. Short calls indicate that there was no meaningful conversation with
-  # MEPs. In seconds.
-  phone_call_threshhold: 35
-
 
 # Database configuration.
 database:
@@ -72,6 +59,10 @@ contact_timespan_filter:
 
 # The HTTP API.
 api:
+  # The absolute url where this software is to be found. This
+  # also accepts IP addresses with or without port
+  base_url: https://example-campaign.com
+
   # Configuration for Cross-Origin Resource Sharing, see
   # <https://en.wikipedia.org/wiki/Cross-origin_resource_sharing>. Enter a list
   # of HTTP and/or HTTPS URLs (without any paths or trailing slashes). You may
@@ -211,6 +202,14 @@ telephony:
   # If set to true, do not actually send out SMS and make calls.
   # This is useful for developing the application.
   dry_run: true
+
+  # The threshold after which a call is considered successful. The
+  # reason for this is that we give lower weight to connected calls
+  # that lasted shorter than the specified value, because employees
+  # may have answered instead of MEPs. Short calls indicate that
+  # there was no meaningful conversation with MEPs. In seconds.
+  phone_call_threshhold: 35
+
 
   # Calling codes that we allow Users to have. This corresponds to the "country
   # code" part of an international phone number. For example, the number

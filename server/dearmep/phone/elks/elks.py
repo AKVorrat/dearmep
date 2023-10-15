@@ -35,7 +35,7 @@ def start_elks_call(
 ) -> InitialElkResponseState:
     """ Initiate a Phone call via 46elks """
     provider_cfg = config.telephony.provider
-    elks_url = config.general.base_url + "/phone"
+    elks_url = config.api.base_url + "/phone"
     auth = (
         provider_cfg.username,
         provider_cfg.password,
@@ -93,10 +93,10 @@ def mount_router(app: FastAPI, prefix: str):
 
     # configuration
     config = Config.get()
-    phone_call_threshhold = config.general.phone_call_threshhold
     telephony_cfg = config.telephony
     provider_cfg = telephony_cfg.provider
-    elks_url = config.general.base_url + prefix
+    phone_call_threshhold = telephony_cfg.phone_call_threshhold
+    elks_url = config.api.base_url + prefix
     auth = (
         provider_cfg.username,
         provider_cfg.password,
@@ -388,7 +388,7 @@ def mount_router(app: FastAPI, prefix: str):
                 "next": f"{elks_url}/thanks_for_calling",
             }
             if telephony_cfg.test_call:
-                connect.update({"connect": telephony_cfg.test_call})
+                connect["connect"] = telephony_cfg.test_call
 
             query.log_destination_selection(
                 session=session,

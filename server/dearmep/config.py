@@ -37,11 +37,6 @@ class IPRateLimits(BaseModel):
     large_block_limit: str
 
 
-class GeneralConfig(BaseModel):
-    base_url: AnyHttpUrl
-    phone_call_threshhold: PositiveInt
-
-
 class CorsConfig(BaseModel):
     """Allowed access for other web hosts to this backend via Ajax"""
     origins: List[Union[Literal["*"], AnyHttpUrl]]
@@ -54,6 +49,7 @@ class APIRateLimitConfig(BaseModel):
 
 
 class APIConfig(BaseModel):
+    base_url: AnyHttpUrl
     cors: CorsConfig
     rate_limits: APIRateLimitConfig
 
@@ -211,12 +207,13 @@ class L10nConfig(BaseModel):
 
 class TelephonyConfig(BaseModel):
     allowed_calling_codes: List[int]
-    blocked_numbers: List[str] = []
     approved_numbers: List[str] = []
+    blocked_numbers: List[str] = []
     dry_run: bool = False
+    phone_call_threshhold: PositiveInt
     provider: ElksConfig
     audio_source: Path
-    test_call: str = ""
+    test_call: Optional[str]
 
 
 class Config(BaseModel):
@@ -228,7 +225,6 @@ class Config(BaseModel):
     feedback: FeedbackConfig
     l10n: L10nConfig
     telephony: TelephonyConfig
-    general: GeneralConfig
 
     _instance: ClassVar[Optional["Config"]] = None
     _patch: ClassVar[Optional[Dict]] = None
