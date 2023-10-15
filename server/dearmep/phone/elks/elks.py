@@ -13,7 +13,7 @@ from ...config import Config, Language
 from ...convert import blobfile, ffmpeg
 from ...database import query
 from ...database.connection import get_session
-from ...database.models import DestinationSelectionLogEvent
+from ...database.models import Destination, DestinationSelectionLogEvent
 from ...models import UserPhone
 from ...phone import ivr_audio
 from ...phone.ivr_audio import CallType, Flow
@@ -128,6 +128,18 @@ def mount_router(app: FastAPI, prefix: str):
                 },
             )
 
+    def get_group_id(destination: Destination) -> Optional[str]:
+        """
+        Get the group id of the destinations 'parl_group'.
+        If the destination has no parl_group, we return None.
+        """
+        parl_group = [g for g in destination.groups
+                      if g.type == "parl_group"]
+        if not parl_group:
+            logger.warning(f"Destination {destination.id} has no parl_group")
+            return None
+        return parl_group[0].id
+
     def check_no_input(result, why):
         """
         Check if no input by user. Either we are on voice mail OR user did not
@@ -202,15 +214,12 @@ def mount_router(app: FastAPI, prefix: str):
         call = ongoing_calls.get_call(callid, provider, session)
 
         # we ask the user if they want to talk to the new suggested MEP instead
-        group = [g for g
-                 in new_destination.groups
-                 if g.type == "parl_group"][0]
         medialist_id = medialist.get(
             flow=Flow.new_suggestion,
             call_type=CallType.instant,
             destination_id=call.destination_id,
             language=call.user_language,
-            group_id=group.id,
+            group_id=get_group_id(new_destination),
             session=session
         )
         session.commit()
