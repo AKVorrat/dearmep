@@ -7,25 +7,31 @@ import requests
 from ...config import Language
 from .models import Number
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 def choose_from_number(
+        user_number_prefix: str,
+        user_language: Language,
         phone_numbers: List[Number],
-        language: Language
 ) -> Number:
     """
-    Returns a phonenumber, preferably from the given language.
-    In case a local country number does not exist,
-    returns any international number.
+    Returns a phonenumber we use to call the user. Preferably from the same
+    country as the users number. In case a local country number does not exist,
+    it falls back on the users language. In case there is no match it returns
+    any international number.
     """
 
-    lang_numbers = [nr for nr in phone_numbers if nr.country == language]
+    number_prefix = [n for n in phone_numbers
+                     if n.number[1:3] == user_number_prefix]
+    if number_prefix:
+        return choice(number_prefix)
 
-    if len(lang_numbers) == 0:
-        return choice(phone_numbers)
+    lang_numbers = [n for n in phone_numbers if n.country == user_language]
+    if lang_numbers:
+        return choice(lang_numbers)
 
-    return choice(lang_numbers)
+    return choice(phone_numbers)
 
 
 def get_numbers(
@@ -48,7 +54,7 @@ def get_numbers(
     phone_numbers.extend(
         [Number.parse_obj(number) for number in response.json().get("data")]
     )
-    logger.info(
+    _logger.info(
         "Currently available 46elks phone numbers: "
         f"{[number.number for number in phone_numbers]}",
     )

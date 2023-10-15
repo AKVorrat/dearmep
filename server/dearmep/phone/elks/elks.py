@@ -41,9 +41,11 @@ def start_elks_call(
         provider_cfg.password,
     )
 
+    user_id = UserPhone(user_phone_number)
     phone_number = choose_from_number(
+        user_number_prefix=str(user_id.calling_code),
+        user_language=user_language,
         phone_numbers=phone_numbers,
-        language=user_language
     )
 
     response = requests.post(
@@ -54,7 +56,7 @@ def start_elks_call(
             "from": phone_number.number,
             "voice_start": f"{elks_url}/instant_main_menu",
             "whenhangup": f"{elks_url}/hangup",
-            "timeout": 13
+            "timeout": 13,
         }
     )
 
@@ -67,7 +69,6 @@ def start_elks_call(
         return response_data.state
 
     with get_session() as session:
-        user_id = UserPhone(user_phone_number)
         ongoing_calls.add_call(
             provider="46elks",
             provider_call_id=response_data.callid,
