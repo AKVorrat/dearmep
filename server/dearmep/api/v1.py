@@ -309,12 +309,14 @@ def initiate_call(
     and initiates a call to the user.
     """
 
-    call_state: InitialElkResponseState = start_elks_call(
-        user_phone_number=user_phone,
-        user_language=language,
-        destination_id=destination_id,
-        config=Config.get(),
-    )
+    with get_session() as session:
+        call_state: InitialElkResponseState = start_elks_call(
+            user_phone_number=user_phone,
+            user_language=language,
+            destination_id=destination_id,
+            config=Config.get(),
+            session=session,
+        )
 
     if call_state == "failed":
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Call failed")

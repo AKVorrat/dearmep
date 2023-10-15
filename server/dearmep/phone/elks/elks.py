@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, FastAPI, Form, HTTPException, \
     Request, status
 from fastapi.responses import FileResponse
 from pydantic import UUID4, Json
+from sqlmodel import Session
 
 from ...config import Config, Language
 from ...convert import blobfile, ffmpeg
@@ -31,7 +32,8 @@ def start_elks_call(
     user_phone_number: str,
     user_language: Language,
     destination_id: str,
-    config: Config
+    config: Config,
+    session: Session,
 ) -> InitialElkResponseState:
     """ Initiate a Phone call via 46elks """
     provider_cfg = config.telephony.provider
@@ -68,23 +70,22 @@ def start_elks_call(
         logger.warn(f"Call failed from our number: {phone_number.number}")
         return response_data.state
 
-    with get_session() as session:
-        ongoing_calls.add_call(
-            provider="46elks",
-            provider_call_id=response_data.callid,
-            user_language=user_language,
-            user_id=user_id,
-            destination_id=destination_id,
-            session=session
-        )
-        query.log_destination_selection(
-            session=session,
-            destination=query.get_destination_by_id(session, destination_id),
-            event=DestinationSelectionLogEvent.CALLING_USER,
-            user_id=user_id,
-            call_id=response_data.callid
-        )
-        session.commit()
+    ongoing_calls.add_call(
+        provider="46elks",
+        provider_call_id=response_data.callid,
+        user_language=user_language,
+        user_id=user_id,
+        destination_id=destination_id,
+        session=session,
+    )
+    query.log_destination_selection(
+        session=session,
+        destination=query.get_destination_by_id(session, destination_id),
+        event=DestinationSelectionLogEvent.CALLING_USER,
+        user_id=user_id,
+        call_id=response_data.callid,
+    )
+    session.commit()
 
     return response_data.state
 
