@@ -70,7 +70,8 @@ def add_call(
     destination_id: str,
     user_language: Language,
     user_id,
-    session: Session
+    started_at: datetime,
+    session: Session,
 ) -> Call:
     """ adds a call to the database """
     call = Call(
@@ -79,10 +80,11 @@ def add_call(
         destination_id=destination_id,
         user_language=user_language,
         user_id=user_id,
+        started_at=started_at,
     )
     session.add(call)
     session.commit()
-    return call
+    return get_call(provider_call_id, provider, session)
 
 
 def get_mep_number(call: Call) -> str:

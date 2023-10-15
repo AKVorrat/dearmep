@@ -25,6 +25,7 @@ class Flow(Enum):
     arguments = "arguments"
     no_input = "no_input"
     wrong_input = "wrong_input"
+    silence = "silence"
 
 
 class Medialist:
@@ -130,6 +131,10 @@ class Medialist:
             elif flow == Flow.wrong_input:
                 names = [
                     "generic_invalid_input",
+                ]
+            elif flow == Flow.silence:
+                names = [
+                    "0.1_silence",
                 ]
             else:
                 raise ValueError(

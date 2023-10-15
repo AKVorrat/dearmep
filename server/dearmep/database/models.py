@@ -263,6 +263,10 @@ class Call(SQLModel, table=True):
         **_example("c4644bcfb44e712345c36e189faba04bd"),
         index=True,
     )
+    started_at: datetime = Field(
+        description="Timestamp of when the call was started.",
+        **_example("2021-01-01 00:00:00"),
+    )
     connected_at: Optional[datetime] = Field(
         None,
         description="Timestamp of when the call was connected.",
