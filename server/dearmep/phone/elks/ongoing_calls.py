@@ -26,7 +26,7 @@ def get_call(
                 joinedload(Call.destination)
                 .joinedload(Destination.contacts)
                 ).one())
-        return call
+        return call  # type: ignore
     except NoResultFound:
         raise CallError(f"Call {callid=}, {provider=} not found")
 
