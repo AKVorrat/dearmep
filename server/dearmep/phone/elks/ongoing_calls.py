@@ -2,6 +2,7 @@ from datetime import datetime
 
 from sqlalchemy import and_, select
 from sqlalchemy.orm import joinedload
+from sqlalchemy.exc import NoResultFound
 from sqlmodel import Session, col
 
 from ...config import Language
@@ -17,16 +18,17 @@ def get_call(
         provider: str,
         session: Session,
 ) -> Call:
-    call = (session.query(Call)
-            .filter(Call.provider_call_id == callid)
-            .filter(Call.provider == provider)
-            .options(
-            joinedload(Call.destination)
-            .joinedload(Destination.contacts)
-            ).first())
-    if not call:
-        raise CallError(f"Call {callid} not found")
-    return call  # type: ignore
+    try:
+        call = (session.query(Call)
+                .filter(Call.provider_call_id == callid)
+                .filter(Call.provider == provider)
+                .options(
+                joinedload(Call.destination)
+                .joinedload(Destination.contacts)
+                ).one())
+        return call
+    except NoResultFound:
+        raise CallError(f"Call {callid=}, {provider=} not found")
 
 
 def remove_call(call: Call, session: Session):

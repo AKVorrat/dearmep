@@ -20,7 +20,8 @@ def test_ongoing_calls_interface(client: TestClient):
         # we don't find the call in the database
         with pytest.raises(ongoing_calls.CallError) as excinfo:
             call = ongoing_calls.get_call(provider_call_id, provider, session)
-        assert f"Call {provider_call_id} not found" in str(excinfo.value)
+        assert provider_call_id in str(excinfo.value)
+        assert provider in str(excinfo.value)
 
         # call gets created
         ongoing_calls.add_call(
@@ -71,4 +72,5 @@ def test_ongoing_calls_interface(client: TestClient):
         # we don't find the call in the database
         with pytest.raises(ongoing_calls.CallError) as excinfo:
             call = ongoing_calls.get_call(provider_call_id, provider, session)
-        assert f"Call {provider_call_id} not found" in str(excinfo.value)
+        assert provider_call_id in str(excinfo.value)
+        assert provider in str(excinfo.value)
