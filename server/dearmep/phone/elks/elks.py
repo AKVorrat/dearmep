@@ -496,7 +496,7 @@ def mount_router(app: FastAPI, prefix: str):
             )
             ongoing_calls.remove_call(call, session)
 
-            # exit if error
+            # error
             if not start:
                 query.log_destination_selection(
                     session=session,
@@ -506,7 +506,6 @@ def mount_router(app: FastAPI, prefix: str):
                     call_id=call.provider_call_id
                 )
                 session.commit()
-                return
 
     @router.post("/thanks_for_calling")
     def thanks_for_calling(
