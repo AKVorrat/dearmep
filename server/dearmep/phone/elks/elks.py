@@ -133,10 +133,7 @@ def mount_router(app: FastAPI, prefix: str):
         Check if no input by user. Either we are on voice mail OR user did not
         enter a number and timeout has passed in IVR. We got hung up by elks.
         """
-        return True if (
-            str(result) == "failed"
-            and str(why) == "noinput"
-        ) else False
+        return str(result) == "failed" and str(why) == "noinput"
 
     def get_alternative_destination(session):
         """
