@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Any, List, Literal, Optional
+from typing import List, Literal, Optional
 
 import requests
 from fastapi import APIRouter, Depends, FastAPI, Form, HTTPException, \
@@ -407,7 +407,6 @@ def mount_router(app: FastAPI, prefix: str):
             ongoing_calls.connect_call(call, session)
             connect = {
                 "connect": connect_number,
-                "next": f"{elks_url}/thanks_for_calling",
             }
             if telephony_cfg.test_call:
                 connect["connect"] = telephony_cfg.test_call
@@ -506,20 +505,6 @@ def mount_router(app: FastAPI, prefix: str):
                     call_id=call.provider_call_id
                 )
                 session.commit()
-
-    @router.post("/thanks_for_calling")
-    def thanks_for_calling(
-            callid: str = Form(),
-            direction: Literal["incoming", "outgoing"] = Form(),
-            from_number: str = Form(alias="from"),
-            to_number: str = Form(alias="to"),
-            result: Any = Form(),
-    ):
-        """ route probably unused in the release, useful for debugging """
-
-        return {
-            "play": f"{config.telephony.audio_source}/final-tune.ogg",
-        }
 
     @router.get("/medialist/{medialist_id}/concat.ogg")
     def get_concatenated_media(medialist_id: UUID4):
