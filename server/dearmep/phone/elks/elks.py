@@ -166,14 +166,29 @@ def mount_router(app: FastAPI, prefix: str):
         # we select the same country as the previous mep
         # we don't need to log the event here, as it is logged in the
         # get_random_destination function
-        new_destination = query.get_random_destination(
-            session=session,
-            country=call.destination.country,
-            call_id=call.provider_call_id,
-            event=DestinationSelectionLogEvent.IVR_SUGGESTED,
-            user_id=call.user_id,
+        try:
+            new_destination = query.get_random_destination(
+                session=session,
+                country=call.destination.country,
+                call_id=call.provider_call_id,
+                event=DestinationSelectionLogEvent.IVR_SUGGESTED,
+                user_id=call.user_id,
+            )
+        except query.NotFound:
+            # no other MEPs available, we tell the user to try again later
+            medialist_id = medialist.get(
+                flow=Flow.mep_unavailable,
+                call_type=CallType.instant,
+                destination_id=call.destination_id,
+                language=call.user_language,
+                session=session,
+            )
+            session.commit()
+            return {
+                "play": f"{elks_url}/medialist/{medialist_id}/concat.ogg",
+                "next": f"{elks_url}/hangup",
+            }
 
-        )
         ongoing_calls.remove_call(call, session)
 
         ongoing_calls.add_call(
@@ -182,7 +197,7 @@ def mount_router(app: FastAPI, prefix: str):
             user_language=call.user_language,
             user_id=call.user_id,
             destination_id=new_destination.id,
-            session=session
+            session=session,
         )
         call = ongoing_calls.get_call(callid, provider, session)
 
@@ -191,7 +206,7 @@ def mount_router(app: FastAPI, prefix: str):
                  in new_destination.groups
                  if g.type == "parl_group"][0]
         medialist_id = medialist.get(
-            flow=Flow.mep_unavailable,
+            flow=Flow.new_suggestion,
             call_type=CallType.instant,
             destination_id=call.destination_id,
             language=call.user_language,

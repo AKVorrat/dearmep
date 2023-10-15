@@ -19,6 +19,7 @@ class CallType(Enum):
 class Flow(Enum):
     main_menu = "main_menu"
     connecting = "connecting"
+    new_suggestion = "new_suggestion"
     mep_unavailable = "mep_unavailable"
     try_again_later = "try_again_later"
     arguments = "arguments"
@@ -74,7 +75,7 @@ class Medialist:
                 names = [
                     "connect_connecting",
                 ]
-            elif flow == Flow.mep_unavailable:
+            elif flow == Flow.new_suggestion:
                 names = [
                     "connect_unavailable",
                     "connect_alternative_1",
@@ -88,6 +89,12 @@ class Medialist:
                         ]
                     )
                 names.extend(["connect_alternative_3"])
+            elif flow == Flow.mep_unavailable:
+                names = [
+                    "connect_unavailable",
+                    "connect_try_again_later",
+                    "generic_goodbye",
+                ]
             elif flow == Flow.try_again_later:
                 names = [
                     "connect_try_again_later",
