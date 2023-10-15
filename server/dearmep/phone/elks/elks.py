@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Any, List, Literal, Optional, Tuple
+from typing import Any, List, Literal, Optional
 
 import requests
 from fastapi import APIRouter, Depends, FastAPI, Form, HTTPException, \
@@ -135,16 +135,6 @@ def mount_router(app: FastAPI, prefix: str):
         """
         return str(result) == "failed" and str(why) == "noinput"
 
-    def get_alternative_destination(session):
-        """
-        get a new suggestion for a MEP to talk to. Make sure that we fetch
-        someone not in our calllist """
-        new_destination = query.get_random_destination(session)
-        if ongoing_calls.destination_is_in_call(
-                new_destination.id, session):
-            return get_alternative_destination()
-        return new_destination
-
     def instant_connect_to_mep(call, callid, session):
 
         if not ongoing_calls.destination_is_in_call(
@@ -173,13 +163,19 @@ def mount_router(app: FastAPI, prefix: str):
             }
 
         # MEP is in our list of ongoing calls: we get a new suggestion
-        new_destination = get_alternative_destination(session)
+        # we select the same country as the previous mep
+        # we don't need to log the event here, as it is logged in the
+        # get_random_destination function
+        new_destination = query.get_random_destination(
+            session=session,
+            country=call.destination.country,
+            call_id=call.provider_call_id,
+            event=DestinationSelectionLogEvent.IVR_SUGGESTED,
+            user_id=call.user_id,
 
-        group = [g for g
-                 in new_destination.groups
-                 if g.type == "parl_group"][0]
-
+        )
         ongoing_calls.remove_call(call, session)
+
         ongoing_calls.add_call(
             provider=provider,
             provider_call_id=callid,
@@ -190,8 +186,10 @@ def mount_router(app: FastAPI, prefix: str):
         )
         call = ongoing_calls.get_call(callid, provider, session)
 
-        # we ask the user if they want to talk to the new suggested
-        # MEP instead
+        # we ask the user if they want to talk to the new suggested MEP instead
+        group = [g for g
+                 in new_destination.groups
+                 if g.type == "parl_group"][0]
         medialist_id = medialist.get(
             flow=Flow.mep_unavailable,
             call_type=CallType.instant,
@@ -199,13 +197,6 @@ def mount_router(app: FastAPI, prefix: str):
             language=call.user_language,
             group_id=group.id,
             session=session
-        )
-        query.log_destination_selection(
-            session=session,
-            destination=new_destination,
-            event=DestinationSelectionLogEvent.IVR_SUGGESTED,
-            user_id=call.user_id,
-            call_id=call.provider_call_id
         )
         session.commit()
 
