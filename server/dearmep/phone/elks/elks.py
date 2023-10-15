@@ -244,8 +244,8 @@ def mount_router(app: FastAPI, prefix: str):
     def instant_main_menu(
         callid: str = Form(),
         direction: Literal["incoming", "outgoing"] = Form(),
-        from_nr: str = Form(alias="from"),
-        to_nr: str = Form(alias="to"),
+        from_number: str = Form(alias="from"),
+        to_number: str = Form(alias="to"),
         result: Literal["newoutgoing"] = Form(),
     ):
         """
@@ -282,8 +282,8 @@ def mount_router(app: FastAPI, prefix: str):
     def next_route(
         callid: str = Form(),
         direction: Literal["incoming", "outgoing"] = Form(),
-        from_nr: str = Form(alias="from"),
-        to_nr: str = Form(alias="to"),
+        from_number: str = Form(alias="from"),
+        to_number: str = Form(alias="to"),
         result: str = Form(),
         why: Optional[str] = Form(default=None),
     ):
@@ -321,8 +321,8 @@ def mount_router(app: FastAPI, prefix: str):
     def ivr_choice_arguments(
         callid: str = Form(),
         direction: Literal["incoming", "outgoing"] = Form(),
-        from_nr: str = Form(alias="from"),
-        to_nr: str = Form(alias="to"),
+        from_number: str = Form(alias="from"),
+        to_number: str = Form(alias="to"),
         result: str = Form(),
         why: Optional[str] = Form(default=None),
     ):
@@ -343,8 +343,8 @@ def mount_router(app: FastAPI, prefix: str):
     def instant_alternative(
         callid: str = Form(),
         direction: Literal["incoming", "outgoing"] = Form(),
-        from_nr: str = Form(alias="from"),
-        to_nr: str = Form(alias="to"),
+        from_number: str = Form(alias="from"),
+        to_number: str = Form(alias="to"),
         result: str = Form(),
         why: Optional[str] = Form(default=None),
     ):
@@ -383,8 +383,8 @@ def mount_router(app: FastAPI, prefix: str):
     def instant_connect(
         callid: str = Form(),
         direction: Literal["incoming", "outgoing"] = Form(),
-        from_nr: str = Form(alias="from"),
-        to_nr: str = Form(alias="to"),
+        from_number: str = Form(alias="from"),
+        to_number: str = Form(alias="to"),
         result: str = Form(),
         why: Optional[str] = Form(default=None),
     ):
@@ -395,7 +395,7 @@ def mount_router(app: FastAPI, prefix: str):
 
             elks_metrics.inc_start(
                 destination_number=connect_number,
-                our_number=from_nr
+                our_number=from_number
             )
             ongoing_calls.connect_call(call, session)
             connect = {
@@ -420,9 +420,9 @@ def mount_router(app: FastAPI, prefix: str):
         # Arguments always present, also failures
         direction: Literal["incoming", "outgoing"] = Form(),
         created: datetime = Form(),
-        from_nr: str = Form(alias="from"),
+        from_number: str = Form(alias="from"),
         callid: str = Form(alias="id"),
-        to_nr: str = Form(alias="to"),
+        to_number: str = Form(alias="to"),
         state: str = Form(),
         # Arguments present in some cases, i.e. success
         start: Optional[datetime] = Form(default=None),
@@ -485,7 +485,7 @@ def mount_router(app: FastAPI, prefix: str):
                 )
             elks_metrics.inc_end(
                 destination_number=call.destination_id,
-                our_number=from_nr
+                our_number=from_number
             )
             ongoing_calls.remove_call(call, session)
 
@@ -505,8 +505,8 @@ def mount_router(app: FastAPI, prefix: str):
     def thanks_for_calling(
             callid: str = Form(),
             direction: Literal["incoming", "outgoing"] = Form(),
-            from_nr: str = Form(alias="from"),
-            to_nr: str = Form(alias="to"),
+            from_number: str = Form(alias="from"),
+            to_number: str = Form(alias="to"),
             result: Any = Form(),
     ):
         """ route probably unused in the release, useful for debugging """
