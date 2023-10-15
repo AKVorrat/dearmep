@@ -1,3 +1,4 @@
+import re
 from enum import Enum
 from pathlib import Path
 from random import shuffle
@@ -23,18 +24,6 @@ class Flow(Enum):
     arguments = "arguments"
 
 
-groups = {
-    "G:Verts/ALE": "group_verts_ale",
-    "G:ECR": "group_ecr",
-    "G:PPE": "group_ppe",
-    "G:S&D": "group_s_d",
-    "G:RE": "group_re",
-    "G:NA": "group_na",
-    "G:GUE/NGL": "group_gue_ngl",
-    "G:ID": "group_id",
-}
-
-
 class Medialist:
     """
     Instantiate this class with the folder where the audio files are stored
@@ -48,10 +37,13 @@ class Medialist:
         self.folder = folder
         self.fallback_language = fallback_language
 
-    def get(self, *args, **kwargs):
-        return self._medialist_id(*args, **kwargs)
+    def group_filename(self, group_id: str):
+        return "group_" + re.sub(
+            r"[^a-zA-Z]", "_",
+            re.sub(r"^G:", "", group_id)
+        ).lower()
 
-    def _medialist_id(
+    def get(
         self,
         flow: Flow,
         destination_id: str,
@@ -69,36 +61,38 @@ class Medialist:
         destination_name = destination_id  # for readability
         languages = (language, self.fallback_language, "")  # "" string needed
 
-        if group_id:
-            group = groups[group_id]
-
         if call_type == CallType.instant:
             if flow == Flow.main_menu:
-                names = (  # type: ignore
+                names = [
                     "campaign_greeting",
                     "main_choice_instant_1",
                     destination_name,
                     "main_choice_instant_2",
                     "main_choice_arguments",
-                )
+                ]
             elif flow == Flow.connecting:
-                names = (  # type: ignore
+                names = [
                     "connect_connecting",
-                )
+                ]
             elif flow == Flow.mep_unavailable:
-                names = (  # type: ignore
+                names = [
                     "connect_unavailable",
                     "connect_alternative_1",
                     destination_name,
-                    "connect_alternative_2",
-                    group,
-                    "connect_alternative_3",
-                )
+                ]
+                if group_id:
+                    names.extend(
+                        [
+                            "connect_alternative_2",
+                            self.group_filename(group_id)
+                        ]
+                    )
+                names.extend(["connect_alternative_3"])
             elif flow == Flow.try_again_later:
-                names = (  # type: ignore
+                names = [
                     "connect_try_again_later",
                     "generic_goodbye",
-                )
+                ]
             elif flow == Flow.arguments:
                 arguments = [
                     "argument_1",
@@ -110,7 +104,7 @@ class Medialist:
                     "argument_7",
                     "argument_8"]
                 shuffle(arguments)
-                names = (  # type: ignore
+                names = [
                     "arguments_campaign_intro",
                     "arguments_choice_cancel_1",
                     destination_name,
@@ -118,12 +112,12 @@ class Medialist:
                     "argument_extra",
                     *arguments,
                     "arguments_end",
-                )
+                ]
             else:
                 raise ValueError(
                     "Flow name not found. "
                     "Please check the flow name and try again. "
-                    f"Allowed names: {list(Flow)}"
+                    f"Allowed flow: {list(Flow)}"
                 )
         elif call_type == CallType.scheduled:
             raise NotImplementedError(
@@ -132,7 +126,7 @@ class Medialist:
         else:
             raise ValueError(
                 "call_type not found. Please check the name again. "
-                "Allowed names: instant"
+                "Allowed call_type: instant"
             )
 
         medialist = blobfile.get_blobs_or_files(
