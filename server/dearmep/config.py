@@ -205,6 +205,16 @@ class TelephonyConfig(BaseModel):
     dry_run: bool = False
 
 
+class RecommenderConfig(BaseModel):
+    base_endorsement_scoring_center: float = Field(ge=0, le=1, default=0.5)
+    base_endorsement_scoring_minimum: float = Field(ge=0, le=0.9, default=0)
+    base_endorsement_scoring_steepness: int = Field(ge=0, le=50, default=4)
+    n_clear_feedback_treshold: int = Field(ge=0, default=8)
+    max_endorsement_cutoff: float = Field(ge=0, le=1, default=1)
+    min_endorsement_cutoff: float = Field(ge=0, le=1, default=0)
+    soft_cool_down_call_duration_minutes: float = Field(ge=0, default=15)
+
+
 class Config(BaseModel):
     """The main application configuration supplied via the config file."""
     api: APIConfig
@@ -214,6 +224,7 @@ class Config(BaseModel):
     feedback: FeedbackConfig
     l10n: L10nConfig
     telephony: TelephonyConfig
+    recommender: RecommenderConfig
 
     _instance: ClassVar[Optional["Config"]] = None
     _patch: ClassVar[Optional[Dict]] = None

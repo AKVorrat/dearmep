@@ -176,10 +176,10 @@ def base_endorsement_scoring(base_score):
     %28x-0.7%29*16%29%5E3+%2B1%29*0.9%2B0.1++for+0%3C%3Dx%3C%3D1
     returns a value between 0 and 1.
     """
-    # TODO: make configurable
-    BASE_ENDORSEMENT_SCORING_CENTER = 0.5
-    BASE_ENDORSEMENT_SCORING_MINIMUM = 0
-    BASE_ENDORSEMENT_SCORING_STEEPNESS = 4
+    config = Config.get()
+    BASE_ENDORSEMENT_SCORING_CENTER = config.recommender.base_endorsement_scoring_center
+    BASE_ENDORSEMENT_SCORING_MINIMUM = config.recommender.base_endorsement_scoring_minimum
+    BASE_ENDORSEMENT_SCORING_STEEPNESS = config.recommender.base_endorsement_scoring_steepness
 
     return 1 / (
         1 + (
@@ -198,8 +198,8 @@ def feedback_scoring(feedback_sum):
     *3%29%5E4+%2B1%29+for+-40%3C%3Dx%3C%3D40%2C+N%3D10
     returns a value between 0 and 1.
     """
-    # TODO: make configurable
-    N_CLEAR_FEEDBACK_TRESHOLD = 6
+    config = Config.get()
+    N_CLEAR_FEEDBACK_TRESHOLD = config.recommender.n_clear_feedback_treshold
     return 1 / (
         1 + (abs(feedback_sum / (N_CLEAR_FEEDBACK_TRESHOLD*8)) * 3) ** 4
     )
@@ -234,6 +234,7 @@ def get_recommended_destination(
     - destination was called very recently.
     - caller called destination already.
     """
+    config = Config.get()
 
     # select all destinations
     stmt_destinations = select(Destination)
@@ -255,9 +256,8 @@ def get_recommended_destination(
     )
 
     # cut off by base_endorsement
-    # TODO: make configurable
-    MAX_ENDORSEMENT_CUTOFF = 1.0
-    MIN_ENDORSEMENT_CUTOFF = 0.0
+    MAX_ENDORSEMENT_CUTOFF = config.recommender.max_endorsement_cutoff
+    MIN_ENDORSEMENT_CUTOFF = config.recommender.min_endorsement_cutoff
     stmt_destinations = stmt_destinations.where(
         Destination.base_endorsement <= MAX_ENDORSEMENT_CUTOFF,
         Destination.base_endorsement >= MIN_ENDORSEMENT_CUTOFF,
@@ -401,8 +401,7 @@ def get_recommended_destination(
                     break
 
     # destination was called recently
-    # TODO: make configurable
-    SOFT_COOL_DOWN_CALL_DURATION_MINUTES = 15
+    SOFT_COOL_DOWN_CALL_DURATION_MINUTES = config.recommender.soft_cool_down_call_duration_minutes
     minutes_ago = datetime.utcnow() - \
         timedelta(minutes=SOFT_COOL_DOWN_CALL_DURATION_MINUTES)
 
