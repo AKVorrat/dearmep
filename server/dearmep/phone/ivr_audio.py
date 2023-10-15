@@ -23,6 +23,7 @@ class Flow(Enum):
     mep_unavailable = "mep_unavailable"
     try_again_later = "try_again_later"
     arguments = "arguments"
+    no_input = "no_input"
 
 
 class Medialist:
@@ -109,7 +110,8 @@ class Medialist:
                     "argument_5",
                     "argument_6",
                     "argument_7",
-                    "argument_8"]
+                    "argument_8",
+                ]
                 shuffle(arguments)
                 names = [
                     "arguments_campaign_intro",
@@ -119,6 +121,10 @@ class Medialist:
                     "argument_extra",
                     *arguments,
                     "arguments_end",
+                ]
+            elif flow == Flow.no_input:
+                names = [
+                    "generic_no_input",
                 ]
             else:
                 raise ValueError(

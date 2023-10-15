@@ -141,12 +141,24 @@ def mount_router(app: FastAPI, prefix: str):
             return None
         return parl_group[0].id
 
-    def check_no_input(result, why):
+    def response_if_no_input(result, why, call, session) -> Optional[dict]:
         """
         Check if no input by user. Either we are on voice mail OR user did not
-        enter a number and timeout has passed in IVR. We got hung up by elks.
+        enter a number and timeout and repeat have passed in IVR. We hang up.
+        We craft the response here as it is needed to check this in every
+        route.
         """
-        return str(result) == "failed" and str(why) == "noinput"
+        if str(result) == "failed" and str(why) == "noinput":
+            medialist_id = medialist.get(
+                flow=Flow.no_input,
+                call_type=CallType.instant,
+                destination_id=call.destination_id,
+                language=call.user_language,
+                session=session
+            )
+            return {
+                "play": f"{elks_url}/medialist/{medialist_id}/concat.ogg",
+            }
 
     def instant_connect_to_mep(call, callid, session):
 
@@ -292,12 +304,11 @@ def mount_router(app: FastAPI, prefix: str):
          1: connect
          5: arguments
         """
-
-        if check_no_input(result, why):
-            return
-
         with get_session() as session:
             call = ongoing_calls.get_call(callid, provider, session)
+            if (no_input_response := response_if_no_input(
+                    result, why, call, session)):
+                return no_input_response
 
             if result == "1":
                 return instant_connect_to_mep(call, callid, session)
@@ -330,11 +341,11 @@ def mount_router(app: FastAPI, prefix: str):
         Check the entered number after we played arguments to the user
          1: connect
         """
-        if check_no_input(result, why):
-            return
-
         with get_session() as session:
             call = ongoing_calls.get_call(callid, provider, session)
+            if (no_input_response := response_if_no_input(
+                    result, why, call, session)):
+                return no_input_response
 
             if result == "1":
                 return instant_connect_to_mep(call, callid, session)
@@ -354,20 +365,16 @@ def mount_router(app: FastAPI, prefix: str):
          1: connect
          2: try again later, quit
         """
-
-        if check_no_input(result, why):
-            return
-
         with get_session() as session:
             call = ongoing_calls.get_call(callid, provider, session)
+            if (no_input_response := response_if_no_input(
+                    result, why, call, session)):
+                return no_input_response
 
             if result == "1":
                 return instant_connect_to_mep(call, callid, session)
 
-        if result == "2":
-            with get_session() as session:
-                call = ongoing_calls.get_call(callid, provider, session)
-
+            if result == "2":
                 medialist_id = medialist.get(
                     flow=Flow.try_again_later,
                     call_type=CallType.instant,
