@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from pydantic import UUID4, BaseModel
 from sqlmodel import Column, Enum, Field, JSON, Relationship, SQLModel, \
-    String, TIMESTAMP, and_, case, or_, func, text
+    String, TIMESTAMP, UniqueConstraint, and_, case, or_, func, text
 
 from ..config import Config, ConfigNotLoaded, Language
 from ..models import CountryCode, FeedbackConvinced, FeedbackText, \
@@ -243,8 +243,11 @@ class DestinationBase(SQLModel):
 
 
 class Call(SQLModel, table=True):
-    """A Call that is or was being made in our System """
+    """A Call that is currently ongoing in our System """
     __tablename__ = "calls"
+    __table_args__ = (
+        UniqueConstraint("provider", "provider_call_id", name="unique_call"),
+    )
     id: UUID4 = Field(
         primary_key=True,
         default_factory=uuid4,
