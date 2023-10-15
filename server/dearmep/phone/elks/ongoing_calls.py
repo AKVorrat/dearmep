@@ -12,9 +12,14 @@ class CallError(Exception):
     pass
 
 
-def get_call(callid: str, session: Session) -> Call:
+def get_call(
+        callid: str,
+        provider: str,
+        session: Session,
+) -> Call:
     call = (session.query(Call)
             .filter(Call.provider_call_id == callid)
+            .filter(Call.provider == provider)
             .options(
             joinedload(Call.destination)
             .joinedload(Destination.contacts)
@@ -24,9 +29,8 @@ def get_call(callid: str, session: Session) -> Call:
     return call  # type: ignore
 
 
-def remove_call(callid: str, session: Session):
+def remove_call(call: Call, session: Session):
     """ removes a call from the database """
-    call = get_call(callid, session=session)
     session.delete(call)
     session.commit()
 

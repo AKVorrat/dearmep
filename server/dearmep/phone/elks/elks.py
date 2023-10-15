@@ -95,6 +95,7 @@ def mount_router(app: FastAPI, prefix: str):
     config = Config.get()
     telephony_cfg = config.telephony
     provider_cfg = telephony_cfg.provider
+    provider = provider_cfg.provider_name
     phone_call_threshhold = telephony_cfg.phone_call_threshhold
     elks_url = config.api.base_url + prefix
     auth = (
@@ -180,16 +181,16 @@ def mount_router(app: FastAPI, prefix: str):
                  in new_destination.groups
                  if g.type == "parl_group"][0]
 
-        ongoing_calls.remove_call(callid, session)
+        ongoing_calls.remove_call(call, session)
         ongoing_calls.add_call(
-            provider="46elks",
+            provider=provider,
             provider_call_id=callid,
             user_language=call.user_language,
             user_id=call.user_id,
             destination_id=new_destination.id,
             session=session
         )
-        call = ongoing_calls.get_call(callid, session)
+        call = ongoing_calls.get_call(callid, provider, session)
 
         # we ask the user if they want to talk to the new suggested
         # MEP instead
@@ -239,7 +240,7 @@ def mount_router(app: FastAPI, prefix: str):
         """
 
         with get_session() as session:
-            call = ongoing_calls.get_call(callid=callid, session=session)
+            call = ongoing_calls.get_call(callid, provider, session)
             medialist_id = medialist.get(
                 flow=Flow.main_menu,
                 destination_id=call.destination_id,
@@ -282,7 +283,7 @@ def mount_router(app: FastAPI, prefix: str):
             return
 
         with get_session() as session:
-            call = ongoing_calls.get_call(callid, session)
+            call = ongoing_calls.get_call(callid, provider, session)
 
             if result == "1":
                 return instant_connect_to_mep(call, callid, session)
@@ -319,7 +320,7 @@ def mount_router(app: FastAPI, prefix: str):
             return
 
         with get_session() as session:
-            call = ongoing_calls.get_call(callid, session)
+            call = ongoing_calls.get_call(callid, provider, session)
 
             if result == "1":
                 return instant_connect_to_mep(call, callid, session)
@@ -344,14 +345,14 @@ def mount_router(app: FastAPI, prefix: str):
             return
 
         with get_session() as session:
-            call = ongoing_calls.get_call(callid, session)
+            call = ongoing_calls.get_call(callid, provider, session)
 
             if result == "1":
                 return instant_connect_to_mep(call, callid, session)
 
         if result == "2":
             with get_session() as session:
-                call = ongoing_calls.get_call(callid, session)
+                call = ongoing_calls.get_call(callid, provider, session)
 
                 medialist_id = medialist.get(
                     flow=Flow.try_again_later,
@@ -374,7 +375,7 @@ def mount_router(app: FastAPI, prefix: str):
         why: Optional[str] = Form(default=None),
     ):
         with get_session() as session:
-            call = ongoing_calls.get_call(callid, session)
+            call = ongoing_calls.get_call(callid, provider, session)
 
             connect_number = ongoing_calls.get_mep_number(call)
 
@@ -428,7 +429,7 @@ def mount_router(app: FastAPI, prefix: str):
                             f"state: {state}, direction: {direction}")
 
         with get_session() as session:
-            call = ongoing_calls.get_call(callid, session)
+            call = ongoing_calls.get_call(callid, provider, session)
 
             if call.connected_at:
                 connected_seconds = (
@@ -472,7 +473,7 @@ def mount_router(app: FastAPI, prefix: str):
                 destination_number=call.destination_id,
                 our_number=from_nr
             )
-            ongoing_calls.remove_call(callid, session)
+            ongoing_calls.remove_call(call, session)
 
             # exit if error
             if not start:
