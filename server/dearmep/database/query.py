@@ -466,7 +466,7 @@ def get_recommended_destination(
             user_id=user_id,
             call_id=call_id,
         )
-    return dest
+    return final_dest
 
 
 def to_destination_search_result(
