@@ -22,10 +22,11 @@ from .metrics import elks_metrics
 from .models import InitialCallElkResponse, InitialElkResponseState, Number
 from .utils import choose_from_number, get_numbers
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 phone_numbers: List[Number] = []
+timeout = 9  # seconds
 
 
 def start_elks_call(
@@ -58,7 +59,7 @@ def start_elks_call(
             "from": phone_number.number,
             "voice_start": f"{elks_url}/instant_main_menu",
             "whenhangup": f"{elks_url}/hangup",
-            "timeout": 13,
+            "timeout": timeout,
         }
     )
 
@@ -67,7 +68,7 @@ def start_elks_call(
         InitialCallElkResponse.parse_obj(response.json())
 
     if response_data.state == "failed":
-        logger.warn(f"Call failed from our number: {phone_number.number}")
+        _logger.warn(f"Call failed from our number: {phone_number.number}")
         return response_data.state
 
     ongoing_calls.add_call(
@@ -119,7 +120,7 @@ def mount_router(app: FastAPI, prefix: str):
         """ Makes sure the request is coming from a 46elks IP """
         client_ip = None if request.client is None else request.client.host
         if client_ip not in provider_cfg.allowed_ips:
-            logger.debug(f"refusing {client_ip}, not a 46elks IP")
+            _logger.debug(f"refusing {client_ip}, not a 46elks IP")
             raise HTTPException(
                 status.HTTP_403_FORBIDDEN,
                 {
@@ -136,7 +137,7 @@ def mount_router(app: FastAPI, prefix: str):
         parl_group = [g for g in destination.groups
                       if g.type == "parl_group"]
         if not parl_group:
-            logger.warning(f"Destination {destination.id} has no parl_group")
+            _logger.warning(f"Destination {destination.id} has no parl_group")
             return None
         return parl_group[0].id
 
@@ -228,7 +229,7 @@ def mount_router(app: FastAPI, prefix: str):
             "ivr": f"{elks_url}/medialist"
                    f"/{medialist_id}/concat.ogg",
             "next": f"{elks_url}/instant_alternative",
-            "timeout": 10,
+            "timeout": timeout,
             "repeat": 2,
         }
 
@@ -273,7 +274,7 @@ def mount_router(app: FastAPI, prefix: str):
         return {
             "ivr": f"{elks_url}/medialist/{medialist_id}/concat.ogg",
             "next": f"{elks_url}/instant_next",
-            "timeout": 5,
+            "timeout": timeout,
             "repeat": 2,
         }
 
@@ -438,8 +439,8 @@ def mount_router(app: FastAPI, prefix: str):
         # If start doesn't exist this is an error message and should
         # be logged. We finish the call in our call tracking table
         if not start:
-            logger.critical(f"Call id: {callid} failed. "
-                            f"state: {state}, direction: {direction}")
+            _logger.critical(f"Call id: {callid} failed. "
+                             f"state: {state}, direction: {direction}")
 
         with get_session() as session:
             call = ongoing_calls.get_call(callid, provider, session)
