@@ -177,9 +177,18 @@ def base_endorsement_scoring(base_score):
     returns a value between 0 and 1.
     """
     config = Config.get()
-    BASE_ENDORSEMENT_SCORING_CENTER = config.recommender.base_endorsement_scoring_center
-    BASE_ENDORSEMENT_SCORING_MINIMUM = config.recommender.base_endorsement_scoring_minimum
-    BASE_ENDORSEMENT_SCORING_STEEPNESS = config.recommender.base_endorsement_scoring_steepness
+    BASE_ENDORSEMENT_SCORING_CENTER = (
+        config.recommender
+        .base_endorsement_scoring_center
+    )
+    BASE_ENDORSEMENT_SCORING_MINIMUM = (
+        config.recommender
+        .base_endorsement_scoring_minimum
+    )
+    BASE_ENDORSEMENT_SCORING_STEEPNESS = (
+        config.recommender
+        .base_endorsement_scoring_steepness
+    )
 
     return 1 / (
         1 + (
@@ -400,7 +409,10 @@ def get_recommended_destination(
                     break
 
     # destination was called recently
-    SOFT_COOL_DOWN_CALL_DURATION_MINUTES = config.recommender.soft_cool_down_call_duration_minutes
+    SOFT_COOL_DOWN_CALL_DURATION_MINUTES = (
+        config.recommender
+        .soft_cool_down_call_duration_minutes
+    )
     minutes_ago = datetime.utcnow() - \
         timedelta(minutes=SOFT_COOL_DOWN_CALL_DURATION_MINUTES)
 
