@@ -5,6 +5,7 @@ import re
 import backoff
 from pydantic import UUID4
 import random
+import logging
 
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError, NoResultFound
@@ -20,6 +21,9 @@ from .connection import Session, select
 from .models import Blob, BlobID, Destination, DestinationID, \
     DestinationSelectionLog, DestinationSelectionLogEvent, MediaList, \
     NumberVerificationRequest, UserFeedback
+
+
+_logger = logging.getLogger(__name__)
 
 
 class NotFound(Exception):
@@ -233,7 +237,10 @@ def get_recommended_destination(
 
     # select all destinations
     stmt_destinations = select(Destination)
-    print("all:", len(session.exec(stmt_destinations).all()))
+    _logger.debug(
+        f"all destinations: "
+        f"{len(session.exec(stmt_destinations).all())}"
+        )
 
     # 1. hard filter
     # exclude other destinations from other countries, if country is set
@@ -242,7 +249,10 @@ def get_recommended_destination(
             Destination.country == country
         )
 
-    print("filter: country", len(session.exec(stmt_destinations).all()))
+    _logger.debug(
+        f"filter by country: "
+        f"{len(session.exec(stmt_destinations).all())}"
+    )
 
     # cut off by base_endorsement
     # TODO: make configurable
@@ -314,7 +324,10 @@ def get_recommended_destination(
         )
     )
 
-    print("remove if in call:", len(session.exec(stmt_destinations).all()))
+    _logger.debug(
+        f"removed if in call: "
+        f"{len(session.exec(stmt_destinations).all())}"
+    )
 
     # 2. Scores
     # get all destinations
@@ -355,7 +368,7 @@ def get_recommended_destination(
             )
             for fb in feedbacks
         ]
-    print(feedback_scores)
+    _logger.debug(f"feedback scores: {feedback_scores}")
     for i, dest in enumerate(destinations):
         for fb in feedback_scores:
             if dest.id == fb[0]:
@@ -378,15 +391,9 @@ def get_recommended_destination(
         latest_log = session.query(DestinationSelectionLog).where(
             col(DestinationSelectionLog.event).in_(SUGGEST_EVENTS)
         ).order_by(col(DestinationSelectionLog.timestamp).desc()).first()
-        print(latest_log)
+        _logger.debug(latest_log)
         if latest_log is DestinationSelectionLog:
             # making sure that there is log at all
-            print(
-                session.query(Destination).where(
-                    Destination.id ==
-                    latest_log.destination_id
-                ).all()
-            )
             for i, dest in enumerate(destinations):
                 if dest.id == latest_log.destination_id:
                     # TODO: make configurable
@@ -437,6 +444,14 @@ def get_recommended_destination(
 
     # finally select a destination
     if len(destinations) > 0:
+        _logger.debug(
+            "\n" + "\n".join(
+                [
+                    f"{weights[i]:.3f} {destinations[i].name}"
+                    for i in range(len(destinations))
+                ]
+            )
+        )
         final_dest = random.choices(destinations, weights=weights, k=1)[0]
     else:
         final_dest = None
