@@ -331,7 +331,7 @@ def get_recommended_destination(
         ]
 
     # scoring based on feedback
-    stmt_feedback = select(  # type: ignore
+    stmt_feedback = select(  # type: ignore[call-overload]
         UserFeedback.destination_id,
         func.sum(
             label(
