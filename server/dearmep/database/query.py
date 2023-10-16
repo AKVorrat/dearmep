@@ -384,7 +384,7 @@ def get_recommended_destination(
         latest_log = session.query(DestinationSelectionLog).where(
             col(DestinationSelectionLog.event).in_(SUGGEST_EVENTS)
         ).order_by(col(DestinationSelectionLog.timestamp).desc()).first()
-        if latest_log is DestinationSelectionLog:
+        if latest_log:
             # making sure that there is a log at all
             for i, dest in enumerate(destinations):
                 if dest.id == latest_log.destination_id:
