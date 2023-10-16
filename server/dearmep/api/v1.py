@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+from typing_extensions import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Header, Query, \
     Response, status
@@ -17,7 +18,7 @@ from ..database import query
 from ..l10n import find_preferred_language, get_country, parse_accept_language
 from ..models import MAX_SEARCH_RESULT_LIMIT, CountryCode, \
     DestinationSearchResult, FeedbackSubmission, FeedbackToken, \
-    FrontendStringsResponse, JWTResponse, LanguageDetection, \
+    FrontendStringsResponse, JWTClaims, JWTResponse, LanguageDetection, \
     LocalizationResponse, PhoneNumberVerificationRejectedResponse, \
     PhoneNumberVerificationResponse, PhoneRejectReason, RateLimitResponse, \
     SMSCodeVerificationFailedResponse, SearchResult, SearchResultLimit, \
@@ -303,7 +304,7 @@ def get_suggested_destination(
 def initiate_call(
     language: Language,
     destination_id: DestinationID,
-    user_phone: str,
+    claims: Annotated[JWTClaims, Depends(authtoken.validate_token)],
 ):
     """
     Selects a phone number based on MEP's country
@@ -312,7 +313,7 @@ def initiate_call(
 
     with get_session() as session:
         call_state: InitialElkResponseState = start_elks_call(
-            user_phone_number=user_phone,
+            user_phone_number=claims.phone,
             user_language=language,
             destination_id=destination_id,
             config=Config.get(),
