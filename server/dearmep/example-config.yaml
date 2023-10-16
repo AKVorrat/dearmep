@@ -282,21 +282,23 @@ telephony:
 # - caller called destination already.
 recommender:
   # Cut off destinations based on base endorsement
-  max_endorsement_cutoff: 1
-  min_endorsement_cutoff: 0
+  endorsement_cutoff:
+    min: 0
+    max: 1
 
   # Time to give a destination a break since end of last call
-  soft_cool_down_call_duration_minutes: 15
+  soft_cool_down_call_timeout: 900  # 15 minutes
 
-  # Options to tweek the scoring based on the base endorsement:
+  # Options to tweak the scoring based on the base endorsement:
   #   Be confident on changing these parameters.
   #   Use this link to wolframalpha to play with the parameters.
   #    x-axis: base endorsement
   #    y-axis: score between 0 and 100% likeliness of being selected
   #    https://www.wolframalpha.com/input?i=plot+%281%2F%281+%2B+%28abs%5Bx-C%5D*S%29%5E3%29+*+%281-M%29%29+%2B+M+where+%7BC+%3D+0.5%2C+S+%3D+4%2C+M+%3D+0.1%7D%2C+x%3D0+to+1
-  base_endorsement_scoring_center: 0.5
-  base_endorsement_scoring_minimum: 0
-  base_endorsement_scoring_steepness: 4
+  base_endorsement_scoring:
+    center: 0.5
+    minimum: 0
+    steepness: 4
 
   # Options to tweak the scoring based on feedback:
   #   Feedback is given and numerically represented the following:
@@ -312,14 +314,15 @@ recommender:
   #     Very high positive or negative feedback sums are penalized. In other
   #     words, the likeliness of being selected is reduced, if the opinion
   #     of a destination get clearer.
-  #   Be confident changing this paramter. It is meant to give an idea after
+  #   Be confident changing this parameter. It is meant to give an idea after
   #   how many clear feedbacks the likeliness of being selected is reduced.
   #   Mathematically it kind of represents the steepness.
   #   Here the link to play with the paramtere:
   #     x-axis: sum of feedback
   #     y-axis: score between 0 and 100% likeliness of being selected
   #     https://www.wolframalpha.com/input?i=plot+1%2F%281%28abs%28x%2F%28N*8%29%29*3%29%5E4+%2B1%29+for+-40%3C%3Dx%3C%3D40%2C+N%3D10
-  n_clear_feedback_treshold: 8
+  n_clear_feedback_threshold: 8
+
 
 # Localization options.
 l10n:
