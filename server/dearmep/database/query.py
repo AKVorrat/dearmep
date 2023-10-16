@@ -275,7 +275,7 @@ def get_recommended_destination(
         DestinationSelectionLogEvent.CALLING_USER_FAILED,
     ]
 
-    # subquery selecting all the latest timestamp of
+    # subquery selecting all the latest timestamps of
     # all CALL events (CALL_INITIATED + CALL_ENDED)
     # from sqlalchemy import select
 
@@ -373,6 +373,9 @@ def get_recommended_destination(
 
     # 3. Soft cool down
     # destination was suggested in last request
+
+    # only applies for suggestion events, otherwise looking up the latest
+    # suggestion is useless.
     SUGGEST_EVENTS = [
         DestinationSelectionLogEvent.WEB_SUGGESTED,
         DestinationSelectionLogEvent.IVR_SUGGESTED,
@@ -383,7 +386,7 @@ def get_recommended_destination(
         ).order_by(col(DestinationSelectionLog.timestamp).desc()).first()
         _logger.debug(latest_log)
         if latest_log is DestinationSelectionLog:
-            # making sure that there is log at all
+            # making sure that there is a log at all
             for i, dest in enumerate(destinations):
                 if dest.id == latest_log.destination_id:
                     weights[i] = 0.00001
