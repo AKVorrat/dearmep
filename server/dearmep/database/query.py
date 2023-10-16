@@ -238,10 +238,6 @@ def get_recommended_destination(
 
     # select all destinations
     stmt_destinations = select(Destination)
-    _logger.debug(
-        f"all destinations: "
-        f"{len(session.exec(stmt_destinations).all())}"
-        )
 
     # 1. hard filter
     # exclude other destinations from other countries, if country is set
