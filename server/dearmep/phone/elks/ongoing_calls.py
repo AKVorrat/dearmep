@@ -7,6 +7,7 @@ from sqlmodel import Session, col
 
 from ...config import Language
 from ...database.models import Call, Destination
+from ...models import UserPhone
 
 
 class CallError(Exception):
@@ -60,6 +61,13 @@ def destination_is_in_call(destination_id: str, session: Session):
             col(Call.ended_at).is_(None),
         )
     ).exists()
+    in_call = session.query(stmt).scalar()
+    return in_call
+
+
+def user_is_in_call(user_id: UserPhone, session: Session):
+    """ returns True if the user is in a call """
+    stmt = select(Call).where(Call.user_id == user_id).exists()
     in_call = session.query(stmt).scalar()
     return in_call
 

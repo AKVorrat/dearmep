@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional, Union
 
 import requests
 from fastapi import APIRouter, Depends, FastAPI, Form, HTTPException, \
@@ -14,12 +14,13 @@ from ...convert import blobfile, ffmpeg
 from ...database import query
 from ...database.connection import get_session
 from ...database.models import Destination, DestinationSelectionLogEvent
-from ...models import UserPhone
+from ...models import CallState, DestinationInCallResponse, UserPhone, \
+    UserInCallResponse
 from ...phone import ivr_audio
 from ...phone.ivr_audio import CallType, Flow
 from . import ongoing_calls
 from .metrics import elks_metrics
-from .models import InitialCallElkResponse, InitialElkResponseState, Number
+from .models import InitialCallElkResponse, Number
 from .utils import choose_from_number, get_numbers
 
 _logger = logging.getLogger(__name__)
@@ -36,7 +37,7 @@ def start_elks_call(
     destination_id: str,
     config: Config,
     session: Session,
-) -> InitialElkResponseState:
+) -> Union[CallState, DestinationInCallResponse, UserInCallResponse]:
     """ Initiate a Phone call via 46elks """
     provider_cfg = config.telephony.provider
     elks_url = config.api.base_url + "/phone"
@@ -45,7 +46,13 @@ def start_elks_call(
         provider_cfg.password,
     )
 
+    if ongoing_calls.destination_is_in_call(destination_id, session):
+        return DestinationInCallResponse()
+
     user_id = UserPhone(user_phone_number)
+    if ongoing_calls.user_is_in_call(user_id, session):
+        return UserInCallResponse()
+
     phone_number = choose_from_number(
         user_number_prefix=str(user_id.calling_code),
         user_language=user_language,
@@ -70,7 +77,7 @@ def start_elks_call(
 
     if response_data.state == "failed":
         _logger.warn(f"Call failed from our number: {phone_number.number}")
-        return response_data.state
+        return CallState.CALLING_USER_FAILED
 
     ongoing_calls.add_call(
         provider=provider_cfg.provider_name,
@@ -90,7 +97,7 @@ def start_elks_call(
     )
     session.commit()
 
-    return response_data.state
+    return CallState.CALLING_USER
 
 
 def mount_router(app: FastAPI, prefix: str):

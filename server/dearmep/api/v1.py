@@ -1,7 +1,5 @@
 from datetime import datetime
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
-from typing_extensions import Annotated
-
 from fastapi import APIRouter, Depends, HTTPException, Header, Query, \
     Response, status
 from fastapi.responses import JSONResponse
@@ -16,16 +14,20 @@ from ..database.models import Blob, Destination, DestinationGroupListItem, \
     FeedbackContext
 from ..database import query
 from ..l10n import find_preferred_language, get_country, parse_accept_language
-from ..models import MAX_SEARCH_RESULT_LIMIT, CountryCode, \
-    DestinationSearchResult, FeedbackSubmission, FeedbackToken, \
-    FrontendStringsResponse, JWTClaims, JWTResponse, LanguageDetection, \
-    LocalizationResponse, PhoneNumberVerificationRejectedResponse, \
-    PhoneNumberVerificationResponse, PhoneRejectReason, RateLimitResponse, \
-    SMSCodeVerificationFailedResponse, SearchResult, SearchResultLimit, \
-    UserPhone, PhoneNumberVerificationRequest, SMSCodeVerificationRequest
+from ..models import MAX_SEARCH_RESULT_LIMIT, CallState, CallStateResponse, \
+    CountryCode, DestinationInCallResponse, DestinationSearchResult, \
+    FeedbackSubmission, FeedbackToken, FrontendStringsResponse, \
+    InitiateCallRequest, JWTResponse, LanguageDetection, \
+    LocalizationResponse, OutsideHoursResponse, \
+    PhoneNumberVerificationRejectedResponse, PhoneNumberVerificationResponse, \
+    PhoneRejectReason, RateLimitResponse, SMSCodeVerificationFailedResponse, \
+    SearchResult, SearchResultLimit, UserPhone, UserInCallResponse, \
+    PhoneNumberVerificationRequest, SMSCodeVerificationRequest
+
 from ..phone.abstract import get_phone_service
 from ..ratelimit import Limit, client_addr
-from ..phone.elks.elks import InitialElkResponseState, start_elks_call
+from ..phone.elks.elks import start_elks_call
+import pytz
 
 
 l10n_autodetect_total = Counter(
@@ -295,33 +297,75 @@ def get_suggested_destination(
 
 
 @router.post(
-    "/initiate-call",
+    "/call/initiate",
     operation_id="initiateCall",
-    responses=rate_limit_response,  # type: ignore[arg-type]
+    response_model=CallStateResponse,
+    responses={
+        **rate_limit_response,  # type: ignore[arg-type]
+        503: {
+            "model": Union[
+                DestinationInCallResponse,
+                UserInCallResponse,
+                OutsideHoursResponse,
+            ],
+        },
+    },
     dependencies=(simple_rate_limit,),
-    status_code=status.HTTP_204_NO_CONTENT,
 )
 def initiate_call(
-    language: Language,
-    destination_id: DestinationID,
-    claims: Annotated[JWTClaims, Depends(authtoken.validate_token)],
+    request: InitiateCallRequest,
+    token: str = Depends(authtoken.oauth2_scheme),
 ):
     """
-    Selects a phone number based on MEP's country
-    and initiates a call to the user.
+    Call the User and start an IVR interaction with them.
     """
+    claims = authtoken.validate_token(token)
+
+    now = datetime.now(pytz.timezone("Europe/Brussels"))
+    if now.weekday() >= 5 or now.hour < 9 or now.hour > 19:
+        return error_model(
+            status.HTTP_503_SERVICE_UNAVAILABLE, OutsideHoursResponse())
 
     with get_session() as session:
-        call_state: InitialElkResponseState = start_elks_call(
+        try:
+            query.get_destination_by_id(
+                session,
+                request.destination_id,
+            )
+        except query.NotFound as e:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+
+        call_state = start_elks_call(
             user_phone_number=claims.phone,
-            user_language=language,
-            destination_id=destination_id,
+            user_language=request.language,
+            destination_id=request.destination_id,
             config=Config.get(),
             session=session,
         )
+        if isinstance(call_state,
+                      (DestinationInCallResponse, UserInCallResponse)):
+            return error_model(status.HTTP_503_SERVICE_UNAVAILABLE, call_state)
 
-    if call_state == "failed":
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Call failed")
+    return CallStateResponse(state=call_state)
+
+
+@router.get(
+    "/call/state",
+    operation_id="getCallState",
+    response_model=CallStateResponse,
+)
+def get_call_state(
+    token: str = Depends(authtoken.oauth2_scheme),
+):
+    """
+    Request the state of the User’s current call.
+
+    **MOCKUP:** This will return `CALLING_USER` or `IN_MENU` only.
+    """
+    tenths = datetime.now().second // 10
+    return CallStateResponse(
+        state=CallState.CALLING_USER if tenths % 2 else CallState.IN_MENU,
+    )
 
 
 @router.post(
