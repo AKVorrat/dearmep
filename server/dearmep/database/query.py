@@ -413,15 +413,16 @@ def get_recommended_destination(
         config.recommender
         .soft_cool_down_call_duration_minutes
     )
-    minutes_ago = datetime.utcnow() - \
+    recent_cutoff = datetime.utcnow() - \
         timedelta(minutes=SOFT_COOL_DOWN_CALL_DURATION_MINUTES)
 
-    stmt2 = select(DestinationSelectionLog)
-    stmt2 = stmt2.where(
-        col(DestinationSelectionLog.event).in_(CALL_ENDED),
-        col(DestinationSelectionLog.timestamp) >= minutes_ago,
+    destination_logs_recent_calls = session.exec(
+        select(DestinationSelectionLog)
+        .where(
+            col(DestinationSelectionLog.event).in_(CALL_ENDED),
+            col(DestinationSelectionLog.timestamp) >= recent_cutoff,
         )
-    destination_logs_recent_calls = session.exec(stmt2)
+    )
     for i, dest in enumerate(destinations):
         for dest_log in destination_logs_recent_calls:
             if dest.id == dest_log.destination_id:
