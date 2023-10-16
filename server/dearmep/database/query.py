@@ -246,11 +246,6 @@ def get_recommended_destination(
             Destination.country == country
         )
 
-    _logger.debug(
-        f"filter by country: "
-        f"{len(session.exec(stmt_destinations).all())}"
-    )
-
     # cut off by base_endorsement
     MAX_ENDORSEMENT_CUTOFF = config.recommender.max_endorsement_cutoff
     MIN_ENDORSEMENT_CUTOFF = config.recommender.min_endorsement_cutoff
