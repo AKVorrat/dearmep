@@ -8,13 +8,6 @@
 # definition may be more complex, especially when it comes to IPv6.
 
 
-# Campaign metadata.
-campaign:
-
-  # The name of the campaign.
-  name: Stop Scanning Me!
-
-
 # Database configuration.
 database:
 
@@ -170,9 +163,17 @@ authentication:
     # In other words, in this example you could log in 10 times every 5 days.
     max_logins_cutoff_days: 5
 
-    # How long until the session times out due to inactivity. Any API request
-    # with a valid token will reset this timeout.
-    inactivity_timeout: 7200
+    # After this many wrong codes have been entered, the most recently sent
+    # code becomes invalid. Even if the user then enters the correct code, it
+    # will not be accepted. This protects the system from an attacker trying
+    # all possible codes. (There is rate limiting too, but rate limiting only
+    # slows the attacker down. This setting makes it impossibly to try out all
+    # of the codes, even with unlimited time.) Note that the user can request
+    # new codes, up to the `max_unused_codes` limit defined above.
+    max_wrong_codes: 5
+
+    # How long until verification codes sent via SMS expire.
+    code_timeout: 900  # 15 minutes
 
     # How long until the session times out regardless of any activity. This
     # timeout does not reset. A new verification will need to take place once it
@@ -187,6 +188,18 @@ authentication:
 
     # Application-wide pepper value for hashes.
     pepper: CHANGE THIS
+
+    # The JSON Web Tokens used for authenticating the frontend against the
+    # backend, i.e. our "session token".
+    jwt:
+
+      # The token is encrypted symmetrically using this key.
+      key: CHANGE THIS TOO
+
+      # The algorithms we support. The first one in the list will be used for
+      # creating new tokens, while the others (if any) are accepted for
+      # existing lokens. You should not need to change this.
+      algorithms: [ HS512 ]
 
 
 # Options regarding the after-call feedback functionality.
@@ -346,27 +359,24 @@ l10n:
   # regardless of the user's language (good for single-language campaigns), but
   # the recommended way is to provide a mapping of languages to strings.
   # TODO: Explain further.
-  # The following placeholders are available in all of the strings:
-  #   {campaign}  The configured campaign name.
   strings:
-
-    # Name of the campaign. This will be available in every other l10n string
-    # via the {campaign} placeholder.
-    campaign_name: Stop Scanning Me
 
     # Content of SMS sent to users when we need to verify their phone number.
     # {code} will be replaced by a six-digit random number.
     phone_number_verification_sms:
-      en: "{code} is your {campaign} verification code. If you think you have received this message in error, simply ignore it."
-      de: "{code} ist dein Verifikationscode für {campaign}. Wenn du glaubst, diese Nachricht irrtümlicherweise erhalten zu haben, ignoriere sie bitte."
-      da: "{code} er din verifikationskode til {campaign}. Hvis du tror, at du ikke er den rigtige modtager af beskeden, så ignorer den bare."
-      sv: "{code} är din verifikationkod för {campaign}. Ignorera detta meddelande ifall du tror att du har fått det av misstag."
-      fr: "Voici, ton code de vérification pour {campaign}: {code}. Si tu penses avoir reçu ce code par erreur, ignore-le."
-      pt: "O teu código de verificação para a campanha {campaign}: {code}. Se não solicitaste este código, podes ignorá-lo."
+      en: "{code} is your verification code. If you think you have received this message in error, simply ignore it."
+      de: "{code} ist dein Verifikationscode. Wenn du glaubst, diese Nachricht irrtümlicherweise erhalten zu haben, ignoriere sie bitte."
+      da: "{code} er din verifikationskode. Hvis du tror, at du ikke er den rigtige modtager af beskeden, så ignorer den bare."
+      sv: "{code} är din verifikationkod. Ignorera detta meddelande ifall du tror att du har fått det av misstag."
+      fr: "Voici, ton code de vérification: {code}. Si tu penses avoir reçu ce code par erreur, ignore-le."
+      pt: "O teu código de verificação: {code}. Se não solicitaste este código, podes ignorá-lo."
 
-  feedback_survey_sms:
-      en: "How was your phone call with the {campaign} campaign? Your experience helps us improve the tool and always pick politicians that are most likely to be convinced by citizens. Click here, it only takes a minute: {URL}"
-      de: "Wie war dein Anruf bei der {campaign} Kampagne? Deine Erfahrung hilft uns das Tool zu verbessern und die Abgeordneten auszuwählen, die am ehesten überzeugt werden können. Klick hier, es dauert nur eine Minute: {URL}"
+    # Content of SMS sent to users after a seemingly successful call with
+    # someone. {name} will be replaced with the name of the person they've
+    # called. {url} is the link to the feedback form.
+    feedback_survey_sms:
+      en: "How was your call with {name}? Please share your feedback here: {URL}"
+      de: "Wie war dein Anruf mit {name}? Bitte gib uns Feedback unter: {URL}"
 
   frontend_strings:
     # Main title of the campaign.
@@ -383,8 +393,8 @@ l10n:
 
     # Main text of the primary button that lets the user initiate a call now to the selected MEP.
     # Keep in mind that this button does not instantly start the call. A verification-step (if user
-    # is not verified) or at least a confirmation-step (allowing the user to change the number) comes
-    # before the call is actually started.
+    # is not verified) will appear before the call is actually started.
+    # If the user is already verified, the call will start instantly.
     call.start-call-btn.title:
       en: Start Call
       de: Anruf starten
@@ -425,6 +435,61 @@ l10n:
       da: Gratis
       pt: Grátis
 
+    # Hint that will be displayed below the disabled call-now-button when out of office hours.
+    call.call-now-btn.outOfOfficeHoursHint:
+      en: Calling is only possible during office hours.
+      de: Anrufe sind nur während der Bürozeiten möglich.
+
+    # Title for UI popover explaining the current office hours
+    call.office-hours.title:
+      en: Office Hours
+      de: Bürozeiten
+
+    # Description for UI popover explaining the current office hours
+    call.office-hours.description:
+      en: Calling is only possible during office hours.
+      de: Anrufe sind nur während der Bürozeiten möglich.
+
+    # Text specifying the office hours in original and local timezone
+    # Examples:
+    #   Monday through Thursday: 8:00 - 17:00 Europe/Vienna (9:00 - 18:00 Local)
+    #   Friday: 8:00 - 15:00 Europe/Vienna (9:00 - 16:00 Local)
+    # Placeholders:
+    # {{ dayOrRange }}      ... Either a single weekday or a range of days (see: call.office-hours.day-range)
+    # {{ timeRange }}       ... Range from start- to end-time including remtoe timezone (see: call.office-hours.time-range-zoned)
+    # {{ timeRangeLocal }}  ... Range from start- to end-time in local timezone (see: call.office-hours.time-range-zoned)
+    call.office-hours.hours-zoned:
+      en: "{{ dayOrRange }}: {{ timeRange }} ({{ timeRangeLocal }})"
+
+    # Same as 'call.office-hours.hours-zoned' applies when the user is in the same time-zone as the destination
+    call.office-hours.hours:
+      en: "{{ dayOrRange }}: {{ timeRange }}"
+
+    # Specifies a Day-Range
+    # Example:
+    #   Monday through Thursday
+    call.office-hours.day-range:
+      en: "{{ startDayOfWeek }} through {{ endDayOfWeek }}"
+      de: "{{ startDayOfWeek }} bis {{ endDayOfWeek }}"
+
+    # Specifies a time-range with a start and end time
+    # Example:
+    #   8:00 - 17:00 Europe/Vienna
+    #   8:00 - 17:00 Local (see: 'call.office-hours.time-zone-local')
+    call.office-hours.time-range-zoned:
+      en: "{{ startTime }} - {{ endTime }} {{ timeZone }}"
+
+    # Same as 'call.office-hours.time-range-zoned' applies when the user is in the same time-zone as the destination
+    # Example:
+    #   8:00 - 17:00
+    call.office-hours.time-range:
+      en: "{{ startTime }} - {{ endTime }}"
+
+    # Specifies that a certain time is in local timezone
+    call.office-hours.time-zone-local:
+      en: Local
+      de: Lokal
+
     # Text of the button that allows the user to schedule a call at a later point in time.
     call.call-later-btn.title:
       en: Call later
@@ -442,11 +507,16 @@ l10n:
     # lines of text.
     call.home.title:
       en: Contact your Member of the European Parliament. Make your voice heard and convince them to stop the chatcontrol bill!
-      de: Sprich mit deinen Abgeordneten im EU Parlament. Überzeuge sie, den Gesetzesvorschlag zur Chatkontrolle zu stoppen!
+      de: Sprich mit deinen Abgeordneten im EU-Parlament. Überzeuge sie, den Gesetzesvorschlag zur Chatkontrolle zu stoppen!
       sv: Prata med en Europaparlamentariker och få dem att stoppa lagförslaget.
       fr: Contacte ton Membre du Parlement européen. Engaage-toi et convaincs-les de rejeter le project de loi sur le contrôle du chat!
       da: Snak med dine politikere i Europa-Parlamentet. Overbevis dem om at stoppe chatkontrolloven!
       pt: Contacta os teus membros do Parlamento Europeu. Faz ouvir a tua voz e convence-os a parar o ChatControl!
+
+    # Alternative title of the calling-section that is used when the user is already authenticated.
+    call.home.titleAuthenticated:
+      en: Welcome back!
+      de: Willkommen zurück!
 
     # Description paragraphs of the calling-section of the app.
     # The paragraphs are displayed in the first step (thus "home") of the calling flow. This means
@@ -467,11 +537,26 @@ l10n:
       pt: Podes ligar agora ou agendar chamadas diárias ou semanais.
     call.home.descriptions.1.text:
       en: We will always connect you free of charge to the Politican that you are most likely to convince.
-      de: Wir werden dich immer kostenlos mit dem Politiker verbinden, der wahrscheinlich am leichtesten zu überzeugen ist.
+      de: Wir werden dich immer kostenlos mit der Person verbinden, die wahrscheinlich am leichtesten zu überzeugen ist.
       sv: Vi kommer alltid att hitta den politikern som du kan övertyga enklast.
       fr: Nous te mettrons en contact gratuitement avec le membre du parlement qui est le plus facile à convaincre pour toi.
       da: Vi vil altid forbinde dig gratis med den politiker, som er lettest at overbevise.
       pt: Vamos por-te em contacto, gratuitamente, com o membro do Parlamento mais provável de convenceres.
+
+    # Description text that lets the user know that they are alredy signed in and which numer was used.
+    # The placeholder number will be replaced with a redacted version of the users phone-number (e.g. +43 123***78)
+    call.home.youHaveAlreadySignedIn:
+      en: You are already signed in with the number {{ number }}.
+      de: Du bist bereits mit der nummer {{ number }} angemeldet.
+
+    # Text of the link-button that allowes the user log-out and re-authenticate with a different number
+    call.home.notYourNumber:
+      en: Not your number?
+      de: Nicht deine Nummer?
+      sv: Inte ditt nummer?
+      fr: Ce n'est pas ton numéro de téléphone?
+      da: Ikke din nummer?
+      pt: Número errado?
 
   # Translation strings related to the phone number verification step in the frontend
   # This step consists of three sub-steps: "enterNumber", "enterCode", "success"
@@ -505,6 +590,30 @@ l10n:
       fr: Entre ton numéro de téléphone
       da: Indtast dit telefonnummer
       pt: Introduz o teu número de telefone
+
+    verification.enterNumber.numberIsRequired:
+      en: Phone number is required!
+      de: Telefonnumer ist erforderlich!
+
+    # Error-Label that is shown when the entered number is invalid
+    verification.enterNumber.invalidNumber:
+      en: Invalid phone number!
+      de: Ungültige Telefonnumer!
+
+    # Error-Label that is shown when the entered number not allowed
+    verification.enterNumber.numberNotAllowed:
+      en: This number is not allowed!
+      de: Diese Nummer ist nicht erlaubt!
+
+    # Error-Label that is shown when the entered number has been blocked
+    verification.enterNumber.numberBlocked:
+      en: This number has been blocked!
+      de: Diese Nummer wurde blockiert!
+
+    # Error-Label that is shown when the verification was attempted too many times
+    verification.enterNumber.tooManyAttempts:
+      en: Too many attempts, please try again later!
+      de: Zu viele Versuche, bitte versuche die es später erneut!
 
     # Text for the mandatory privacy-policy checkbox below the number-input.
     # The placeholder {{ policyLink }} is replaced with an HTML A-Tag linking to the privacy
@@ -576,6 +685,11 @@ l10n:
       da: Indtast koden
       pt: Introduz o código
 
+    # Error-Label tells the user that the entered code was invalid
+    verification.enterCode.invalidCode:
+      en: The code is invalid!
+      de: Der Code ist ungültig!
+
     # Button text of the button that allows the user to submit the verification code in order to complete the verification
     # process.
     verification.enterCode.verifyCode:
@@ -622,6 +736,25 @@ l10n:
       fr: Prépare-toi, s'il te plaît. Nous t'appelerons en quelques secondes pour t'enfin connecter avec {{ mep }}.
       da: Hav din telefon parat. Vi vil straks ringe til dig og forbinde dig med {{ mep }}.
       pt: Prepara-te para atender o telefone. Vamos ligar-te agora e pôr-te em contacto com {{ mep }}.
+
+    # Error message: The call could not be established for some reason, maybe the user did not pick up the phone.
+    callSetup.error.failedToEstablishCall:
+      en: The call could not be established, please try again!
+      de: Der Anruf konnte nicht aufgebaut werden, bitte versuchen sie es erneut!
+
+    # Error message: It is not possible to reach the selected person at the moment, maybe they
+    # are in a call already or they did not pick up the phone.
+    # May suggest to the user to try to call a different person
+    callSetup.error.failedToReachDestination:
+      en: Unable to connect. The selected person may be on another call. Please try again later and consider
+        calling a different person in the meantime!
+      de: Keine Verbindung möglich. Die ausgewählte Person ist möglicherweise bereits in einem Gespräch.
+        Bitte versuche es später erneut und rufe in der Zwischeneit eine andere Person an.
+
+    # Error message: It is not possible to make a call right now as we are outside office hours
+    callSetup.error.outsideOfficeHours:
+      en: Calling outside office hours is not available. Please try again during office hours.
+      de: Anrufe außerhalb der Bürozeiten sind nicht möglich. Bitte versuchen Sie es während der Bürozeiten erneut.
 
   # Translation strings related to the feedback step that will be displayed as soon as the user is connected to the MEP.
   # This means the feedback can already be entered during the call. This can be helpful for textual notes during the call.
@@ -708,7 +841,7 @@ l10n:
       da: Hvis du har yderligere kommentarer, så skriv dem her. Hvis du vil snakke med os om oplevelsen, så skriv også dine kontaktoplysninger.
       pt: Se tens comentários adicionais, escreve-os aqui. Se quiseres que te contactemos, escreve aqui o teu contacto.
 
-    # Submit button that allows the user to send their feedback.
+    # Submit button that allows the user to send their feedback and go back to the home-screen where they can instantly start another call.
     feedback.submit:
       en: Submit
       de: Abschicken
@@ -716,6 +849,17 @@ l10n:
       fr: Envoyer
       da: Send
       pt: Enviar
+
+    # Skip button that allows the user go back to the home-screen where they can instantly start another call without submiting any feedback.
+    feedback.skip:
+      en: Skip
+      de: Überspringen
+
+    # Error message that is shown if feedback was already submitted. This could happen if the user
+    # opens the same feedback link twice.
+    feedback.alreadySubmitedError:
+      en: The feedback for this call has already been submitted.
+      de: Das Feedback für diesen Anruf wurde bereits abgegeben.
 
   # Translation strings related to the section of the MEP-Selection section on the left side of the screen
 
@@ -725,7 +869,7 @@ l10n:
     # button on hover and for screenreaders.
     select-mep.autorenew:
       en: Choose another Politician
-      de: Einen anderen Politiker wählen
+      de: Jemand anderen vorschlagen lassen
       sv: Välj en annan Europaparlamentariker
       fr: Choisir un autre membre du Parlement européen
       da: Vælg en anden politiker
@@ -970,7 +1114,7 @@ l10n:
       pt: Agendar uma chamada
     schedule.description:
       en: 'Plan now to talk to a politican later! Select a day and time:'
-      de: 'Wähle jetzt Tag und Uhrzeit für dein Gespräch mit einem Politiker:'
+      de: 'Wähle jetzt Tag und Uhrzeit für dein Gespräch mit eine*r Politiker*in:'
       sv: 'Välj dag och tid för ditt samtal med en Europaparlamentariker:'
       fr: "Quand voudrais-tu appeler un membre du Parlement européen? Ajoute un jour et temps, s'il te plaît."
       da: Vælg et senere tidspunktet for din samtale med en politiker nu
@@ -978,7 +1122,7 @@ l10n:
     schedule.scheduleAsText:
       en: We will give you a ring every {{ timeSlots }} at your number to connect you
         with a politician from {{ country }}.
-      de: Wir werden dich jeden {{ timeSlots }} auf deiner Nummer anrufen um dich mit einem Politiker aus {{ country }} zu verbinden.
+      de: Wir werden dich jeden {{ timeSlots }} auf deiner Nummer anrufen um dich mit eine*r Politiker*in aus {{ country }} zu verbinden.
       sv: Vi kommer att ringa dig varje {{ timeSlots }} på ditt nummer för att koppla dig till en Europaparlamentariker från {{ country }}.
       fr: Nous t'appelerons tous les {{ timeSlots }} à ton numéro pour te mettre en contact avec un membre du Parlement européen du / de la {{ country }}.
       da: Vi vil ringe til dig hver {{ timeSlots }} med dit nummer for at forbinde dig med en politiker fra {{ country }}
@@ -1347,3 +1491,24 @@ l10n:
       fr: " et "
       da: " og "
       pt: " e "
+
+    # Error message that will be shown as a dialog when the connection to the server cannot be established
+    # or the server returns an error code after several retries.
+    error.genericApiError:
+      en: Error! Failed to connect to server!
+      de: Fehler! Verbeindung zum Server fehlgeschlagen!
+
+    # Generic error message that is used when an unusual error has occurred and we do not know what has happend.
+    errro.genericError:
+      en: An error has occurred!
+      de: Es ist ein Fehler aufgetreten!
+
+    # Title of the error-dialog, that will be shown when a severe error has occured.
+    error.errorDialogTitle:
+      en: Error
+      de: Fehler
+
+    # OK-Button of the error-dialog, that will be shown when a severe error has occured.
+    error.errorDialogOK:
+      en: OK
+      de: OK

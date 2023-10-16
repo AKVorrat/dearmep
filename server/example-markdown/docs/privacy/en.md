@@ -74,7 +74,8 @@ The phone number will only be processed as long as the campaign takes place or i
 
 ## Call Feedback
 
-Once a call that lasted above a certain duration is concluded, a user will be asked to provide us feedback with a short survey that is associated with that particular call. When the call was instant that survey is shown in the browser and when it was scheduled it is sent in the form of an unique link that is sent via SMS.
+Once a call that lasted above a certain duration is concluded, a user will be asked to provide us feedback with a short survey that is associated with that particular call.
+We may request that feedback directly in the browser and/or via an SMS text message with a unique link.
 We ask if the user believes to have successfully convinced the politician, if there was a technical problem and optional additional feedback.
 This information is complemented with the politician they have called, the country of the user, the hashed telephone number and the first digits of their telephone number, which only reveal their country code and provider, but not them as a subscriber. We retain the hashed telephone number so we can correlate answers back to the same user.
 

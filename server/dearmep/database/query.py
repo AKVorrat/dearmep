@@ -283,7 +283,7 @@ def get_new_sms_auth_code(
         user=user,
         code=code,
         requested_at=now,
-        expires_at=now + timedelta(minutes=10),  # TODO: make configurable
+        expires_at=now + config.authentication.session.code_timeout,
         language=language,
     ))
 
@@ -297,6 +297,8 @@ def verify_sms_auth_code(
     code: VerificationCode,
 ) -> bool:
     """Check SMS verification code validity & mark as used."""
+    max_wrong = Config.get().authentication.session.max_wrong_codes
+
     if request := session.exec(
         select(NumberVerificationRequest)
         .where(
@@ -305,10 +307,26 @@ def verify_sms_auth_code(
             col(NumberVerificationRequest.ignore).is_(False),
             col(NumberVerificationRequest.completed_at).is_(None),
             NumberVerificationRequest.expires_at > datetime.now(),
+            NumberVerificationRequest.failed_attempts < max_wrong,
         ).order_by(col(NumberVerificationRequest.requested_at).desc())
     ).first():
         request.completed_at = datetime.now()
         return True
+
+    # Look for the most recent active request and increase its number of failed
+    # attempts (if it exists).
+    if most_recent := session.exec(
+        select(NumberVerificationRequest)
+        .where(
+            NumberVerificationRequest.user == user,
+            col(NumberVerificationRequest.ignore).is_(False),
+            col(NumberVerificationRequest.completed_at).is_(None),
+            NumberVerificationRequest.expires_at > datetime.now(),
+        ).order_by(col(NumberVerificationRequest.requested_at).desc())
+    ).first():
+        most_recent.failed_attempts += 1
+        session.commit()
+
     return False
 
 

@@ -1,5 +1,5 @@
 import logging
-from datetime import date
+from datetime import date, timedelta
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, ClassVar, Dict, List, Literal, Optional, Tuple, Union
@@ -61,14 +61,29 @@ class ElksConfig(BaseModel):
     allowed_ips: Tuple[str, ...]
 
 
+class JWTConfig(BaseModel):
+    algorithms: List[str]
+    key: str
+
+    @validator("algorithms")
+    def list_not_empty(cls, v: List[str]) -> List[str]:
+        if len(v) == 0:
+            raise ValueError("at least one algorithm needs to be specified")
+        return v
+
+
 class SecretsConfig(BaseModel):
     pepper: str
+    jwt: JWTConfig
 
 
 class SessionConfig(BaseModel):
     max_logins: PositiveInt
     max_logins_cutoff_days: PositiveInt
     max_unused_codes: PositiveInt
+    max_wrong_codes: PositiveInt
+    authentication_timeout: timedelta
+    code_timeout: timedelta
 
 
 class AuthenticationConfig(BaseModel):
@@ -115,10 +130,7 @@ class L10nEntry(BaseModel):
         # TODO: Use a context-set language?
         lang = Language(language) if language else l10nconfig.default_language
 
-        return self.for_language(lang).format(**{
-            "campaign": l10nconfig.strings.campaign_name.for_language(lang),
-            **placeholders,
-        })
+        return self.for_language(lang).format(**placeholders)
 
     def for_language(self, language: Language) -> str:
         # If the entry is a simple string, use that.
@@ -138,7 +150,7 @@ class FrontendStrings(BaseModel):
 
 
 class L10nStrings(BaseModel):
-    campaign_name: L10nEntry
+    feedback_survey_sms: L10nEntry
     phone_number_verification_sms: L10nEntry
 
 

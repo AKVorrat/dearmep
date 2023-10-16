@@ -74,7 +74,8 @@ Die Rufnummer wird nur so lange verarbeitet, wie die Kampagne läuft oder im Fal
 
 ## Feedback zum Anruf
 
-Sobald ein Anruf, der eine bestimmte Dauer überschritten hat, abgeschlossen ist, wird der Nutzer aufgefordert, uns im Rahmen einer kurzen Umfrage Feedback zu geben, das sich auf diesen konkreten Anruf bezieht. Bei einem sofortigen Anruf wird die Umfrage im Browser angezeigt und bei einem Anrufabonnement wird eine SMS mit einem eindeutigen Link zur Umfrage verschickt.
+Sobald ein Anruf, der eine bestimmte Dauer überschritten hat, abgeschlossen ist, wird der Nutzer aufgefordert, uns im Rahmen einer kurzen Umfrage Feedback zu geben, das sich auf diesen konkreten Anruf bezieht.
+Um dieses Feedback bitten wir im Browser und/oder über eine SMS mit einem eindeutigen Link.
 Wir fragen, ob der Nutzer glaubt, den Politiker erfolgreich überzeugt zu haben, ob es technische Probleme gab, und geben optional Raum für zusätzliches Feedback.
 Diese Informationen werden ergänzt durch den Namen des angerufenen Politikers, das Land des Nutzers, der gehashten Telefonnummer und die ersten Ziffern seiner Telefonnummer, die nur die Landesvorwahl und den Anbieter, nicht aber ihn als Teilnehmer preisgeben. Wir speichern die gehashte Telefonnummer, damit wir mehrere Feedbackantworten der selben Person zuordnen können.
 

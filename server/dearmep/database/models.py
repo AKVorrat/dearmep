@@ -440,6 +440,14 @@ class NumberVerificationRequest(SQLModel, table=True):
     language: Language = Field(
         description="UI language in use when the code was requested.",
     )
+    failed_attempts: int = Field(
+        0,
+        sa_column_kwargs={
+            "server_default": text("0"),
+        },
+        description="Number of failed verification attempts (i.e. wrong code) "
+        "while this was the most recent entry.",
+    )
     ignore: bool = Field(
         False,
         description="Whether to ignore this entry, e.g. from counting the "

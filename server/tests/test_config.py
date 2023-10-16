@@ -48,9 +48,8 @@ def test_missing_translation_in_default_language(
     dummy_translation_strings: L10nStrings,
 ):
     # Replace one of the dummies with one that only has French.
-    dummy_translation_strings.campaign_name = L10nEntry.parse_obj({
-        "fr": "toto",
-    })
+    dummy_translation_strings.phone_number_verification_sms = (
+        L10nEntry.parse_obj({"fr": "toto"}))
     with pytest.raises(ValidationError) as e_info:
         L10nConfig(
             languages=["en", "fr"],

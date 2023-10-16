@@ -65,6 +65,7 @@ def create_app(config_dict: Optional[dict] = None) -> FastAPI:
         PrometheusMiddleware,
         app_name=APP_NAME,
         group_paths=True,
+        filter_unhandled_paths=True,
         optional_metrics=[request_body_size, response_body_size],
     )
     app.add_route("/metrics", handle_metrics)

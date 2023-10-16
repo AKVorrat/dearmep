@@ -99,6 +99,6 @@ def test_get_country(
 def test_translate_string(fastapi_app):
     template = Config.strings().phone_number_verification_sms
     translated = template.apply({"code": "12345"})
-    assert translated == "12345 is your Stop Scanning Me verification code. " \
+    assert translated == "12345 is your verification code. " \
         "If you think you have received this message in error, simply " \
         "ignore it."

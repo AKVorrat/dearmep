@@ -1,5 +1,6 @@
 from __future__ import annotations
 from base64 import b64encode
+from datetime import datetime
 import enum
 from hashlib import sha256
 from ipaddress import IPv4Network, IPv6Network
@@ -603,6 +604,12 @@ class JWTResponse(BaseModel):
         description="Number of seconds after which this JWT will expire.",
         example=3600,
     )
+
+
+class JWTClaims(BaseModel):
+    """The signed data contained in the JWT."""
+    phone: PhoneNumber
+    exp: datetime
 
 
 class FeedbackSubmission(BaseModel):

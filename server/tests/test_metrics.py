@@ -40,3 +40,32 @@ def test_non_grouped_status_codes(client: TestClient):
         for line in metrics_lines_func(client)
         if line.startswith(mark)
     ]
+
+
+def test_no_unknown_paths(client: TestClient):
+    """Unknown paths should not create a new `path` label.
+
+    This creates a massive number of useless labels when someone scans the
+    backend for security vulnerabilities, Wordpress paths etc.
+    """
+    # Try accessing two non-existing endpoints.
+    assert client.get("/api/v1/foo").status_code == status.HTTP_404_NOT_FOUND
+    assert client.get("/api/v1/bar").status_code == status.HTTP_404_NOT_FOUND
+    # Try accessing an endpoint that exists, but will return 404.
+    assert client.get("/api/v1/blob/doesnotexist.exe").status_code \
+        == status.HTTP_404_NOT_FOUND
+
+    # Assert that the non-existing endpoints are not showing up in the metrics.
+    assert not [
+        line
+        for line in metrics_lines_func(client)
+        if line.find("/foo") != -1 or line.find("/bar") != -1
+    ]
+
+    # Assert that the existing endpoint that returned 404 _does_ show up.
+    mark = ',method="GET",path="/api/v1/blob/{name}",status_code="404"'
+    assert [
+        line
+        for line in metrics_lines_func(client)
+        if line.find(mark) != -1
+    ]
