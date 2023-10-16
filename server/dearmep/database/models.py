@@ -441,6 +441,10 @@ class DestinationSelectionLogEvent(str, enum.Enum):
       the User requested to be connected to the Destination, but the
       Destination call could not be established due to an unexpected error.
     """
+
+    # PLEASE NOTE: When adding a new value to this class, make sure to add it
+    # to the initiated/ended category in `get_recommended_destination()`
+
     WEB_SUGGESTED = "WEB_SUGGESTED"
     IVR_SUGGESTED = "IVR_SUGGESTED"
     CALLING_USER = "CALLING_USER"
