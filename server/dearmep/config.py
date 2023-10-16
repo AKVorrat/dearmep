@@ -209,10 +209,10 @@ class EndorsementCutoffConfig(BaseModel):
     min: float = Field(ge=0, le=1, default=0)
     max: float = Field(ge=0, le=1, default=1)
 
-    @validator('max')
+    @validator("max")
     def max_must_be_gt_min(cls, v, values):
-        if v <= values['min']:
-            raise ValueError('max must be greater than min')
+        if v <= values["min"]:
+            raise ValueError("max must be greater than min")
         return v
 
 
