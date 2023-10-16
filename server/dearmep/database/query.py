@@ -433,7 +433,7 @@ def get_recommended_destination(
 
     if user_id:
         SOFT_COOL_DOWN_CALLER_CALLED_DESTINATION_DURATION_HOURS = 24
-        hours_ago = datetime.utcnow() - \
+        recently_talked_cutoff = datetime.utcnow() - \
             timedelta(
                 hours=SOFT_COOL_DOWN_CALLER_CALLED_DESTINATION_DURATION_HOURS
             )
@@ -441,7 +441,7 @@ def get_recommended_destination(
             select(DestinationSelectionLog)
             .where(
                 col(DestinationSelectionLog.event).in_(CALL_ENDED),
-                col(DestinationSelectionLog.timestamp) >= hours_ago,
+                col(DestinationSelectionLog.timestamp) >= recently_talked_cutoff,
                 DestinationSelectionLog.user_id == user_id,
                 )
         )
