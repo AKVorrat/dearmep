@@ -190,7 +190,7 @@ def base_endorsement_scoring(base_score: float) -> float:
     ) * (1-BASE_ENDORSEMENT_SCORING_MINIMUM) + BASE_ENDORSEMENT_SCORING_MINIMUM
 
 
-def feedback_scoring(feedback_sum):
+def feedback_scoring(feedback_sum: int) -> float:
     """Computes the likeliness of being selected based on
     the feedback.
     A plot of the function applied:
