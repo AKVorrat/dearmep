@@ -167,7 +167,7 @@ def get_random_destination(
     return dest
 
 
-def base_endorsement_scoring(base_score):
+def base_endorsement_scoring(base_score: float) -> float:
     """Computes the likeliness of being selected based on
     the 'base_endorsement'.
     A plot of the function applied:
