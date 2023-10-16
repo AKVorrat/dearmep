@@ -205,14 +205,22 @@ class TelephonyConfig(BaseModel):
     dry_run: bool = False
 
 
+class EndorsementCutoffConfig(BaseModel):
+    max: float = Field(ge=0, le=1, default=1)
+    min: float = Field(ge=0, le=1, default=0)
+
+
+class BaseEndorsementScoring(BaseModel):
+    center: float = Field(ge=0, le=1, default=0.5)
+    minimum: float = Field(ge=0, le=0.9, default=0)
+    steepness: int = Field(ge=0, le=50, default=4)
+
+
 class RecommenderConfig(BaseModel):
-    base_endorsement_scoring_center: float = Field(ge=0, le=1, default=0.5)
-    base_endorsement_scoring_minimum: float = Field(ge=0, le=0.9, default=0)
-    base_endorsement_scoring_steepness: int = Field(ge=0, le=50, default=4)
-    n_clear_feedback_treshold: int = Field(ge=0, default=8)
-    max_endorsement_cutoff: float = Field(ge=0, le=1, default=1)
-    min_endorsement_cutoff: float = Field(ge=0, le=1, default=0)
-    soft_cool_down_call_duration_minutes: float = Field(ge=0, default=15)
+    endorsement_cutoff: EndorsementCutoffConfig
+    soft_cool_down_call_timeout: float = Field(ge=0, default=900)
+    base_endorsement_scoring: BaseEndorsementScoring
+    n_clear_feedback_threshold: int = Field(ge=0, default=8)
 
 
 class Config(BaseModel):

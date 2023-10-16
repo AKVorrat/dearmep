@@ -177,17 +177,17 @@ def base_endorsement_scoring(base_score: float) -> float:
     returns a value between 0 and 1.
     """
     rc = Config.get().recommender
-    center = rc.base_endorsement_scoring_center
-    minimum = rc.base_endorsement_scoring_minimum
-    steepness = rc.base_endorsement_scoring_steepness
+    center = rc.base_endorsement_scoring.center
+    minimum = rc.base_endorsement_scoring.minimum
+    steepness = rc.base_endorsement_scoring.steepness
 
     return 1 / (
         1 + (
             abs(
-                base_score - BASE_ENDORSEMENT_SCORING_CENTER
-            ) * BASE_ENDORSEMENT_SCORING_STEEPNESS
+                base_score - center
+            ) * steepness
         ) ** 3
-    ) * (1-BASE_ENDORSEMENT_SCORING_MINIMUM) + BASE_ENDORSEMENT_SCORING_MINIMUM
+    ) * (1-minimum) + minimum
 
 
 def feedback_scoring(feedback_sum: int) -> float:
@@ -198,10 +198,10 @@ def feedback_scoring(feedback_sum: int) -> float:
     *3%29%5E4+%2B1%29+for+-40%3C%3Dx%3C%3D40%2C+N%3D10
     returns a value between 0 and 1.
     """
-    config = Config.get()
-    N_CLEAR_FEEDBACK_TRESHOLD = config.recommender.n_clear_feedback_treshold
+    rc = Config.get().recommender
+    threshold = rc.n_clear_feedback_threshold
     return 1 / (
-        1 + (abs(feedback_sum / (N_CLEAR_FEEDBACK_TRESHOLD*8)) * 3) ** 4
+        1 + (abs(feedback_sum / (threshold*8)) * 3) ** 4
     )
 
 
@@ -234,7 +234,7 @@ def get_recommended_destination(
     - destination was called very recently.
     - caller called destination already.
     """
-    config = Config.get()
+    rc = Config.get().recommender
 
     # select all destinations
     stmt_destinations = select(Destination)
@@ -247,8 +247,8 @@ def get_recommended_destination(
         )
 
     # cut off by base_endorsement
-    MAX_ENDORSEMENT_CUTOFF = config.recommender.max_endorsement_cutoff
-    MIN_ENDORSEMENT_CUTOFF = config.recommender.min_endorsement_cutoff
+    MAX_ENDORSEMENT_CUTOFF = rc.endorsement_cutoff.max
+    MIN_ENDORSEMENT_CUTOFF = rc.endorsement_cutoff.min
     stmt_destinations = stmt_destinations.where(
         Destination.base_endorsement <= MAX_ENDORSEMENT_CUTOFF,
         Destination.base_endorsement >= MIN_ENDORSEMENT_CUTOFF,
@@ -392,8 +392,7 @@ def get_recommended_destination(
 
     # destination was called recently
     SOFT_COOL_DOWN_CALL_DURATION_MINUTES = (
-        config.recommender
-        .soft_cool_down_call_duration_minutes
+        rc.soft_cool_down_call_timeout
     )
     recent_cutoff = datetime.utcnow() - \
         timedelta(minutes=SOFT_COOL_DOWN_CALL_DURATION_MINUTES)
@@ -423,7 +422,8 @@ def get_recommended_destination(
             select(DestinationSelectionLog)
             .where(
                 col(DestinationSelectionLog.event).in_(CALL_ENDED),
-                col(DestinationSelectionLog.timestamp) >= recently_talked_cutoff,
+                col(DestinationSelectionLog.timestamp) >=
+                recently_talked_cutoff,
                 DestinationSelectionLog.user_id == user_id,
                 )
         )
