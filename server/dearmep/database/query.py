@@ -280,7 +280,7 @@ def get_recommended_destination(
     # from sqlalchemy import select
 
     max_timestamps_subquery = (
-        select(  # type: ignore
+        select(  # type: ignore[call-overload]
             DestinationSelectionLog,
             func.max(DestinationSelectionLog.timestamp).label("max_timestamp")
         )
