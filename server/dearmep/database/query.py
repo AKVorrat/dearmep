@@ -176,19 +176,10 @@ def base_endorsement_scoring(base_score: float) -> float:
     %28x-0.7%29*16%29%5E3+%2B1%29*0.9%2B0.1++for+0%3C%3Dx%3C%3D1
     returns a value between 0 and 1.
     """
-    config = Config.get()
-    BASE_ENDORSEMENT_SCORING_CENTER = (
-        config.recommender
-        .base_endorsement_scoring_center
-    )
-    BASE_ENDORSEMENT_SCORING_MINIMUM = (
-        config.recommender
-        .base_endorsement_scoring_minimum
-    )
-    BASE_ENDORSEMENT_SCORING_STEEPNESS = (
-        config.recommender
-        .base_endorsement_scoring_steepness
-    )
+    rc = Config.get().recommender
+    center = rc.base_endorsement_scoring_center
+    minimum = rc.base_endorsement_scoring_minimum
+    steepness = rc.base_endorsement_scoring_steepness
 
     return 1 / (
         1 + (
