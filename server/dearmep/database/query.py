@@ -315,15 +315,14 @@ def get_recommended_destination(
         )
     )
 
+    # get all destinations
+    destinations = session.exec(stmt_destinations).all()
     _logger.debug(
-        f"removed if in call: "
-        f"{len(session.exec(stmt_destinations).all())}"
+        f"remaning destinations after removal of those in call: "
+        f"{len(destinations)}"
     )
 
     # 2. Scores
-    # get all destinations
-    destinations = session.exec(stmt_destinations).all()
-
     # scoring based on 'base_endorsement'
     weights = [
             base_endorsement_scoring(dest.base_endorsement)
