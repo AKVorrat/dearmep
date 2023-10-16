@@ -437,14 +437,17 @@ def get_recommended_destination(
 
     # finally select a destination
     if len(destinations) > 0:
-        _logger.debug(
-            "\n" + "\n".join(
-                [
-                    f"{weights[i]:.3f} {destinations[i].name}"
-                    for i in range(len(destinations))
-                ]
+        # log weights if loglevel debug
+        if _logger.isEnabledFor(logging.DEBUG):
+            _logger.debug(
+                "\n" + "\n".join(
+                    [
+                        f"{weights[i]:.3f} {destinations[i].name}"
+                        for i in range(len(destinations))
+                    ]
+                )
             )
-        )
+        # select destination
         final_dest = random.choices(destinations, weights=weights, k=1)[0]
     else:
         final_dest = None
