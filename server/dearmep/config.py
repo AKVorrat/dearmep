@@ -206,8 +206,8 @@ class TelephonyConfig(BaseModel):
 
 
 class EndorsementCutoffConfig(BaseModel):
-    max: float = Field(ge=0, le=1, default=1)
     min: float = Field(ge=0, le=1, default=0)
+    max: float = Field(ge=0, le=1, default=1)
 
     @validator('max')
     def max_must_be_gt_min(cls, v, values):
