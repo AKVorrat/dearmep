@@ -371,30 +371,13 @@ def get_call_state(
         if (last_log := (
             session.query(DestinationSelectionLog.event).filter(
                 DestinationSelectionLog.user_id == user_id
+            ).filter(
+                col(DestinationSelectionLog.event).in_(
+                    CallState._member_names_)
             ).order_by(
                 col(DestinationSelectionLog.timestamp).desc()).first())):
 
-            log_state_map = {
-                DestinationSelectionLogEvent.CALLING_USER:
-                    CallState.CALLING_USER,
-                DestinationSelectionLogEvent.IN_MENU:
-                    CallState.IN_MENU,
-                DestinationSelectionLogEvent.CALLING_DESTINATION:
-                    CallState.CALLING_DESTINATION,
-                DestinationSelectionLogEvent.DESTINATION_CONNECTED:
-                    CallState.DESTINATION_CONNECTED,
-                DestinationSelectionLogEvent.FINISHED_SHORT_CALL:
-                    CallState.FINISHED_SHORT_CALL,
-                DestinationSelectionLogEvent.FINISHED_CALL:
-                    CallState.FINISHED_CALL,
-                DestinationSelectionLogEvent.CALL_ABORTED:
-                    CallState.CALL_ABORTED,
-                DestinationSelectionLogEvent.CALLING_USER_FAILED:
-                    CallState.CALLING_USER_FAILED,
-                DestinationSelectionLogEvent.CALLING_DESTINATION_FAILED:
-                    CallState.CALLING_DESTINATION_FAILED,
-            }
-            return CallStateResponse(state=log_state_map.get(last_log.event))
+            return CallStateResponse(state=CallState[last_log.event.name])
         return CallStateResponse(state=CallState.NO_CALL)
 
 
