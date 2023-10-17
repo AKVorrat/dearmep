@@ -563,7 +563,15 @@ def mount_router(app: FastAPI, prefix: str):
                              f"state: {state}, direction: {direction}")
 
         with get_session() as session:
-            call = ongoing_calls.get_call(callid, provider, session)
+            try:
+                call = ongoing_calls.get_call(callid, provider, session)
+            except ongoing_calls.CallError:
+                _logger.warning(
+                    f"Call id: {callid} not found in ongoing calls. "
+                    "This means we didn't get to write the call to our db "
+                    "after initialisation."
+                )
+                return
 
             if call.connected_at:
                 connected_seconds = (
