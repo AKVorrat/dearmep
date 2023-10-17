@@ -316,7 +316,10 @@ def get_recommended_destination(
     )
 
     # get all destinations
-    destinations = session.exec(stmt_destinations).all()
+    destinations = {
+        dest.id: dest
+        for dest in session.exec(stmt_destinations).all()
+    }
     _logger.debug(
         f"remaning destinations after removal of those in call: "
         f"{len(destinations)}"
@@ -326,7 +329,7 @@ def get_recommended_destination(
     # scoring based on 'base_endorsement'
     base_endorsement_scores = {
         dest.id: base_endorsement_scoring(dest.base_endorsement)
-        for dest in destinations
+        for dest in destinations.values()
     }
 
     # scoring based on feedback
@@ -443,7 +446,7 @@ def get_recommended_destination(
     if not final_dest_id:
         raise NotFound("no destination found that could be recommended")
 
-    # TODO: how to final_dest_id to Destination object?
+    final_dest = destinations[final_dest_id]
 
     if event:
         log_destination_selection(
