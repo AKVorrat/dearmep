@@ -459,7 +459,7 @@ class NumberVerificationRequest(SQLModel, table=True):
 class DestinationSelectionLogEvent(str, enum.Enum):
     # NOTE: `CallState` and `DestinationSelectionLogEvent` share many of their
     # states, as well as a lot of the docstring. If you make changes to either
-    # of them, please make sure to also update the other accordingly, if needed.
+    # of them, please make sure to also update the other accordingly, if needed
     """
     Destinations may be "selected" for different reasons, and depending on the
     reason, it might have different effects on whether the Destination can be

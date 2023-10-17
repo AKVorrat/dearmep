@@ -30,7 +30,7 @@ FEEDBACK_TOKEN_LETTERS = "BCDFGHKLMNPQRSTVWXZ"
 class CallState(str, enum.Enum):
     # NOTE: `CallState` and `DestinationSelectionLogEvent` share many of their
     # states, as well as a lot of the docstring. If you make changes to either
-    # of them, please make sure to also update the other accordingly, if needed.
+    # of them, please make sure to also update the other accordingly, if needed
     """
     The state of the User’s current call. The meanings of the values are:
 
