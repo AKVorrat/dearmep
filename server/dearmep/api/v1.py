@@ -3,15 +3,18 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 from fastapi import APIRouter, Depends, HTTPException, Header, Query, \
     Response, status
 from fastapi.responses import JSONResponse
+
 from prometheus_client import Counter
 from pydantic import BaseModel
+import pytz
+from sqlmodel import col
 
 from . import authtoken
 from ..config import Config, Language, all_frontend_strings
 from ..database.connection import get_session
 from ..database.models import Blob, Destination, DestinationGroupListItem, \
-    DestinationID, DestinationRead, DestinationSelectionLogEvent, \
-    FeedbackContext
+    DestinationID, DestinationRead, DestinationSelectionLog, \
+    DestinationSelectionLogEvent, FeedbackContext
 from ..database import query
 from ..l10n import find_preferred_language, get_country, parse_accept_language
 from ..models import MAX_SEARCH_RESULT_LIMIT, CallState, CallStateResponse, \
@@ -27,7 +30,6 @@ from ..models import MAX_SEARCH_RESULT_LIMIT, CallState, CallStateResponse, \
 from ..phone.abstract import get_phone_service
 from ..ratelimit import Limit, client_addr
 from ..phone.elks.elks import start_elks_call
-import pytz
 
 
 l10n_autodetect_total = Counter(
@@ -358,14 +360,42 @@ def get_call_state(
     token: str = Depends(authtoken.oauth2_scheme),
 ):
     """
-    Request the state of the User’s current call.
-
-    **MOCKUP:** This will return `CALLING_USER` or `IN_MENU` only.
+    Returns the state of the User’s latest call.
     """
-    tenths = datetime.now().second // 10
-    return CallStateResponse(
-        state=CallState.CALLING_USER if tenths % 2 else CallState.IN_MENU,
-    )
+    claims = authtoken.validate_token(token)
+
+    with get_session() as session:
+
+        user_id = UserPhone(claims.phone)
+
+        if (last_log := (
+            session.query(DestinationSelectionLog.event).filter(
+                DestinationSelectionLog.user_id == user_id
+            ).order_by(
+                col(DestinationSelectionLog.timestamp).desc()).first())):
+
+            log_state_map = {
+                DestinationSelectionLogEvent.CALLING_USER:
+                    CallState.CALLING_USER,
+                DestinationSelectionLogEvent.IN_MENU:
+                    CallState.IN_MENU,
+                DestinationSelectionLogEvent.CALLING_DESTINATION:
+                    CallState.CALLING_DESTINATION,
+                DestinationSelectionLogEvent.DESTINATION_CONNECTED:
+                    CallState.DESTINATION_CONNECTED,
+                DestinationSelectionLogEvent.FINISHED_SHORT_CALL:
+                    CallState.FINISHED_SHORT_CALL,
+                DestinationSelectionLogEvent.FINISHED_CALL:
+                    CallState.FINISHED_CALL,
+                DestinationSelectionLogEvent.CALL_ABORTED:
+                    CallState.CALL_ABORTED,
+                DestinationSelectionLogEvent.CALLING_USER_FAILED:
+                    CallState.CALLING_USER_FAILED,
+                DestinationSelectionLogEvent.CALLING_DESTINATION_FAILED:
+                    CallState.CALLING_DESTINATION_FAILED,
+            }
+            return CallStateResponse(state=log_state_map.get(last_log.event))
+        return CallStateResponse(state=CallState.NO_CALL)
 
 
 @router.post(
