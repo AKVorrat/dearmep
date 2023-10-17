@@ -324,10 +324,10 @@ def get_recommended_destination(
 
     # 2. Scores
     # scoring based on 'base_endorsement'
-    weights = [
-            base_endorsement_scoring(dest.base_endorsement)
-            for dest in destinations
-        ]
+    base_endorsement_scores = {
+        dest.id: base_endorsement_scoring(dest.base_endorsement)
+        for dest in destinations
+    }
 
     # scoring based on feedback
     stmt_feedback = select(  # type: ignore[call-overload]
@@ -351,25 +351,20 @@ def get_recommended_destination(
 
     feedbacks = session.exec(stmt_feedback).all()
 
-    feedback_scores = [
-            (
-                fb.destination_id,
-                feedback_scoring(fb.numeric_feedback_sum),
-            )
-            for fb in feedbacks
-        ]
-    _logger.debug(f"feedback scores: {feedback_scores}")
-    for i, dest in enumerate(destinations):
-        for fb in feedback_scores:
-            if dest.id == fb[0]:
-                # merge scoring of feedback + base_endorsement by
-                # taking the average
-                # https://www.wolframalpha.com/input?i=plot+%281%2F%281%28abs%
-                # 28x%2F80%29*3%29%5E4+%2B1%29+%2B+1%2F%281%28abs%28y-0.5%29*4
-                # %29%5E3+%2B1%29%29%2F2+for+0%3C%3Dy%3C%3D1+%2C+-40%3C%3Dx%3C
-                # %3D40
-                weights[i] = (weights[i] + fb[1]) / 2
-                break
+    feedback_scores = {
+        fb.destination_id: feedback_scoring(fb.numeric_feedback_sum)
+        for fb in feedbacks
+    }
+
+    if _logger.isEnabledFor(logging.DEBUG):
+        _logger.debug(f"feedback scores: {feedback_scores}")
+
+    merged_scores = {
+        key: (base_endorsement_scores[key] + feedback_scores[key])/2  # average
+        if key in feedback_scores  # if feedack existed
+        else base_endorsement_scores[key]  # else: keep base_endorsement_score
+        for key in base_endorsement_scores
+    }
 
     # 3. Soft cool down
     # destination was suggested in last request
@@ -384,12 +379,8 @@ def get_recommended_destination(
         latest_log = session.query(DestinationSelectionLog).where(
             col(DestinationSelectionLog.event).in_(SUGGEST_EVENTS)
         ).order_by(col(DestinationSelectionLog.timestamp).desc()).first()
-        if latest_log:
-            # making sure that there is a log at all
-            for i, dest in enumerate(destinations):
-                if dest.id == latest_log.destination_id:
-                    weights[i] = 0.00001
-                    break
+        if latest_log:  # making sure that there is a log at all
+            merged_scores[latest_log.destination_id] = 0.00001
 
     # destination was called recently
     SOFT_COOL_DOWN_CALL_DURATION_MINUTES = (
@@ -405,14 +396,10 @@ def get_recommended_destination(
             col(DestinationSelectionLog.timestamp) >= recent_cutoff,
         )
     )
-    for i, dest in enumerate(destinations):
-        for dest_log in destination_logs_recent_calls:
-            if dest.id == dest_log.destination_id:
-                weights[i] = 0.1
-                break
+    for dest_log in destination_logs_recent_calls:
+        merged_scores[dest_log.destination_id] = 0.1
 
     # caller called destination already
-
     if user_id:
         SOFT_COOL_DOWN_CALLER_CALLED_DESTINATION_DURATION_HOURS = 24
         recently_talked_cutoff = datetime.utcnow() - \
@@ -429,31 +416,34 @@ def get_recommended_destination(
                 )
         )
         dest_logs_recent_calls_with_user = session.exec(stmt_calls_ended)
-        for i, dest in enumerate(destinations):
-            for dest_log in dest_logs_recent_calls_with_user:
-                if dest.id == dest_log.destination_id:
-                    weights[i] = 0.1
-                    break
+        for dest_log in dest_logs_recent_calls_with_user:
+            merged_scores[dest_log.destination_id] = 0.1
 
     # finally select a destination
-    if len(destinations) > 0:
+    if len(merged_scores) > 0:
         # log weights if loglevel debug
         if _logger.isEnabledFor(logging.DEBUG):
             _logger.debug(
                 "\n" + "\n".join(
                     [
-                        f"{weights[i]:.3f} {destinations[i].name}"
-                        for i in range(len(destinations))
+                        f"{key} {merged_scores[key]:.3f}"
+                        for key in merged_scores
                     ]
                 )
             )
         # select destination
-        final_dest = random.choices(destinations, weights=weights, k=1)[0]
+        final_dest_id = random.choices(
+            list(merged_scores.keys()),
+            weights=list(merged_scores.values()),
+            k=1,
+        )[0]
     else:
-        final_dest = None
+        final_dest_id = None
 
-    if not final_dest:
+    if not final_dest_id:
         raise NotFound("no destination found that could be recommended")
+
+    # TODO: how to final_dest_id to Destination object?
 
     if event:
         log_destination_selection(
