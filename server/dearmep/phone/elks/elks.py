@@ -180,6 +180,7 @@ def mount_router(app: FastAPI, prefix: str):
                 language=call.user_language,
                 session=session
             )
+            elks_metrics.inc_menu_limit()
             return {
                 "play": f"{elks_url}/medialist/{medialist_id}/concat.ogg",
             }

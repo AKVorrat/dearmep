@@ -24,6 +24,11 @@ class ElksMetrics:
         documentation="call ended to MEP",
         labelnames=("provider", "destination_number", "our_number")
     )
+    call_in_menu_limit_reached = Counter(
+        name="call_in_menu_limit_reached",
+        documentation="call reached the limit of time being allowed in menu",
+        labelnames=("provider")
+    )
 
     def observe_connect_time(self,
                              destination_id: str,
@@ -65,6 +70,12 @@ class ElksMetrics:
             provider=self.provider,
             destination_number=destination_number,
             our_number=our_number
+        ).inc()
+
+    def inc_menu_limit(self):
+        """Track a call that reached the limit of time being allowed in menu"""
+        self.call_in_menu_limit_reached.labels(
+            provider=self.provider
         ).inc()
 
 
