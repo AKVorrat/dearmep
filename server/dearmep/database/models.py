@@ -272,11 +272,6 @@ class Call(SQLModel, table=True):
         description="Timestamp of when the call was connected.",
         **_example("2021-01-01 00:00:00"),
     )
-    ended_at: Optional[datetime] = Field(
-        None,
-        description="Timestamp of when the call was ended.",
-        **_example("2021-01-01 00:00:00"),
-    )
     user_language: Language = Field(
         description="The user's language.",
         **_example("en"),

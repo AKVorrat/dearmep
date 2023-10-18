@@ -52,25 +52,17 @@ def test_ongoing_calls_interface(client: TestClient):
         # connected_at becomes a timestamp
         call = ongoing_calls.get_call(provider_call_id, provider, session)
         assert type(call.connected_at) is datetime.datetime
-        # call has not ended yet
-        assert not call.ended_at
         # the interface returns true for being in a call
         in_call = ongoing_calls.destination_is_in_call(destination_id, session)
         assert in_call
-
-        # ending the call
-        ongoing_calls.end_call(call, session)
-        # ended_at becomes a timestamp
-        call = ongoing_calls.get_call(provider_call_id, provider, session)
-        assert type(call.ended_at) is datetime.datetime
-        # interface results in returning false again
-        in_call = ongoing_calls.destination_is_in_call(destination_id, session)
-        assert not in_call
 
         # call is removed
         ongoing_calls.remove_call(call, session)
         # call is not in database
         # we don't find the call in the database
+        # interface results in returning false again
+        in_call = ongoing_calls.destination_is_in_call(destination_id, session)
+        assert not in_call
         with pytest.raises(ongoing_calls.CallError) as excinfo:
             call = ongoing_calls.get_call(provider_call_id, provider, session)
         assert provider_call_id in str(excinfo.value)

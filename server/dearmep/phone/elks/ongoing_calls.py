@@ -45,20 +45,12 @@ def connect_call(call: Call, session: Session):
     session.commit()
 
 
-def end_call(call: Call, session: Session):
-    """ sets a call as ended in database """
-    call.ended_at = datetime.now()
-    session.add(call)
-    session.commit()
-
-
 def destination_is_in_call(destination_id: str, session: Session):
     """ returns True if the destination is in a call """
     stmt = select(Call).where(
         and_(
             Call.destination_id == destination_id,
             col(Call.connected_at).isnot(None),
-            col(Call.ended_at).is_(None),
         )
     ).exists()
     in_call = session.query(stmt).scalar()
