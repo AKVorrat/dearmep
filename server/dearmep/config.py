@@ -222,7 +222,7 @@ class TelephonyConfig(BaseModel):
     approved_numbers: List[str] = []
     blocked_numbers: List[str] = []
     dry_run: bool = False
-    phone_call_threshhold: PositiveInt
+    successful_call_duration: PositiveInt
     provider: ElksConfig
     audio_source: Path
     test_call: Optional[str]

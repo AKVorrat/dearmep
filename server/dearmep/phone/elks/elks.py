@@ -108,7 +108,7 @@ def mount_router(app: FastAPI, prefix: str):
     telephony_cfg = config.telephony
     provider_cfg = telephony_cfg.provider
     provider = provider_cfg.provider_name
-    phone_call_threshhold = telephony_cfg.phone_call_threshhold
+    successful_call_duration = telephony_cfg.successful_call_duration
     elks_url = config.api.base_url + prefix
     auth = (
         provider_cfg.username,
@@ -581,22 +581,17 @@ def mount_router(app: FastAPI, prefix: str):
                     destination_id=call.destination_id,
                     duration=round(connected_seconds)
                 )
-                if connected_seconds <= phone_call_threshhold:
-                    query.log_destination_selection(
-                        session=session,
-                        destination=call.destination,
-                        event=DestinationSelectionLogEvent.FINISHED_SHORT_CALL,
-                        user_id=call.user_id,
-                        call_id=call.provider_call_id
-                    )
+                if connected_seconds <= successful_call_duration:
+                    event = DestinationSelectionLogEvent.FINISHED_SHORT_CALL
                 else:
-                    query.log_destination_selection(
-                        session=session,
-                        destination=call.destination,
-                        event=DestinationSelectionLogEvent.FINISHED_CALL,
-                        user_id=call.user_id,
-                        call_id=call.provider_call_id
-                    )
+                    event = DestinationSelectionLogEvent.FINISHED_CALL
+                query.log_destination_selection(
+                    session=session,
+                    destination=call.destination,
+                    event=event,
+                    user_id=call.user_id,
+                    call_id=call.provider_call_id
+                )
                 session.commit()
             else:
                 query.log_destination_selection(

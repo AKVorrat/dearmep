@@ -216,12 +216,12 @@ telephony:
   # This is useful for developing the application.
   dry_run: true
 
-  # The threshold after which a call is considered successful. The
-  # reason for this is that we give lower weight to connected calls
-  # that lasted shorter than the specified value, because employees
-  # may have answered instead of MEPs. Short calls indicate that
-  # there was no meaningful conversation with MEPs. In seconds.
-  phone_call_threshhold: 35
+  # This determines the time after which a call is considered successful. The
+  # reason for this is that we give lower weight to connected calls that lasted
+  # shorter than the specified value, because employees may have answered
+  # instead of MEPs. Short calls indicate that there was no meaningful
+  # conversation with MEPs. In seconds.
+  successful_call_duration: 35
 
 
   # Calling codes that we allow Users to have. This corresponds to the "country
