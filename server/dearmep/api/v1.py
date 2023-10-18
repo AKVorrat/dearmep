@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+from typing_extensions import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Header, Query, \
     Response, status
 from fastapi.responses import JSONResponse
@@ -20,7 +21,7 @@ from ..l10n import find_preferred_language, get_country, parse_accept_language
 from ..models import MAX_SEARCH_RESULT_LIMIT, CallState, CallStateResponse, \
     CountryCode, DestinationInCallResponse, DestinationSearchResult, \
     FeedbackSubmission, FeedbackToken, FrontendStringsResponse, \
-    InitiateCallRequest, JWTResponse, LanguageDetection, \
+    InitiateCallRequest, JWTClaims, JWTResponse, LanguageDetection, \
     LocalizationResponse, OutsideHoursResponse, \
     PhoneNumberVerificationRejectedResponse, PhoneNumberVerificationResponse, \
     PhoneRejectReason, RateLimitResponse, SMSCodeVerificationFailedResponse, \
@@ -312,17 +313,15 @@ def get_suggested_destination(
             ],
         },
     },
-    dependencies=(simple_rate_limit,),
+    dependencies=(computational_rate_limit,),
 )
 def initiate_call(
     request: InitiateCallRequest,
-    token: str = Depends(authtoken.oauth2_scheme),
+    claims: Annotated[JWTClaims, Depends(authtoken.validate_token)],
 ):
     """
     Call the User and start an IVR interaction with them.
     """
-    claims = authtoken.validate_token(token)
-
     now = datetime.now(pytz.timezone("Europe/Brussels"))
     if now.weekday() >= 5 or now.hour < 9 or now.hour > 19:
         return error_model(
@@ -355,15 +354,15 @@ def initiate_call(
     "/call/state",
     operation_id="getCallState",
     response_model=CallStateResponse,
+    responses=rate_limit_response,  # type: ignore[arg-type]
+    dependencies=(simple_rate_limit,),
 )
 def get_call_state(
-    token: str = Depends(authtoken.oauth2_scheme),
+    claims: Annotated[JWTClaims, Depends(authtoken.validate_token)],
 ):
     """
     Returns the state of the User’s latest call.
     """
-    claims = authtoken.validate_token(token)
-
     with get_session() as session:
 
         user_id = UserPhone(claims.phone)
@@ -373,7 +372,7 @@ def get_call_state(
                 DestinationSelectionLog.user_id == user_id
             ).filter(
                 col(DestinationSelectionLog.event).in_(
-                    CallState._member_names_)
+                    CallState.__members__.keys())
             ).order_by(
                 col(DestinationSelectionLog.timestamp).desc()).first())):
 
