@@ -71,7 +71,11 @@ def start_elks_call(
         }
     )
 
-    response.raise_for_status()
+    if not response.ok:
+        _logger.critical(
+            f"46elks request to start call failed: {response.status_code}")
+        return CallState.CALLING_USER_FAILED
+
     response_data: InitialCallElkResponse = \
         InitialCallElkResponse.parse_obj(response.json())
 
