@@ -288,18 +288,6 @@ telephony:
     # And, as before, you can also use a hash to specify a singular number.
     - "bxsT9xkkRFk1Kl4sO8pGl2nCgYuDManlCzKkRGTGE1U="
 
-  # Verifying phone numbers by sending an SMS to that number.
-  sms_verification:
-
-    # How long until verification codes sent via SMS expire.
-    timeout: 900
-
-    # After this many codes have been sent to a certain number without any of
-    # them being converted into a Session Token, add the number to a block list.
-    # It cannot be used again before being manually unlocked by an admin. This
-    # is to prevent spamming a victim with codes, incurring costs.
-    max_unused: 3
-
   # The phone provider, currently only `46elks`
   # (API CREDENTIALS) https://46elks.com/account for Basic Auth
   provider:

@@ -21,12 +21,14 @@ def choose_from_number(
     it falls back on the users language. In case there is no match it returns
     any international number.
     """
-
     number_prefix = [n for n in phone_numbers
-                     if n.number[1:3] == user_number_prefix]
+                     if n.number.startswith(
+                         f"+{user_number_prefix}") == user_number_prefix]
     if number_prefix:
         return choice(number_prefix)
 
+    # we fall back on language as the closest approximation to the users
+    # country for now
     lang_numbers = [n for n in phone_numbers if n.country == user_language]
     if lang_numbers:
         return choice(lang_numbers)
@@ -51,6 +53,7 @@ def get_numbers(
             "Could not fetch numbers from 46elks. "
             f"Their http status: {response.status_code}")
 
+    phone_numbers.clear()
     phone_numbers.extend(
         [Number.parse_obj(number) for number in response.json().get("data")]
     )
