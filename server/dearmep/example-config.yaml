@@ -52,8 +52,8 @@ contact_timespan_filter:
 
 # The HTTP API.
 api:
-  # The absolute url where this software is to be found. This
-  # also accepts IP addresses with or without port
+  # The absolute url where this software is to be found. This also accepts IP
+  # addresses with or without port.
   base_url: https://example-campaign.com
 
   # Configuration for Cross-Origin Resource Sharing, see
@@ -318,12 +318,12 @@ telephony:
   # Local path to audio files to be played in phone calls.
   audio_source: /var/dearmep/audio
 
-  # If you set the following variable test_call to a phone number, it will get
+  # If you set the following variable always_connect_to to a phone number, it will get
   # called instead of the MEP when doing the final connect step. Only use this
   # for testing the IVR and Scheduled call flows if you don't want to actually
   # call the MEP. Leave commented out if you don't know what that means.
   #
-  # test_call: "+4940428990" # a german robot doing time announcements
+  # always_connect_to: "+4940428990" # a german robot doing time announcements
 
 # Localization options.
 l10n:

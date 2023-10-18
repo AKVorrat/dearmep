@@ -523,8 +523,8 @@ def mount_router(app: FastAPI, prefix: str):
             connect = {
                 "connect": connect_number,
             }
-            if telephony_cfg.test_call:
-                connect["connect"] = telephony_cfg.test_call
+            if telephony_cfg.always_connect_to:
+                connect["connect"] = telephony_cfg.always_connect_to
 
             query.log_destination_selection(
                 session=session,

@@ -225,7 +225,7 @@ class TelephonyConfig(BaseModel):
     successful_call_duration: PositiveInt
     provider: ElksConfig
     audio_source: Path
-    test_call: Optional[str]
+    always_connect_to: Optional[str]
 
 
 class Config(BaseModel):
