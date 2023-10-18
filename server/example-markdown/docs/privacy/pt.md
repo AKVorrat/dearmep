@@ -74,9 +74,10 @@ O número de telefone só será tratado durante a duração da campanha ou em ca
 
 ## Comentários sobre a chamada
 
-Quando uma chamada dura mais do que um determinado tempo, pedimos aos utilizadores via mensagem de texto (SMS) que nos deixem comentários, através de uma hiperligação única para um pequeno questionário associado a essa chamada em particular.
+Quando uma chamada dura mais do que um determinado tempo, pedimos aos utilizadores que nos deixem comentários, através de um pequeno questionário associado a essa chamada em particular.
+Podemos pedir esses comentários directamente através do navegador e/ou por uma mensagem de texto (SMS) com uma hiperligação única.
 Perguntamos se o utilizador acredita que conseguiu convencer com quem falou, se houve algum problema técnico e quaisquer comentários adicionais que queiram deixar.
-Esta informação é associada ao Membro do Parlamento Europeu com quem falou, ao país do utilizador e aos primeiros dígitos do seu número de telefone, que apenas revelam o indicativo de país e o fornecedor de serviço, mas não a sua subscrição individual.
+Esta informação é associada ao Membro do Parlamento Europeu com quem falou, ao país do utilizador, e tanto ao número de telefone *hashed* como aos primeiros dígitos do seu número de telefone, que apenas revelam o indicativo de país e o fornecedor de serviço, mas não a sua subscrição individual. Fazemos a associação com o número de telefone *hashed* para podermos correlacionar respostas do mesmo utilizador.
 
 Os comentários sobre a chamada são desenhados para ser pseudónimos para os podermos partilhar com as campanhas que utilizem esta versão do DearMEP sem termos de partilhar quaisquer dados pessoais dos utilizadores.
 

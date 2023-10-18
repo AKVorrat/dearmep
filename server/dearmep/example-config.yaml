@@ -77,6 +77,7 @@ api:
       - https://digitalcourage.de
 
       - https://chatcontrol.pt
+      - https://staging.chatcontrol.pt
 
       - https://stopscanningme.eu
       - https://stopchatcontrol.eu
@@ -357,7 +358,7 @@ l10n:
       da: "{code} er din verifikationskode. Hvis du tror, at du ikke er den rigtige modtager af beskeden, så ignorer den bare."
       sv: "{code} är din verifikationkod. Ignorera detta meddelande ifall du tror att du har fått det av misstag."
       fr: "Voici, ton code de vérification: {code}. Si tu penses avoir reçu ce code par erreur, ignore-le."
-      pt: "O teu código de verificação: {code}. Se não solicitaste este código, podes ignorá-lo."
+      pt: "{code} é o teu código de verificação. Se não solicitaste este código, podes ignorá-lo."
 
     # Content of SMS sent to users after a seemingly successful call with
     # someone. {name} will be replaced with the name of the person they've
@@ -365,6 +366,9 @@ l10n:
     feedback_survey_sms:
       en: "How was your call with {name}? Please share your feedback here: {URL}"
       de: "Wie war dein Anruf mit {name}? Bitte gib uns Feedback unter: {URL}"
+      sv: "Hur var ditt samtal med {name}? Återkoppla gärna här: {URL}"
+      da: "Hvordan var din samtale med {name}? Venligst giv din feedback her: {URL}"
+      pt: "Como foi a tua chamada com {name}? Partilha os teus comentários aqui: {URL}"
 
   frontend_strings:
     # Main title of the campaign.
@@ -427,16 +431,25 @@ l10n:
     call.call-now-btn.outOfOfficeHoursHint:
       en: Calling is only possible during office hours.
       de: Anrufe sind nur während der Bürozeiten möglich.
+      sv: Samtal är bara möjliga under kontorstid.
+      da: Opkald er kun muligt under kontortiden.
+      pt: As chamadas só podem ser feitas durante o horário de atendimento.
 
     # Title for UI popover explaining the current office hours
     call.office-hours.title:
       en: Office Hours
       de: Bürozeiten
+      sv: Kontorstider
+      da: Kontortider
+      pt: Horário de atendimento
 
     # Description for UI popover explaining the current office hours
     call.office-hours.description:
       en: Calling is only possible during office hours.
       de: Anrufe sind nur während der Bürozeiten möglich.
+      sv: Samtal är bara möjliga under kontorstid.
+      da: Opkald er kun muligt under kontortiden.
+      pt: As chamadas só podem ser feitas durante o horário de atendimento.
 
     # Text specifying the office hours in original and local timezone
     # Examples:
@@ -448,10 +461,16 @@ l10n:
     # {{ timeRangeLocal }}  ... Range from start- to end-time in local timezone (see: call.office-hours.time-range-zoned)
     call.office-hours.hours-zoned:
       en: "{{ dayOrRange }}: {{ timeRange }} ({{ timeRangeLocal }})"
+      sv: "{{ dayOrRange }}: {{ timeRange }} ({{ timeRangeLocal }})"
+      da: "{{ dayOrRange }}: {{ timeRange }} ({{ timeRangeLocal }})"
+      pt: "{{ dayOrRange }}: {{ timeRange }} ({{ timeRangeLocal }})"
 
     # Same as 'call.office-hours.hours-zoned' applies when the user is in the same time-zone as the destination
     call.office-hours.hours:
       en: "{{ dayOrRange }}: {{ timeRange }}"
+      sv: "{{ dayOrRange }}: {{ timeRange }}"
+      da: "{{ dayOrRange }}: {{ timeRange }}"
+      pt: "{{ dayOrRange }}: {{ timeRange }}"
 
     # Specifies a Day-Range
     # Example:
@@ -459,6 +478,9 @@ l10n:
     call.office-hours.day-range:
       en: "{{ startDayOfWeek }} through {{ endDayOfWeek }}"
       de: "{{ startDayOfWeek }} bis {{ endDayOfWeek }}"
+      sv: "{{ startDayOfWeek }} till {{ endDayOfWeek }}"
+      da: "{{ startDayOfWeek }} til {{ endDayOfWeek }}"
+      pt: "{{ startDayOfWeek }} a {{ endDayOfWeek }}"
 
     # Specifies a time-range with a start and end time
     # Example:
@@ -466,17 +488,26 @@ l10n:
     #   8:00 - 17:00 Local (see: 'call.office-hours.time-zone-local')
     call.office-hours.time-range-zoned:
       en: "{{ startTime }} - {{ endTime }} {{ timeZone }}"
+      sv: "{{ startTime }} - {{ endTime }} {{ timeZone }}"
+      da: "{{ startTime }} - {{ endTime }} {{ timeZone }}"
+      pt: "{{ startTime }} - {{ endTime }} {{ timeZone }}"
 
     # Same as 'call.office-hours.time-range-zoned' applies when the user is in the same time-zone as the destination
     # Example:
     #   8:00 - 17:00
     call.office-hours.time-range:
       en: "{{ startTime }} - {{ endTime }}"
+      sv: "{{ startTime }} - {{ endTime }}"
+      da: "{{ startTime }} - {{ endTime }}"
+      pt: "{{ startTime }} - {{ endTime }}"
 
     # Specifies that a certain time is in local timezone
     call.office-hours.time-zone-local:
       en: Local
       de: Lokal
+      sv: lokal tid
+      da: lokal tid
+      pt: Hora local
 
     # Text of the button that allows the user to schedule a call at a later point in time.
     call.call-later-btn.title:
@@ -505,6 +536,9 @@ l10n:
     call.home.titleAuthenticated:
       en: Welcome back!
       de: Willkommen zurück!
+      sv: Välkommen tillbaka!
+      da: Velkommen tilbage!
+      pt: Bem-vinde de volta!
 
     # Description paragraphs of the calling-section of the app.
     # The paragraphs are displayed in the first step (thus "home") of the calling flow. This means
@@ -517,27 +551,30 @@ l10n:
     # Make sure to write short and concise paragraphs. Each paragraph should not be more than two or three
     # lines of text.
     call.home.descriptions.0.text:
-      en: You can call now or schedule daily or weekly calls in the future.
-      de: Du kannst entweder jetzt anrufen oder für später tägliche oder wöchentliche Anrufe planen.
-      sv: Du kan ringa nu eller schemalägga dagliga eller veckovisa samtal.
+      en: We will call you on your mobile phone, and then connect you to the person you have selected.
+      de: Wir rufen dich auf deinem Mobiltelefon an und verbinden dich dann mit der Person, die du ausgewählt hast.
+      sv: Vi kommer att ringa dig på din mobil för att koppla dig till den person du har valt.
       fr: Tu peux les appeler maintenant ou choisir d'appeler à un autre moment. De plus, il y a la possibilité de faire des appels chaque jour ou chaque semaine.
-      da: Du kan ringe nu eller planlægge et dagligt/ugentligt opkald.
-      pt: Podes ligar agora ou agendar chamadas diárias ou semanais.
+      da: Vi ringer til dig på din mobiltelefon og derefter forbinder vi dig med den udvalgte person.
+      pt: Vamos ligar-te para o teu número de telefone e por-te em contacto com a pessoa que seleccionaste.
     call.home.descriptions.1.text:
-      en: We will always connect you free of charge to the Politican that you are most likely to convince.
-      de: Wir werden dich immer kostenlos mit der Person verbinden, die wahrscheinlich am leichtesten zu überzeugen ist.
-      sv: Vi kommer alltid att hitta den politikern som du kan övertyga enklast.
+      en: The politicians we recommend to you are those where you will likely have the biggest impact. The call is always free of charge.
+      de: Wir schlagen dir die Personen vor, bei denen du den größten Unterschied machen kannst. Der Anruf ist immer kostenlos.
+      sv: Vi föreslår politiker där du kan göra mest skillnad. Samtalet är alltid kostnadsfritt.
+      da: Vi forslår de politiker til dig hvor du sandsynligvis vil have den største indflydelse. Opkaldet er altid gratis.
       fr: Nous te mettrons en contact gratuitement avec le membre du parlement qui est le plus facile à convaincre pour toi.
-      da: Vi vil altid forbinde dig gratis med den politiker, som er lettest at overbevise.
-      pt: Vamos por-te em contacto, gratuitamente, com o membro do Parlamento mais provável de convenceres.
+      pt: A pessoa recomendada por nós é escolhida de forma a maximizar o teu impacto. A chamada telefónica é sempre gratuita.
 
     # Description text that lets the user know that they are alredy signed in and which numer was used.
     # The placeholder number will be replaced with a redacted version of the users phone-number (e.g. +43 123***78)
     call.home.youHaveAlreadySignedIn:
       en: You are already signed in with the number {{ number }}.
       de: Du bist bereits mit der nummer {{ number }} angemeldet.
+      sv: Du är redan inloggad med numret {{ number }}.
+      da: Du er allerede logget på med nummeret {{ number }}
+      pt: Já iniciaste sessão com o número {{ number }}.
 
-    # Text of the link-button that allowes the user log-out and re-authenticate with a different number
+    # Text of the link-button that allows the user log-out and re-authenticate with a different number
     call.home.notYourNumber:
       en: Not your number?
       de: Nicht deine Nummer?
@@ -582,26 +619,41 @@ l10n:
     verification.enterNumber.numberIsRequired:
       en: Phone number is required!
       de: Telefonnumer ist erforderlich!
+      sv: Telefonnumret behövs!
+      da: Telefonnummeret kræves!
+      pt: O número de telefone é obrigatório!
 
     # Error-Label that is shown when the entered number is invalid
     verification.enterNumber.invalidNumber:
       en: Invalid phone number!
       de: Ungültige Telefonnumer!
+      sv: Ogiltigt telefonnummer!
+      da: Ugyldigt telefonnummer!
+      pt: Número de telefone inválido!
 
     # Error-Label that is shown when the entered number not allowed
     verification.enterNumber.numberNotAllowed:
       en: This number is not allowed!
       de: Diese Nummer ist nicht erlaubt!
+      sv: Detta nummer är inte tillåtit!
+      da: Dette nummer er ikke tilladt!
+      pt: Número de telefone não permitido!
 
     # Error-Label that is shown when the entered number has been blocked
     verification.enterNumber.numberBlocked:
       en: This number has been blocked!
       de: Diese Nummer wurde blockiert!
+      sv: Detta nummer har blockerats!
+      da: Dette nummer er blockeret!
+      pt: Número de telefone bloqueado!
 
     # Error-Label that is shown when the verification was attempted too many times
     verification.enterNumber.tooManyAttempts:
       en: Too many attempts, please try again later!
       de: Zu viele Versuche, bitte versuche die es später erneut!
+      sv: För många försök, var god prova igen senare!
+      da: For mange forsøg, venligst prøv igen senere!
+      pt: Demasiadas tentativas, tenta outra vez mais tarde!
 
     # Text for the mandatory privacy-policy checkbox below the number-input.
     # The placeholder {{ policyLink }} is replaced with an HTML A-Tag linking to the privacy
@@ -677,6 +729,9 @@ l10n:
     verification.enterCode.invalidCode:
       en: The code is invalid!
       de: Der Code ist ungültig!
+      sv: Koden är ogiltig!
+      da: Koden er ugyldigt!
+      pt: Código inválido!
 
     # Button text of the button that allows the user to submit the verification code in order to complete the verification
     # process.
@@ -729,6 +784,9 @@ l10n:
     callSetup.error.failedToEstablishCall:
       en: The call could not be established, please try again!
       de: Der Anruf konnte nicht aufgebaut werden, bitte versuchen sie es erneut!
+      sv: Samtalet kunde inte kopplas, var god försök igen!
+      da: Opkaldet fejlede, venligst prøv igen senere!
+      pt: Não conseguimos estabelecer a chamada, tenta novamente.
 
     # Error message: It is not possible to reach the selected person at the moment, maybe they
     # are in a call already or they did not pick up the phone.
@@ -738,11 +796,18 @@ l10n:
         calling a different person in the meantime!
       de: Keine Verbindung möglich. Die ausgewählte Person ist möglicherweise bereits in einem Gespräch.
         Bitte versuche es später erneut und rufe in der Zwischeneit eine andere Person an.
+      sv: "Ingen förbindelse. Personen kan vara upptagen. Var god och försök senare. Kanske vill du ringa en annan person under tiden?"
+      da: Ingen forbindelse. Personen kunne være optaget i et andet opkald. Venligst prøv igen senere og ring til en anden person i mellemtiden.
+      pt: Não conseguimos por-te em contacto com a pessoa seleccionada. Podem estar noutra chamada.
+        Tenta novamente mais tarde e considera entretanto ligar a outra pessoa.
 
     # Error message: It is not possible to make a call right now as we are outside office hours
     callSetup.error.outsideOfficeHours:
       en: Calling outside office hours is not available. Please try again during office hours.
       de: Anrufe außerhalb der Bürozeiten sind nicht möglich. Bitte versuchen Sie es während der Bürozeiten erneut.
+      sv: Samtal utanför kontorstid är inte möjliga. Var god försök igen under kontorstiden.
+      da: Opkald udenfor kontortiden er ikke muligt. Venligst prøv igen under kontortiden.
+      pt: Não é possível ligar fora do horário de atendimento. Tenta novamente durante o horário de atendimento.
 
   # Translation strings related to the feedback step that will be displayed as soon as the user is connected to the MEP.
   # This means the feedback can already be entered during the call. This can be helpful for textual notes during the call.
@@ -842,12 +907,18 @@ l10n:
     feedback.skip:
       en: Skip
       de: Überspringen
+      sv: Hoppa över
+      da: Spring over
+      pt: Não enviar
 
     # Error message that is shown if feedback was already submitted. This could happen if the user
     # opens the same feedback link twice.
     feedback.alreadySubmitedError:
       en: The feedback for this call has already been submitted.
       de: Das Feedback für diesen Anruf wurde bereits abgegeben.
+      sv: Återkopplingen för detta samtal har redan skickats in.
+      da: Tilbagemeldingen for dette opkald er allerede sendt ud.
+      pt: Já submeteste os teus comentários para esta chamada.
 
   # Translation strings related to the section of the MEP-Selection section on the left side of the screen
 
@@ -1485,18 +1556,30 @@ l10n:
     error.genericApiError:
       en: Error! Failed to connect to server!
       de: Fehler! Verbeindung zum Server fehlgeschlagen!
+      sv: Fel! Ingen förbindelse till servern!
+      da: Fejl! Ingen forbindelse til serveren!
+      pt: Erro ao comunicar com o servidor.
 
     # Generic error message that is used when an unusual error has occurred and we do not know what has happend.
     errro.genericError:
       en: An error has occurred!
       de: Es ist ein Fehler aufgetreten!
+      sv: Ett fel har uppstått.
+      da: Et fejl er opstået.
+      pt: Ocorreu um erro.
 
     # Title of the error-dialog, that will be shown when a severe error has occured.
     error.errorDialogTitle:
       en: Error
       de: Fehler
+      sv: Fel
+      da: Fejl
+      pt: Erro
 
     # OK-Button of the error-dialog, that will be shown when a severe error has occured.
     error.errorDialogOK:
       en: OK
       de: OK
+      sv: OK
+      da: OK
+      pt: OK

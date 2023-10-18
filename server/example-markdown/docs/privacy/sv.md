@@ -72,9 +72,10 @@ Telefonnumret kommer endast att behandlas så länge som kampanjen pågår eller
 
 ## Återkoppling
 
-När ett samtal som varat över en viss tid har avslutats kommer användaren att uppmanas via SMS att ge oss återkoppling i form av en unik länk till en kort enkät som är kopplad till det specifika samtalet.
+När ett samtal som varat över en viss tid har avslutats kommer användaren att bes om återkoppling med en unik länk till en kort enkät som är kopplad till det specifika samtalet.
+Vi kan fråga efter återkopplingen direkt i webbläsaren och/eller genom ett textmeddelande med en unik länk.
 Vi frågar om användaren anser sig ha lyckats övertyga politikern, om det uppstod ett tekniskt problem och ger möjlighet för ytterligare feedback.
-Denna information kompletteras med vilken politiker de har ringt, användarens land och de första siffrorna i deras telefonnummer, vilket bara avslöjar deras landskod och leverantör, men inte dem som abonnent.
+Denna information kompletteras med vilken politiker de har ringt, användarens land och de första siffrorna i deras telefonnummer, vilket bara avslöjar deras landskod och leverantör, men inte dem som abonnent. Vi behåller en hashad version av telefonnumret för att kunna länka ihop svar som kommer från samma användare.
 
 Återkopplingen till samtalet hålls avsiktligt pseudonymt för att möjliggöra delning av denna information med kampanjer som också implementerar denna version av DearMEP utan att avslöja någon personlig information om användarna.
 
