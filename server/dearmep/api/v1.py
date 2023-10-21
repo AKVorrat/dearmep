@@ -1,11 +1,13 @@
-from datetime import datetime
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 from typing_extensions import Annotated
+from datetime import datetime, timedelta
+
 from fastapi import APIRouter, Depends, HTTPException, Header, Query, \
-    Response, status
+    Request, Response, status
 from fastapi.responses import JSONResponse
 
 from prometheus_client import Counter
+
 from pydantic import BaseModel
 import pytz
 from sqlmodel import col
@@ -87,6 +89,35 @@ def error_model(status_code: int, instance: BaseModel) -> JSONResponse:
     return JSONResponse(instance.dict(), status_code=status_code)
 
 
+def browser_cache_headers(ttl: timedelta,
+                          etag: Optional[str] = None) -> Dict[str, str]:
+    """
+    Generate a dictionary that contains header fields to control the caching of
+    assets in the web browser.
+    This dictionary can be used with a `Response.headers` object.
+    """
+    result = {"Cache-Control": f"max-age={int(ttl.total_seconds())}"}
+    if tag := etag:
+        result["ETag"] = tag
+    return result
+
+
+def not_modified(request: Request, etag: str, cache_duration: timedelta) \
+        -> Optional[Response]:
+    """
+    Create a HTTP 304 Not-Modified response if the `etag` matches the
+    `If-None-Match` parameter in the `Request`
+    """
+
+    # see https://web.dev/http-cache/#unversioned-urls
+    if header_etag := request.headers.get("If-None-Match"):
+        if header_etag.strip('"') == etag:
+            return Response(status_code=304,
+                            headers=browser_cache_headers(cache_duration,
+                                                          etag))
+    return None
+
+
 router = APIRouter()
 
 
@@ -97,6 +128,8 @@ router = APIRouter()
     dependencies=(computational_rate_limit,),
 )
 def get_localization(
+    request: Request,
+    response: Response,
     frontend_strings: bool = Query(
         False,
         description="Whether to also include all frontend translation strings "
@@ -131,6 +164,17 @@ def get_localization(
         recommended_lang, str(location.country)
     ).inc()
 
+    if frontend_strings:
+        strings = all_frontend_strings(recommended_lang)
+        etag = str(id(strings))
+        cache_duration = timedelta(days=1)
+        if nm_response := not_modified(request, etag, cache_duration):
+            return nm_response
+        # only send a cache header if we actually send the frontend strings
+        response.headers.update(browser_cache_headers(cache_duration, etag))
+    else:
+        strings = None
+
     return LocalizationResponse(
         language=LanguageDetection(
             available=available_languages,
@@ -138,12 +182,10 @@ def get_localization(
             user_preferences=preferences,
         ),
         location=location,
-        frontend_strings=all_frontend_strings(recommended_lang)
-        if frontend_strings else None,
+        frontend_strings=strings,
     )
 
 
-# TODO: Add caching headers, this is pretty static data.
 @router.get(
     "/frontend-strings/{language}", operation_id="getFrontendStrings",
     response_model=FrontendStringsResponse,
@@ -152,6 +194,8 @@ def get_localization(
 )
 def get_frontend_strings(
     language: Language,
+    request: Request,
+    response: Response,
 ):
     """
     Returns a list of translation strings, for the given language, to be used
@@ -160,12 +204,19 @@ def get_frontend_strings(
     in the config's `frontend_strings` section are guaranteed to be available
     at least in the default language.
     """
+    strings = all_frontend_strings(language)
+    cache_duration = timedelta(days=1)
+    etag = str(id(strings))
+
+    if not_modified_response := not_modified(request, etag, cache_duration):
+        return not_modified_response
+
+    response.headers.update(browser_cache_headers(timedelta(days=1), etag))
     return FrontendStringsResponse(
-        frontend_strings=all_frontend_strings(language),
+        frontend_strings=strings,
     )
 
 
-# TODO: Add caching headers.
 @router.get(
     "/blob/{name}", operation_id="getBlob",
     response_class=Response,
@@ -181,16 +232,25 @@ def get_frontend_strings(
 )
 def get_blob_contents(
     name: str,
+    request: Request,
 ):
     """
     Returns the contents of a blob, e.g. an image or audio file.
     """
+    cache_duration = timedelta(days=1)
     with get_session() as session:
         try:
             blob = query.get_blob_by_name(session, name)
         except query.NotFound as e:
             raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
-    return Response(blob.data, media_type=blob.mime_type)
+
+    etag = str(blob.etag)
+    if not_modified_response := not_modified(request, etag, cache_duration):
+        return not_modified_response
+    return Response(blob.data,
+                    media_type=blob.mime_type,
+                    headers=browser_cache_headers(cache_duration,
+                                                  etag))
 
 
 @router.get(
@@ -201,10 +261,11 @@ def get_blob_contents(
 )
 def get_destinations_by_country(
     country: CountryCode,
+    response: Response,
 ) -> SearchResult[DestinationSearchResult]:
     """Return all destinations in a given country."""
+    response.headers.update(browser_cache_headers(timedelta(days=1)))
     with get_session() as session:
-        # TODO: This query result should be cached.
         dests = query.get_destinations_by_country(session, country)
         return query.to_destination_search_result(dests, blob_path)
 
