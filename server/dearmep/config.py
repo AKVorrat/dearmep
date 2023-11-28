@@ -224,6 +224,7 @@ class OfficeHoursConfig(BaseModel):
     weekdays: Set[WeekdayNumber]
     begin: time
     end: time
+    call_schedule_interval: PositiveInt = 15
 
     @validator("begin", "end")
     def no_timezone_in_begin_and_end(cls, v: time) -> time:

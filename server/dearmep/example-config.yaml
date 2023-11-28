@@ -227,6 +227,8 @@ telephony:
   # It does not make sense to call representatives' offices in the middle of
   # the night. Therefore, you can configure "office hours". Outside of the time
   # range defined here, starting new calls will not be possible.
+  # Keep in mind that changing office hours in a running campaign _might_ lead to
+  # scheduled calls being outside of it, effectively disabling some.
   office_hours:
 
     # A Olson timezone identifier. Will be used both by pytz in the backend as
@@ -245,6 +247,11 @@ telephony:
     # not possible. Both restrictions might be removed in a future version.
     begin: "09:00"
     end: "20:00"
+
+    # The interval of timeslots offered to the User to schedule calls. The
+    # frontend generates a list of timeslots between 'begin' and 'end' from
+    # this value.
+    call_schedule_interval: 15  # minutes
 
   # Calling codes that we allow Users to have. This corresponds to the "country
   # code" part of an international phone number. For example, the number

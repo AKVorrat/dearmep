@@ -13,7 +13,7 @@ import secrets
 from canonicaljson import encode_canonical_json
 import phonenumbers
 from pydantic import BaseModel, ConstrainedFloat, ConstrainedInt, \
-    ConstrainedStr, Field, validator
+    ConstrainedStr, Field, PositiveInt, validator
 from pydantic.generics import GenericModel
 
 
@@ -557,6 +557,10 @@ class OfficeHoursInterval(BaseModel):
 
 
 class OfficeHoursResponse(BaseModel):
+    call_schedule_interval: PositiveInt = Field(
+        description="The interval between possible schedule times in minutes.",
+        example=15,
+    )
     timezone: str = Field(
         description="The Olson timezone specifier used for the office hours.",
         example="Europe/Brussels",

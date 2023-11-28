@@ -18,6 +18,7 @@ EXAMPLE_HOURS = OfficeHoursConfig.parse_obj({
     "weekdays": (1, 2, 3, 4, 5),
     "begin": "09:00",
     "end": "18:00",
+    "call_schedule_interval": 15,
 })
 
 

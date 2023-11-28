@@ -230,6 +230,7 @@ def get_frontend_setup(
         location=l10n_res.location,
         frontend_strings=l10n_res.frontend_strings,
         office_hours=OfficeHoursResponse(
+            call_schedule_interval=hours.call_schedule_interval,
             timezone=hours.timezone,
             weekdays=hours.intervals_by_weekday(),
         ),
