@@ -24,9 +24,9 @@ from ..models import MAX_SEARCH_RESULT_LIMIT, CallState, CallStateResponse, \
     LanguageDetection, LocalizationResponse, OfficeHoursResponse, \
     OutsideHoursResponse, PhoneNumberVerificationRejectedResponse, \
     PhoneNumberVerificationResponse, PhoneRejectReason, RateLimitResponse, \
-    SMSCodeVerificationFailedResponse, SearchResult, SearchResultLimit, \
-    UserPhone, UserInCallResponse, PhoneNumberVerificationRequest, \
-    SMSCodeVerificationRequest
+    ScheduleResponse, SetScheduleRequest, SMSCodeVerificationFailedResponse, \
+    SearchResult, SearchResultLimit, UserPhone, UserInCallResponse, \
+    PhoneNumberVerificationRequest, SMSCodeVerificationRequest
 
 from ..ratelimit import Limit, client_addr
 from ..phone.abstract import get_phone_service
@@ -608,3 +608,44 @@ def submit_call_feedback(
         feedback.additional = submission.additional
         session.add(feedback)
         session.commit()
+
+
+@router.get(
+    "/schedule",
+    operation_id="getSchedule",
+    response_model=ScheduleResponse,
+    responses=rate_limit_response,  # type: ignore[arg-type]
+    dependencies=(simple_rate_limit,),
+)
+def get_schedule(
+    claims: Annotated[JWTClaims, Depends(authtoken.validate_token)],
+):
+    """
+    Returns the schedule of the User.
+    """
+    user_id = UserPhone(claims.phone)
+    with get_session() as session:
+        return ScheduleResponse(schedule=query.get_schedule(session, user_id))
+
+
+@router.put(
+    "/schedule",
+    operation_id="setSchedule",
+    response_model=ScheduleResponse,
+    responses=rate_limit_response,  # type: ignore[arg-type]
+    dependencies=(simple_rate_limit,),
+)
+def set_schedule(
+    claims: Annotated[JWTClaims, Depends(authtoken.validate_token)],
+    submission: SetScheduleRequest,
+):
+    """
+    Set the schedule of the User.
+    """
+    user_id = UserPhone(claims.phone)
+
+    with get_session() as session:
+        query.set_schedule(
+            session, user_id, submission.language, submission.schedule)
+        session.commit()
+        return ScheduleResponse(schedule=query.get_schedule(session, user_id))

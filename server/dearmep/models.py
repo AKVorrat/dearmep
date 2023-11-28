@@ -704,6 +704,35 @@ class VerificationCode(ConstrainedStr):
     max_length = 6
 
 
+class Schedule(BaseModel):
+    """
+    Schedule entry. Closely related to ScheduledCalls model. So if you change
+    this you should also check that.
+    """
+    day: WeekdayNumber = Field(
+        description="The day of the week on which the schedule should be "
+        "active.",
+    )
+    start_time: time = Field(
+        description="The time at which the schedule should start.",
+    )
+
+
+class SetScheduleRequest(LanguageMixin):
+    schedule: List[Schedule] = Field(
+        description="The schedule to set.",
+    )
+
+
+class ScheduleResponse(BaseModel):
+    """
+    The response to the frontend, used to display the schedule of the User.
+    """
+    schedule: List[Schedule] = Field(
+        description="The schedule that is currently set.",
+    )
+
+
 class SMSSenderName(ConstrainedStr):
     """The name of the SMS sender."""
     min_length = 3

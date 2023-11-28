@@ -1,15 +1,16 @@
-from datetime import datetime
+from datetime import datetime, time, date
 import enum
 from typing import Any, Dict, List, Optional, TypedDict, Union
 from uuid import uuid4
 
 from pydantic import UUID4, BaseModel
-from sqlmodel import Column, Enum, Field, JSON, Relationship, SQLModel, \
-    String, TIMESTAMP, UniqueConstraint, and_, case, or_, func, text
+from sqlmodel import Column, Enum, Field, JSON, Relationship, \
+    SQLModel, String, TIMESTAMP, UniqueConstraint, and_, case, or_, func, text
 
 from ..config import Config, ConfigNotLoaded, Language
 from ..models import CountryCode, FeedbackConvinced, FeedbackText, \
-    FeedbackToken, MediaListItem, Score, UserPhone, VerificationCode
+    FeedbackToken, MediaListItem, Score, UserPhone, VerificationCode, \
+    WeekdayNumber
 
 
 class _SchemaExtra(TypedDict):
@@ -633,6 +634,49 @@ class FeedbackContext(BaseModel):
     destination: Optional[DestinationRead] = Field(
         description="The Destination associated with this token. Will only be "
         "returned if the token is neither expired nor already used.",
+    )
+
+
+class ScheduledCall(SQLModel, table=True):
+    """
+    Table of scheduled calls to be made by the scheduler. If you change this,
+    check the Schedule model aswell.
+    """
+    __tablename__ = "scheduled_calls"
+
+    user_id: UserPhone = Field(
+        primary_key=True,
+        description="User to be called.",
+    )
+    day: WeekdayNumber = Field(
+        primary_key=True,
+        description="Day of the week when the call is scheduled.",
+    )
+    language: Language = Field(
+        description="language to be used in the call.",
+    )
+    start_time: time = Field(
+        description="Time of the day the call is scheduled.",
+    )
+    last_queued_at: Optional[date] = Field(
+        description="The date the call was last scheduled.",
+    )
+
+
+class QueuedCall(SQLModel, table=True):
+
+    __tablename__ = "queued_calls"
+
+    user_id: UserPhone = Field(
+        primary_key=True,
+        description="User to be called.",
+    )
+    language: Language = Field(
+        description="language to be used in the call.",
+    )
+    postponed_to: Optional[datetime] = Field(
+        description="The time the call is postponed to in case the user wishes"
+        " to do so in IVR.",
     )
 
 

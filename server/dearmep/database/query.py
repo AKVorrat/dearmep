@@ -10,17 +10,17 @@ import logging
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.sql import label
-from sqlmodel import and_, case, col, column, or_
+from sqlmodel import and_, case, col, column, delete, or_
 
 from ..config import Config
 from ..convert.blobfile import BlobOrFile
 from ..models import CountryCode, DestinationSearchGroup, \
     DestinationSearchResult, FeedbackToken, Language, PhoneRejectReason, \
-    SearchResult, UserPhone, VerificationCode, FeedbackConvinced
+    Schedule, SearchResult, UserPhone, VerificationCode, FeedbackConvinced
 from .connection import Session, select
 from .models import Blob, BlobID, Destination, DestinationID, \
     DestinationSelectionLog, DestinationSelectionLogEvent, MediaList, \
-    NumberVerificationRequest, UserFeedback
+    NumberVerificationRequest, ScheduledCall, UserFeedback
 
 
 _logger = logging.getLogger(__name__)
@@ -718,3 +718,36 @@ def get_medialist_by_id(
     if not (mlist := session.get(MediaList, str(id))):
         raise NotFound(f"no such medialist: `{str(id)}`")
     return mlist
+
+
+def get_schedule(
+    session: Session,
+    user_id: UserPhone,
+) -> List[ScheduledCall]:
+    """ Get all scheduled calls for a user"""
+
+    schedule = session.exec(
+        select(ScheduledCall)
+        .where(ScheduledCall.user_id == user_id)
+    ).all()
+    return schedule
+
+
+def set_schedule(
+    session: Session,
+    user_id: UserPhone,
+    language: Language,
+    schedules: List[Schedule],
+):
+    session.exec(
+        delete(ScheduledCall)
+        .where(
+            ScheduledCall.user_id == user_id
+        ))  # type: ignore[call-overload]
+    for scheduled_call in schedules:
+        session.add(ScheduledCall(
+            user_id=user_id,
+            language=language,
+            day=scheduled_call.day,
+            start_time=scheduled_call.start_time,
+        ))
