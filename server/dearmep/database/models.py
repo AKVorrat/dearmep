@@ -4,8 +4,8 @@ from typing import Any, Dict, List, Optional, TypedDict, Union
 from uuid import uuid4
 
 from pydantic import UUID4, BaseModel
-from sqlmodel import Column, Enum, Field, JSON, Relationship, \
-    SQLModel, String, TIMESTAMP, UniqueConstraint, and_, case, or_, func, text
+from sqlmodel import Column, Enum, Field, JSON, Relationship, SQLModel, \
+    String, TIMESTAMP, UniqueConstraint, and_, case, or_, func, text
 
 from ..config import Config, ConfigNotLoaded, Language
 from ..models import CountryCode, FeedbackConvinced, FeedbackText, \

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Callable, Dict, List, NamedTuple, Optional, Union, cast
 from secrets import randbelow
 import re
@@ -20,7 +20,7 @@ from ..models import CountryCode, DestinationSearchGroup, \
 from .connection import Session, select
 from .models import Blob, BlobID, Destination, DestinationID, \
     DestinationSelectionLog, DestinationSelectionLogEvent, MediaList, \
-    NumberVerificationRequest, ScheduledCall, UserFeedback
+    NumberVerificationRequest, QueuedCall, ScheduledCall, UserFeedback
 
 
 _logger = logging.getLogger(__name__)
@@ -726,11 +726,10 @@ def get_schedule(
 ) -> List[ScheduledCall]:
     """ Get all scheduled calls for a user"""
 
-    schedule = session.exec(
+    return session.exec(
         select(ScheduledCall)
         .where(ScheduledCall.user_id == user_id)
     ).all()
-    return schedule
 
 
 def set_schedule(
@@ -751,3 +750,62 @@ def set_schedule(
             day=scheduled_call.day,
             start_time=scheduled_call.start_time,
         ))
+
+
+def get_currently_scheduled_calls(
+    session: Session,
+    now: datetime,
+) -> List[ScheduledCall]:
+    """
+    Returns a list of ScheduledCall's that are
+    - scheduled for today
+    - scheduled for a time that is in the past but within our
+      call_schedule_interval
+    - have not been queued today
+    """
+    timeframe = timedelta(
+        minutes=Config.get().telephony.office_hours.call_schedule_interval)
+
+    return session.exec(select(ScheduledCall).filter(
+        ScheduledCall.day == now.isoweekday(),
+        and_(
+            ScheduledCall.start_time <= now.time(),
+            ScheduledCall.start_time >= (now - timeframe).time(),
+        ),
+        or_(
+            col(ScheduledCall.last_queued_at).is_(None),
+            cast(date, ScheduledCall.last_queued_at) < now.date(),
+        ),
+    )).all()
+
+
+def mark_scheduled_calls_queued(
+    session: Session,
+    calls: List[ScheduledCall],
+    now: datetime,
+):
+    """Timestamps 'last_queued_at' to 'now' for calls."""
+    for call in calls:
+        call.last_queued_at = now
+    session.add_all(calls)
+
+
+def get_next_queued_call(
+    session: Session,
+    now: datetime,
+) -> Optional[QueuedCall]:
+    """
+    Returns a QueuedCall object which was the first inserted
+    with priority to the postponed calls.
+    """
+
+    postponed = session.exec(select(QueuedCall).filter(
+        col(QueuedCall.postponed_to).is_not(None),
+        cast(datetime, QueuedCall.postponed_to) <= now,
+    ).order_by(
+        col(QueuedCall.postponed_to).desc(),
+    )).first()
+    if postponed:
+        return postponed
+    else:
+        return session.query(QueuedCall).first()
