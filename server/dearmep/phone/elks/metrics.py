@@ -9,27 +9,27 @@ class ElksMetrics:
     call_duration_seconds = Summary(
         name="call_duration_seconds",
         documentation="how long was user connected to MEP in seconds",
-        labelnames=("provider", "destination_id")
+        labelnames=("provider", "destination_id"),
     )
     call_cost_euros = Summary(
         name="call_cost_euros",
         documentation="accumulated call costs in Euros",
-        labelnames=("provider", "destination_id")
+        labelnames=("provider", "destination_id"),
     )
     call_start_total = Counter(
         name="call_start_total",
         documentation="number of calls started to Destination",
-        labelnames=("provider", "destination_number", "our_number")
+        labelnames=("provider", "destination_number", "our_number"),
     )
     call_end_total = Counter(
         name="call_end_total",
         documentation="number of calls ended with Destination",
-        labelnames=("provider", "destination_number", "our_number")
+        labelnames=("provider", "destination_number", "our_number"),
     )
     call_in_menu_limit_reached_total = Counter(
         name="call_in_menu_limit_reached_total",
         documentation="call reached the limit of time being allowed in menu",
-        labelnames=("provider")
+        labelnames=("provider",),
     )
     sms_sent_total = Counter(
         name="sms_sent_total",
