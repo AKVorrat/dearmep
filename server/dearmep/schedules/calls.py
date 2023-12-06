@@ -26,7 +26,7 @@ def build_queue() -> None:
         for call in calls:
             session.add(
                 QueuedCall(
-                    user_id=call.user_id,
+                    phone_number=call.phone_number,
                     language=call.language,
                 ))
         queued_calls_total.inc(len(calls))

@@ -623,9 +623,9 @@ def get_schedule(
     """
     Returns the schedule of the User.
     """
-    user_id = UserPhone(claims.phone)
     with get_session() as session:
-        return ScheduleResponse(schedule=query.get_schedule(session, user_id))
+        return ScheduleResponse(schedule=query.get_schedule(
+            session, claims.phone))
 
 
 @router.put(
@@ -642,10 +642,9 @@ def set_schedule(
     """
     Set the schedule of the User.
     """
-    user_id = UserPhone(claims.phone)
-
     with get_session() as session:
         query.set_schedule(
-            session, user_id, submission.language, submission.schedule)
+            session, claims.phone, submission.language, submission.schedule)
         session.commit()
-        return ScheduleResponse(schedule=query.get_schedule(session, user_id))
+        return ScheduleResponse(schedule=query.get_schedule(
+            session, claims.phone))

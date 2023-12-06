@@ -15,8 +15,9 @@ from sqlmodel import and_, case, col, column, delete, or_
 from ..config import Config
 from ..convert.blobfile import BlobOrFile
 from ..models import CountryCode, DestinationSearchGroup, \
-    DestinationSearchResult, FeedbackToken, Language, PhoneRejectReason, \
-    Schedule, SearchResult, UserPhone, VerificationCode, FeedbackConvinced
+    DestinationSearchResult, FeedbackToken, Language, PhoneNumber, \
+    PhoneRejectReason, Schedule, SearchResult, UserPhone, \
+    VerificationCode, FeedbackConvinced
 from .connection import Session, select
 from .models import Blob, BlobID, Destination, DestinationID, \
     DestinationSelectionLog, DestinationSelectionLogEvent, MediaList, \
@@ -722,30 +723,30 @@ def get_medialist_by_id(
 
 def get_schedule(
     session: Session,
-    user_id: UserPhone,
+    phone_number: PhoneNumber,
 ) -> List[ScheduledCall]:
     """ Get all scheduled calls for a user"""
 
     return session.exec(
         select(ScheduledCall)
-        .where(ScheduledCall.user_id == user_id)
+        .where(ScheduledCall.phone_number == phone_number)
     ).all()
 
 
 def set_schedule(
     session: Session,
-    user_id: UserPhone,
+    phone_number: PhoneNumber,
     language: Language,
     schedules: List[Schedule],
 ):
     session.exec(
         delete(ScheduledCall)
         .where(
-            ScheduledCall.user_id == user_id
+            ScheduledCall.phone_number == phone_number
         ))  # type: ignore[call-overload]
     for scheduled_call in schedules:
         session.add(ScheduledCall(
-            user_id=user_id,
+            phone_number=phone_number,
             language=language,
             day=scheduled_call.day,
             start_time=scheduled_call.start_time,

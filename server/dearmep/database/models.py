@@ -9,8 +9,8 @@ from sqlmodel import Column, Enum, Field, JSON, Relationship, SQLModel, \
 
 from ..config import Config, ConfigNotLoaded, Language
 from ..models import CountryCode, FeedbackConvinced, FeedbackText, \
-    FeedbackToken, MediaListItem, Score, UserPhone, VerificationCode, \
-    WeekdayNumber
+    FeedbackToken, MediaListItem, PhoneNumber, Score, UserPhone, \
+    VerificationCode, WeekdayNumber
 
 
 class _SchemaExtra(TypedDict):
@@ -644,9 +644,9 @@ class ScheduledCall(SQLModel, table=True):
     """
     __tablename__ = "scheduled_calls"
 
-    user_id: UserPhone = Field(
+    phone_number: PhoneNumber = Field(
         primary_key=True,
-        description="User to be called.",
+        description="Phone number to be called.",
     )
     day: WeekdayNumber = Field(
         primary_key=True,
@@ -667,9 +667,9 @@ class QueuedCall(SQLModel, table=True):
 
     __tablename__ = "queued_calls"
 
-    user_id: UserPhone = Field(
+    phone_number: PhoneNumber = Field(
         primary_key=True,
-        description="User to be called.",
+        description="Phone number to be called.",
     )
     language: Language = Field(
         description="language to be used in the call.",
