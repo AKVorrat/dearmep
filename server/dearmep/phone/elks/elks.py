@@ -15,7 +15,7 @@ from ...database import query
 from ...database.connection import get_session
 from ...database.models import Destination, DestinationSelectionLogEvent
 from ...models import CallType, CallState, DestinationInCallResponse, \
-    UserPhone, UserInCallResponse
+    PhoneNumber, Schedule, UserPhone, UserInCallResponse
 from .. import ivr
 from . import ongoing_calls
 from .metrics import elks_metrics
@@ -280,15 +280,15 @@ def mount_router(app: FastAPI, prefix: str):
     def main_menu(
         callid: str = Form(),
         direction: Literal["incoming", "outgoing"] = Form(),
-        from_number: str = Form(alias="from"),
-        to_number: str = Form(alias="to"),
+        from_number: PhoneNumber = Form(alias="from"),
+        to_number: PhoneNumber = Form(alias="to"),
         result: str = Form(),
         why: Optional[str] = Form(default=None),
     ):
         """
-        Playback the Instant intro in IVR
-        [1]: connect
-        [5]: arguments
+        Playback the intro in IVR
+        Instant Calls: [1]connect [5]arguments
+        Scheduled Calls: [1]connect [2]postpone [3]delete [5]arguments
         """
 
         with get_session() as session:
@@ -303,16 +303,47 @@ def mount_router(app: FastAPI, prefix: str):
                     return forward_to("connect", session)
                 if result == "5":
                     return forward_to("arguments", session)
+                playlist = ivr.main_menu(destination_id=call.destination_id)
+
+            else:
+                if result == "1":
+                    return forward_to("connect", session)
+                if result == "2":
+                    return forward_to("postpone", session)
+                if result == "3":
+                    # if the User only has one call scheduled we delete it.
+                    # else we send them to the delete menu
+                    schedule = query.get_schedule(session, to_number)
+                    if len(schedule) == 1:
+                        query.set_schedule(session, to_number,
+                                           call.user_language, [])
+                        session.commit()
+                        playlist = ivr.deleted_all_scheduled_calls()
+                        medialist_id = ivr.prepare_medialist(
+                            session, playlist, call.user_language)
+                        return {
+                            "play":
+                            f"{elks_url}/medialist/{medialist_id}/concat.ogg",
+                        }
+                    return forward_to("delete", session)
+
+                if result == "5":
+                    return forward_to("arguments", session)
+                valid_input = [1, 2, 3, 5]
+                playlist = ivr.main_menu(
+                    destination_id=call.destination_id,
+                    scheduled=True,
+                    group_id=get_group_id(call.destination),
+                )
+
+            medialist_id = ivr.prepare_medialist(session, playlist,
+                                                 call.user_language)
 
             response = prepare_response(
                 valid_input=valid_input,
                 invalid_next=f"{elks_url}/main_menu",
                 language=call.user_language,
                 session=session)
-
-            playlist = ivr.main_menu(destination_id=call.destination_id)
-            medialist_id = ivr.prepare_medialist(session, playlist,
-                                                 call.user_language)
 
             query.log_destination_selection(
                 session=session,
@@ -333,8 +364,8 @@ def mount_router(app: FastAPI, prefix: str):
     def connect(
         callid: str = Form(),
         direction: Literal["incoming", "outgoing"] = Form(),
-        from_number: str = Form(alias="from"),
-        to_number: str = Form(alias="to"),
+        from_number: PhoneNumber = Form(alias="from"),
+        to_number: PhoneNumber = Form(alias="to"),
         result: str = Form(),
         why: Optional[str] = Form(default=None),
     ):
@@ -372,7 +403,10 @@ def mount_router(app: FastAPI, prefix: str):
                 }
             # we get keypress [2] if the user wants to rather quit now
             if result == "2":
-                playlist = ivr.try_again_later()
+
+                playlist = ivr.try_again_later() \
+                    if (call.type == CallType.INSTANT) \
+                    else ivr.we_will_call_again()
                 medialist_id = ivr.prepare_medialist(session, playlist,
                                                      call.user_language)
                 return {
@@ -458,11 +492,158 @@ def mount_router(app: FastAPI, prefix: str):
             })
             return response
 
+    @router.post("/postpone")
+    def postpone(
+        callid: str = Form(),
+        from_number: PhoneNumber = Form(alias="from"),
+        to_number: PhoneNumber = Form(alias="to"),
+        result: str = Form(),
+        why: Optional[str] = Form(default=None),
+    ):
+        """
+        Playback the postpone in IVR
+        [1]: postpone to later this day
+        [2]: postpone to next scheduled date
+        [3]: forward to delete menu
+        """
+
+        def _next_scheduled_weekday(schedule):
+            schedule = sorted(schedule, key=lambda x: x.day)
+            today = datetime.today().isoweekday()
+            for scheduled_call in schedule:
+                if scheduled_call.day > today:
+                    return scheduled_call.day
+            return schedule[0].day
+
+        with get_session() as session:
+            call = ongoing_calls.get_call(callid, provider, session)
+            if (response := sanity_check(
+                    result, why, call, session)):
+                return response
+
+            if result == "1":
+                try:
+                    query.postpone_call(session, to_number)
+                except query.NotFound:
+                    _logger.exception("Postponing call failed")
+                    return {"hangup": "reject"}
+                session.commit()
+                playlist = ivr.postpone_snoozed()
+                medialist_id = ivr.prepare_medialist(session, playlist,
+                                                     call.user_language)
+                return {
+                    "play": f"{elks_url}/medialist/{medialist_id}/concat.ogg",
+                }
+            if result == "2":
+                playlist = ivr.postpone_skipped()
+                medialist_id = ivr.prepare_medialist(session, playlist,
+                                                     call.user_language)
+                return {
+                    "play": f"{elks_url}/medialist/{medialist_id}/concat.ogg",
+                }
+            if result == "3":
+                return forward_to("delete", session)
+
+            schedule = query.get_schedule(session, to_number)
+
+            is_postponed = query.call_is_postponed(session, to_number)
+
+            if len(schedule) > 1:
+                next_weekday = _next_scheduled_weekday(schedule)
+                playlist = ivr.postpone_menu(
+                    today=datetime.today().isoweekday(),
+                    is_postponed=is_postponed,
+                    others_scheduled=True,
+                    next_day=next_weekday,
+                )
+            else:
+                playlist = ivr.postpone_menu(
+                    today=datetime.today().isoweekday(),
+                    is_postponed=is_postponed,
+                    others_scheduled=False,
+                )
+            medialist_id = ivr.prepare_medialist(session, playlist,
+                                                 call.user_language)
+
+            valid_input = [2, 3] if is_postponed else [1, 2, 3]
+            response = prepare_response(
+                valid_input=valid_input,
+                invalid_next=f"{elks_url}/postpone",
+                language=call.user_language,
+                session=session)
+            response.update({
+                "ivr": f"{elks_url}/medialist/{medialist_id}/concat.ogg",
+                "next": f"{elks_url}/postpone",
+            })
+            return response
+
+    @router.post("/delete")
+    def delete(
+            callid: str = Form(),
+            from_number: PhoneNumber = Form(alias="from"),
+            to_number: PhoneNumber = Form(alias="to"),
+            result: str = Form(),
+            why: Optional[str] = Form(default=None),
+    ):
+        """
+        Playback the delete menu in IVR
+        [1]: delete all scheduled calls
+        [2]: delete weekly scheduled call for today's weekday
+        """
+
+        with get_session() as session:
+            call = ongoing_calls.get_call(callid, provider, session)
+            if (response := sanity_check(
+                    result, why, call, session)):
+                return response
+
+            today = datetime.today().isoweekday()
+            schedule = query.get_schedule(session, to_number)
+
+            if result == "1":
+                query.set_schedule(session, to_number, call.user_language, [])
+                session.commit()
+                playlist = ivr.deleted_all_scheduled_calls()
+                medialist_id = ivr.prepare_medialist(session, playlist,
+                                                     call.user_language)
+                return {
+                    "play": f"{elks_url}/medialist/{medialist_id}/concat.ogg",
+                }
+            if result == "2":
+                new_schedule = [Schedule(day=s.day, start_time=s.start_time)
+                                for s in schedule
+                                if s.day != today]
+                query.set_schedule(session, to_number, call.user_language,
+                                   new_schedule)
+                session.commit()
+                playlist = ivr.deleted_todays_scheduled_call(
+                    day=today)
+                medialist_id = ivr.prepare_medialist(session, playlist,
+                                                     call.user_language)
+                return {
+                    "play": f"{elks_url}/medialist/{medialist_id}/concat.ogg",
+                }
+
+            # if no other calls scheduled we don't land here
+            playlist = ivr.delete_menu(day=today)
+            medialist_id = ivr.prepare_medialist(session, playlist,
+                                                 call.user_language)
+            response = prepare_response(
+                valid_input=[1, 2],
+                invalid_next=f"{elks_url}/delete",
+                language=call.user_language,
+                session=session)
+            response.update({
+                "ivr": f"{elks_url}/medialist/{medialist_id}/concat.ogg",
+                "next": f"{elks_url}/delete",
+            })
+            return response
+
     @router.post("/arguments")
     def arguments(
             callid: str = Form(),
-            from_number: str = Form(alias="from"),
-            to_number: str = Form(alias="to"),
+            from_number: PhoneNumber = Form(alias="from"),
+            to_number: PhoneNumber = Form(alias="to"),
             result: str = Form(),
             why: Optional[str] = Form(default=None),
     ):
@@ -499,8 +680,8 @@ def mount_router(app: FastAPI, prefix: str):
     def finalize_connect(
         callid: str = Form(),
         direction: Literal["incoming", "outgoing"] = Form(),
-        from_number: str = Form(alias="from"),
-        to_number: str = Form(alias="to"),
+        from_number: PhoneNumber = Form(alias="from"),
+        to_number: PhoneNumber = Form(alias="to"),
         result: str = Form(),
         why: Optional[str] = Form(default=None),
     ):
@@ -538,9 +719,9 @@ def mount_router(app: FastAPI, prefix: str):
         # Arguments always present, also failures
         direction: Literal["incoming", "outgoing"] = Form(),
         created: datetime = Form(),
-        from_number: str = Form(alias="from"),
+        from_number: PhoneNumber = Form(alias="from"),
         callid: str = Form(alias="id"),
-        to_number: str = Form(alias="to"),
+        to_number: PhoneNumber = Form(alias="to"),
         state: str = Form(),
         # Arguments present in some cases, i.e. success
         start: Optional[datetime] = Form(default=None),

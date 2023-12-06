@@ -1,10 +1,14 @@
 from datetime import datetime
+from random import choice
+
 from prometheus_client import Counter
 
 from ..config import Config
 from ..database import query
-from ..database.models import QueuedCall
+from ..database.models import CallType, DestinationSelectionLogEvent, \
+    QueuedCall, UserPhone
 from ..database.connection import get_session
+from ..phone.abstract import get_phone_service
 
 queued_calls_total = Counter(
     name="queued_calls_total",
@@ -49,4 +53,22 @@ def handle_queue() -> None:
             return
         session.delete(queued_call)
         session.commit()
-        # TODO Start call
+        user_id = UserPhone(queued_call.phone_number)
+        try:
+            destination = query.get_recommended_destination(
+                session,
+                country=choice(user_id.country_codes),
+                event=DestinationSelectionLogEvent.IVR_SUGGESTED,
+                user_id=user_id,
+            )
+        except query.NotFound:
+            # We do nothing if we can't find a destination to call.
+            return
+
+        get_phone_service().establish_call(
+            user_phone=queued_call.phone_number,
+            type_of_call=CallType.SCHEDULED,
+            language=queued_call.language,
+            destination_id=destination.id,
+            session=session,
+        )

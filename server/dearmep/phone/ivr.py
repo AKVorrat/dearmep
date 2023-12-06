@@ -40,10 +40,21 @@ def _group_filename(group_id: str):
     ).lower()
 
 
-def main_menu(*, destination_id: str) -> List[str]:
+def main_menu(
+    *, destination_id: str, scheduled: bool = False,
+        group_id: Optional[str] = None) -> List[str]:
     """ IVR main menu, greeting and present choices """
-    return ["campaign_greeting", "main_choice_instant_1", destination_id,
-            "main_choice_instant_2", "main_choice_arguments"]
+    if not scheduled:
+        return ["campaign_greeting", "main_choice_instant_1", destination_id,
+                "main_choice_instant_2", "main_choice_arguments"]
+    if not group_id:
+        raise ValueError("group_id is required when scheduled is True")
+    group_filename = _group_filename(group_id)
+    return ["campaign_greeting", "main_scheduled_intro",
+            "main_choice_scheduled_1", destination_id,
+            "main_choice_scheduled_2", group_filename,
+            "main_choice_scheduled_3", "main_choice_postpone",
+            "main_choice_unsubscribe", "main_choice_arguments"]
 
 
 def arguments(*, destination_id: str) -> List[str]:
@@ -96,4 +107,61 @@ def mep_unavailable_new_suggestion(*, destination_id: str,
 def mep_unavailable_try_again_later() -> List[str]:
     """ IVR MEP is unavailable we ask to try again later """
     return ["connect_unavailable", "connect_try_again_later",
+            "generic_goodbye"]
+
+
+def we_will_call_again() -> List[str]:
+    """ IVR MEP is unavailable we ask to try again later """
+    return ["connect_will_retry", "generic_goodbye"]
+
+
+def postpone_menu(*, today: int,
+                  is_postponed: bool,
+                  others_scheduled: bool,
+                  next_day: Optional[int] = None) -> List[str]:
+    """ IVR postpone menu with choices """
+
+    today_weekday = f"weekday_{today}"
+    if others_scheduled:
+        if not next_day:
+            raise ValueError(
+                "next_day is required when others_scheduled is True")
+        next_weekday = f"weekday_{next_day}"
+        call_next_planned_at = ["postpone_choice_other_scheduled_1",
+                                next_weekday,
+                                "postpone_choice_other_scheduled_2"]
+    else:
+        call_next_planned_at = ["postpone_choice_next_week"]
+
+    postpone_snooze = [] if is_postponed else ["postpone_choice_snooze"]
+
+    return [*postpone_snooze, *call_next_planned_at,
+            "postpone_choice_delete_1", today_weekday,
+            "postpone_choice_delete_2"]
+
+
+def postpone_skipped() -> List[str]:
+    """ IVR postpone was skipped """
+    return ["postpone_skipped"]
+
+
+def postpone_snoozed() -> List[str]:
+    """ IVR postpone was snoozed """
+    return ["postpone_snoozed"]
+
+
+def delete_menu(*, day: int) -> List[str]:
+    """ IVR delete menu """
+    return ["delete_has_others", "delete_choice_all", "delete_choice_this_1",
+            f"weekday_{day}", "delete_choice_this_2"]
+
+
+def deleted_all_scheduled_calls() -> List[str]:
+    """ IVR response if all scheduled calls were deleted """
+    return ["delete_all_deleted", "generic_goodbye"]
+
+
+def deleted_todays_scheduled_call(*, day: int) -> List[str]:
+    """ IVR response if todays scheduled calls were deleted """
+    return ["delete_this_deleted_1", f"weekday_{day}", "delete_this_deleted_2",
             "generic_goodbye"]

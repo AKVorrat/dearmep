@@ -831,3 +831,41 @@ def get_next_queued_call(
         case((QueuedCall.is_postponed is True, 0), else_=1),
         QueuedCall.created_at,
     )).first()
+
+
+def call_is_postponed(
+    session: Session,
+    phone_number: PhoneNumber,
+) -> bool:
+    """
+    Returns True if the call is postponed, False otherwise.
+    """
+    return session.exec(select(ScheduledCall).filter(
+        ScheduledCall.phone_number == phone_number,
+        col(ScheduledCall.postponed_to).is_not(None),
+        ScheduledCall.last_postpone_queued_at == date.today(),
+    )).one_or_none() is not None
+
+
+def postpone_call(
+    session: Session,
+    phone_number: PhoneNumber,
+) -> None:
+    """
+    Postpones today's ScheduledCall for the given phone_number by 15 minutes by
+    adding it to the `session`. Raises NotFound if no call was found to
+    postpone.
+    """
+    now = datetime.now()
+    postponed_to = now + timedelta(minutes=15)
+    try:
+        call = session.exec(select(ScheduledCall).filter(
+            ScheduledCall.phone_number == phone_number,
+            ScheduledCall.day == now.isoweekday(),
+        )).one()
+    except NoResultFound:
+        raise NotFound("ScheduledCall to postpone not found. This can happen "
+                       "if the User changes their schedule after the call was "
+                       "queued and they want to postpone.")
+    call.postponed_to = postponed_to
+    session.add(call)
