@@ -103,6 +103,11 @@ class CallStateResponse(BaseModel):
     state: CallState
 
 
+class CallType(enum.Enum):
+    INSTANT = "INSTANT"
+    SCHEDULED = "SCHEDULED"
+
+
 class CountryCode(ConstrainedStr):
     """An ISO-639 country code."""
     min_length = 2

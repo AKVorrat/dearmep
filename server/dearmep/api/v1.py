@@ -18,14 +18,15 @@ from ..database.models import Blob, Destination, DestinationGroupListItem, \
 from ..database import query
 from ..l10n import find_preferred_language, get_country, parse_accept_language
 from ..models import MAX_SEARCH_RESULT_LIMIT, CallState, CallStateResponse, \
-    CountryCode, DestinationInCallResponse, DestinationSearchResult, \
-    FeedbackSubmission, FeedbackToken, FrontendSetupResponse, \
-    FrontendStringsResponse, InitiateCallRequest, JWTClaims, JWTResponse, \
-    LanguageDetection, LocalizationResponse, OfficeHoursResponse, \
-    OutsideHoursResponse, PhoneNumberVerificationRejectedResponse, \
-    PhoneNumberVerificationResponse, PhoneRejectReason, RateLimitResponse, \
-    ScheduleResponse, SetScheduleRequest, SMSCodeVerificationFailedResponse, \
-    SearchResult, SearchResultLimit, UserPhone, UserInCallResponse, \
+    CallType, CountryCode, DestinationInCallResponse, \
+    DestinationSearchResult, FeedbackSubmission, FeedbackToken, \
+    FrontendSetupResponse, FrontendStringsResponse, InitiateCallRequest, \
+    JWTClaims, JWTResponse, LanguageDetection, LocalizationResponse, \
+    OfficeHoursResponse, OutsideHoursResponse, \
+    PhoneNumberVerificationRejectedResponse, PhoneNumberVerificationResponse, \
+    PhoneRejectReason, RateLimitResponse, ScheduleResponse, \
+    SetScheduleRequest, SMSCodeVerificationFailedResponse, SearchResult, \
+    SearchResultLimit, UserPhone, UserInCallResponse,  \
     PhoneNumberVerificationRequest, SMSCodeVerificationRequest
 
 from ..ratelimit import Limit, client_addr
@@ -424,6 +425,7 @@ def initiate_call(
 
         call_state = get_phone_service().establish_call(
             user_phone=claims.phone,
+            type_of_call=CallType.INSTANT,
             language=request.language,
             destination_id=request.destination_id,
             session=session,

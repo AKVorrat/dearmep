@@ -32,6 +32,7 @@ def test_ongoing_calls_interface(client: TestClient):
             user_id=user_id,
             session=session,
             started_at=datetime.datetime.now(),
+            type="INSTANT",
 
         )
         # we find the call in the database

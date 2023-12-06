@@ -14,10 +14,9 @@ from ...convert import blobfile, ffmpeg
 from ...database import query
 from ...database.connection import get_session
 from ...database.models import Destination, DestinationSelectionLogEvent
-from ...models import CallState, DestinationInCallResponse, UserPhone, \
-    UserInCallResponse
-from ...phone import ivr_audio
-from ...phone.ivr_audio import CallType, Flow
+from ...models import CallType, CallState, DestinationInCallResponse, \
+    UserPhone, UserInCallResponse
+from .. import ivr
 from . import ongoing_calls
 from .metrics import elks_metrics
 from .models import InitialCallElkResponse, Number
@@ -29,6 +28,7 @@ _logger = logging.getLogger(__name__)
 phone_numbers: List[Number] = []
 timeout = 9  # seconds
 establish_call_timeout = 45  # seconds
+menu_duration_timeout = 7  # minutes
 repeat = 2
 
 
@@ -71,6 +71,7 @@ def send_sms(
 def start_elks_call(
     user_phone_number: str,
     user_language: Language,
+    type_of_call: CallType,
     destination_id: str,
     session: Session,
 ) -> Union[CallState, DestinationInCallResponse, UserInCallResponse]:
@@ -102,7 +103,7 @@ def start_elks_call(
         data={
             "to": user_phone_number,
             "from": phone_number.number,
-            "voice_start": f"{elks_url}/instant_main_menu",
+            "voice_start": f"{elks_url}/main_menu",
             "whenhangup": f"{elks_url}/hangup",
             "timeout": establish_call_timeout,
         }
@@ -128,6 +129,7 @@ def start_elks_call(
         destination_id=destination_id,
         session=session,
         started_at=datetime.now(),
+        type=type_of_call,
     )
     query.log_destination_selection(
         session=session,
@@ -160,10 +162,6 @@ def mount_router(app: FastAPI, prefix: str):
             phone_numbers=phone_numbers,
             auth=auth,
         ))
-    medialist = ivr_audio.Medialist(
-        folder=config.telephony.audio_source,
-        fallback_language="en"
-    )
 
     # helpers
     def verify_origin(request: Request):
@@ -202,25 +200,17 @@ def mount_router(app: FastAPI, prefix: str):
             route.
         """
         if str(result) == "failed" and str(why) == "noinput":
-            medialist_id = medialist.get(
-                flow=Flow.no_input,
-                call_type=CallType.instant,
-                destination_id=call.destination_id,
-                language=call.user_language,
-                session=session
-            )
+            playlist = ivr.no_input()
+            medialist_id = ivr.prepare_medialist(session, playlist,
+                                                 call.user_language)
             return {
                 "play": f"{elks_url}/medialist/{medialist_id}/concat.ogg",
             }
         duration_of_call = datetime.now() - call.started_at
-        if duration_of_call >= timedelta(minutes=7):
-            medialist_id = medialist.get(
-                flow=Flow.try_again_later,
-                call_type=CallType.instant,
-                destination_id=call.destination_id,
-                language=call.user_language,
-                session=session
-            )
+        if duration_of_call >= timedelta(minutes=menu_duration_timeout):
+            playlist = ivr.try_again_later()
+            medialist_id = ivr.prepare_medialist(session, playlist,
+                                                 call.user_language)
             elks_metrics.inc_menu_limit()
             return {
                 "play": f"{elks_url}/medialist/{medialist_id}/concat.ogg",
@@ -240,11 +230,11 @@ def mount_router(app: FastAPI, prefix: str):
         """
         Prepare response with default timeout and repeat and valid input
         numbers for the next ivr call. if valid_input is not given, we assume
-        the user can enter any number you can override default timeout and
-        repeat values by passing them as arguments you can deactivate including
-        them with no_timeout and no_repeat
-        IF valid_input is given your call to this function MUST include an
-        active session and invalid_next for the route which should be called.
+        the user can enter any number. You can override default timeout and
+        repeat values by passing them as arguments. You can deactivate
+        including them with no_timeout and no_repeat. IF valid_input is given
+        your call to this function MUST include an active session and
+        invalid_next for the route which should be called.
         """
         response: Dict[str, Any] = {"timeout": timeout, "repeat": repeat}
 
@@ -254,16 +244,11 @@ def mount_router(app: FastAPI, prefix: str):
                     "You need to pass a session and invalid_next "
                     "if you want to use valid_input"
                 )
-            _wrong_input = medialist.get(
-                flow=Flow.wrong_input,
-                call_type=CallType.instant,
-                destination_id="",
-                language=language,
-                session=session
-            )
+            playlist = ivr.wrong_input()
+            medialist_id = ivr.prepare_medialist(session, playlist, language)
             wrong_input_response = {
                 str(number): {
-                    "play": f"{elks_url}/medialist/{_wrong_input}/concat.ogg",
+                    "play": f"{elks_url}/medialist/{medialist_id}/concat.ogg",
                     "next": invalid_next,
                 }
                 for number in range(10)
@@ -278,15 +263,9 @@ def mount_router(app: FastAPI, prefix: str):
         return response
 
     def forward_to(local_route: str, session: Session) -> dict:
-        silence = medialist.get(
-            flow=Flow.silence,
-            call_type=CallType.instant,
-            destination_id="",
-            language="",
-            session=session,
-        )
+        medialist_id = ivr.prepare_medialist(session, ivr.silence(), "")
         return {
-            "play": f"{elks_url}/medialist/{silence}/concat.ogg",
+            "play": f"{elks_url}/medialist/{medialist_id}/concat.ogg",
             "next": f"{elks_url}/{local_route}",
         }
 
@@ -297,8 +276,8 @@ def mount_router(app: FastAPI, prefix: str):
         prefix=prefix
     )
 
-    @router.post("/instant_main_menu")
-    def instant_main_menu(
+    @router.post("/main_menu")
+    def main_menu(
         callid: str = Form(),
         direction: Literal["incoming", "outgoing"] = Form(),
         from_number: str = Form(alias="from"),
@@ -318,19 +297,23 @@ def mount_router(app: FastAPI, prefix: str):
                     result, why, call, session)):
                 return response
 
-            if result == "1":
-                return forward_to("connect", session)
+            if call.type == CallType.INSTANT:
+                valid_input = [1, 5]
+                if result == "1":
+                    return forward_to("connect", session)
+                if result == "5":
+                    return forward_to("arguments", session)
 
-            if result == "5":
-                return forward_to("arguments", session)
-
-            medialist_id = medialist.get(
-                flow=Flow.main_menu,
-                destination_id=call.destination_id,
-                call_type=CallType.instant,
+            response = prepare_response(
+                valid_input=valid_input,
+                invalid_next=f"{elks_url}/main_menu",
                 language=call.user_language,
-                session=session
-            )
+                session=session)
+
+            playlist = ivr.main_menu(destination_id=call.destination_id)
+            medialist_id = ivr.prepare_medialist(session, playlist,
+                                                 call.user_language)
+
             query.log_destination_selection(
                 session=session,
                 call_id=call.provider_call_id,
@@ -340,15 +323,9 @@ def mount_router(app: FastAPI, prefix: str):
             )
             session.commit()
 
-            response = prepare_response(
-                valid_input=[1, 5],
-                invalid_next=f"{elks_url}/instant_main_menu",
-                language=call.user_language,
-                session=session)
-
         response.update({
             "ivr": f"{elks_url}/medialist/{medialist_id}/concat.ogg",
-            "next": f"{elks_url}/instant_main_menu",
+            "next": f"{elks_url}/main_menu",
         })
         return response
 
@@ -378,13 +355,9 @@ def mount_router(app: FastAPI, prefix: str):
 
             # we get keypress [1] if a new suggestion is accepted
             if result == "1":
-                medialist_id = medialist.get(
-                    flow=Flow.connecting,
-                    call_type=CallType.instant,
-                    destination_id=call.destination_id,
-                    language=call.user_language,
-                    session=session
-                )
+                playlist = ivr.connecting()
+                medialist_id = ivr.prepare_medialist(session, playlist,
+                                                     call.user_language)
                 query.log_destination_selection(
                     session=session,
                     destination=call.destination,
@@ -399,13 +372,9 @@ def mount_router(app: FastAPI, prefix: str):
                 }
             # we get keypress [2] if the user wants to rather quit now
             if result == "2":
-                medialist_id = medialist.get(
-                    flow=Flow.try_again_later,
-                    call_type=CallType.instant,
-                    destination_id=call.destination_id,
-                    language=call.user_language,
-                    session=session
-                )
+                playlist = ivr.try_again_later()
+                medialist_id = ivr.prepare_medialist(session, playlist,
+                                                     call.user_language)
                 return {
                     "play": f"{elks_url}/medialist/{medialist_id}/concat.ogg",
                 }
@@ -415,13 +384,9 @@ def mount_router(app: FastAPI, prefix: str):
                 session=session
             ):
                 # Mep is available, so we connect the call
-                medialist_id = medialist.get(
-                    flow=Flow.connecting,
-                    call_type=CallType.instant,
-                    destination_id=call.destination_id,
-                    language=call.user_language,
-                    session=session
-                )
+                playlist = ivr.connecting()
+                medialist_id = ivr.prepare_medialist(session, playlist,
+                                                     call.user_language)
                 query.log_destination_selection(
                     session=session,
                     destination=call.destination,
@@ -448,13 +413,9 @@ def mount_router(app: FastAPI, prefix: str):
                 )
             except query.NotFound:
                 # no other MEPs available, we tell the user to try again later
-                medialist_id = medialist.get(
-                    flow=Flow.mep_unavailable,
-                    call_type=CallType.instant,
-                    destination_id=call.destination_id,
-                    language=call.user_language,
-                    session=session,
-                )
+                playlist = ivr.mep_unavailable_try_again_later()
+                medialist_id = ivr.prepare_medialist(session, playlist,
+                                                     call.user_language)
                 session.commit()
                 return {
                     "play": f"{elks_url}/medialist/{medialist_id}/concat.ogg",
@@ -471,19 +432,18 @@ def mount_router(app: FastAPI, prefix: str):
                 user_language=call.user_language,
                 user_id=call.user_id,
                 destination_id=new_destination.id,
+                type=call.type,
                 started_at=call.started_at,
                 session=session,
             )
             call = ongoing_calls.get_call(callid, provider, session)
 
-            medialist_id = medialist.get(
-                flow=Flow.new_suggestion,
-                call_type=CallType.instant,
+            playlist = ivr.mep_unavailable_new_suggestion(
                 destination_id=call.destination_id,
-                language=call.user_language,
                 group_id=get_group_id(new_destination),
-                session=session
             )
+            medialist_id = ivr.prepare_medialist(session, playlist,
+                                                 call.user_language)
             session.commit()
 
             response = prepare_response(
@@ -520,14 +480,10 @@ def mount_router(app: FastAPI, prefix: str):
             if result == "1":
                 return forward_to("connect", session)
 
-            # play arguments
-            medialist_id = medialist.get(
-                flow=Flow.arguments,
-                call_type=CallType.instant,
-                destination_id=call.destination_id,
-                language=call.user_language,
-                session=session
-            )
+            playlist = ivr.arguments(destination_id=call.destination_id)
+            medialist_id = ivr.prepare_medialist(session, playlist,
+                                                 call.user_language)
+
             response = prepare_response(
                 valid_input=[1],
                 invalid_next=f"{elks_url}/arguments",

@@ -4,8 +4,8 @@ from .elks import elks
 from .abstract import AbstractPhoneService
 from ..database.connection import Session
 from ..database.models import DestinationID
-from ..models import CallState, DestinationInCallResponse, Language, \
-    PhoneNumber, SMSSenderName, UserInCallResponse
+from ..models import CallState, CallType, DestinationInCallResponse, \
+    Language, PhoneNumber, SMSSenderName, UserInCallResponse
 
 
 class ElksPhoneService(AbstractPhoneService):
@@ -26,12 +26,14 @@ class ElksPhoneService(AbstractPhoneService):
         self,
         *,
         user_phone: PhoneNumber,
+        type_of_call: CallType,
         destination_id: DestinationID,
         language: Language,
         session: Session,
     ) -> Union[CallState, DestinationInCallResponse, UserInCallResponse]:
         return elks.start_elks_call(
             user_phone_number=user_phone,
+            type_of_call=type_of_call,
             user_language=language,
             destination_id=destination_id,
             session=session,

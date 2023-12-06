@@ -4,8 +4,8 @@ from typing import Union
 from .abstract import AbstractPhoneService
 from ..database.connection import Session
 from ..database.models import DestinationID
-from ..models import CallState, DestinationInCallResponse, Language, \
-    PhoneNumber, SMSSenderName, UserInCallResponse
+from ..models import CallState, CallType, DestinationInCallResponse, \
+    Language, PhoneNumber, SMSSenderName, UserInCallResponse
 
 
 _logger = getLogger(__name__)
@@ -35,6 +35,7 @@ class DeveloperPhoneService(AbstractPhoneService):
         self,
         *,
         user_phone: PhoneNumber,
+        type_of_call: CallType,
         destination_id: DestinationID,
         language: Language,
         session: Session,

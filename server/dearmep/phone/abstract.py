@@ -4,8 +4,8 @@ from typing import Union
 from ..config import Config
 from ..database.connection import Session
 from ..database.models import DestinationID
-from ..models import CallState, DestinationInCallResponse, Language, \
-    PhoneNumber, SMSSenderName, UserInCallResponse
+from ..models import CallState, CallType, DestinationInCallResponse, \
+    Language, PhoneNumber, SMSSenderName, UserInCallResponse
 
 
 class AbstractPhoneService(ABC):
@@ -28,6 +28,7 @@ class AbstractPhoneService(ABC):
         *,
         user_phone: PhoneNumber,
         destination_id: DestinationID,
+        type_of_call: CallType,
         language: Language,
         session: Session,
     ) -> Union[CallState, DestinationInCallResponse, UserInCallResponse]:

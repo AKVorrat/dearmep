@@ -7,7 +7,7 @@ from sqlmodel import Session, col
 
 from ...config import Language
 from ...database.models import Call, Destination
-from ...models import UserPhone
+from ...models import UserPhone, CallType
 
 
 class CallError(Exception):
@@ -70,6 +70,7 @@ def add_call(
     destination_id: str,
     user_language: Language,
     user_id,
+    type: CallType,
     started_at: datetime,
     session: Session,
 ) -> Call:
@@ -81,6 +82,7 @@ def add_call(
         user_language=user_language,
         user_id=user_id,
         started_at=started_at,
+        type=type,
     )
     session.add(call)
     session.commit()

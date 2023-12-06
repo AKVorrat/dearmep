@@ -9,7 +9,7 @@ from sqlmodel import Column, Enum, Field, JSON, Relationship, SQLModel, \
     String, TIMESTAMP, UniqueConstraint, and_, case, or_, func, text
 
 from ..config import Config, ConfigNotLoaded, Language
-from ..models import CountryCode, FeedbackConvinced, FeedbackText, \
+from ..models import CallType, CountryCode, FeedbackConvinced, FeedbackText, \
     FeedbackToken, MediaListItem, PhoneNumber, Score, UserPhone, \
     VerificationCode, WeekdayNumber
 
@@ -281,6 +281,11 @@ class Call(SQLModel, table=True):
     user_id: UserPhone = Field(
         index=True,
         description="ID [PhoneNumber] to reuse for this call",
+    )
+    type: CallType = Field(
+        description="The type of call.",
+        default=CallType.INSTANT,
+        **_example("SCHEDULED"),
     )
     destination_id: DestinationID = Field(
         index=True,
