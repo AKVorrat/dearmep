@@ -797,6 +797,12 @@ def get_currently_scheduled_calls(
     return CurrentlyScheduledCalls(regular=scheduled_calls,
                                    postponed=postponed_calls)
 
+    scheduled_calls.sort(key=lambda call: call.start_time)
+    # we are guaranteed to have postponed_to set here
+    postponed_calls.sort(key=lambda call: call.postponed_to)  # type: ignore
+
+    return {"postponed": postponed_calls, "regular": scheduled_calls}
+
 
 def mark_scheduled_calls_queued(
     session: Session,
