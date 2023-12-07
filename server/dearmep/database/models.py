@@ -1,6 +1,7 @@
 from datetime import datetime, time, date
 import enum
-from typing import Any, Dict, List, Optional, TypedDict, Union
+from typing import Any, Dict, List, NamedTuple, Optional, TypedDict, \
+    Union
 from uuid import uuid4
 
 from pydantic import UUID4, BaseModel
@@ -661,12 +662,27 @@ class ScheduledCall(SQLModel, table=True):
     last_queued_at: Optional[date] = Field(
         description="The date the call was last scheduled.",
     )
+    postponed_to: Optional[datetime] = Field(
+        description="The time the call is postponed to in case the user wishes"
+        " to do so in IVR.",
+    )
+    last_postpone_queued_at: Optional[date] = Field(
+        description="The date the call was last postponed.",
+    )
+
+
+class CurrentlyScheduledCalls(NamedTuple):
+    postponed: List[ScheduledCall]
+    regular: List[ScheduledCall]
 
 
 class QueuedCall(SQLModel, table=True):
 
     __tablename__ = "queued_calls"
 
+    created_at: datetime = Field(
+        sa_column=auto_timestamp_column(index=True),
+    )
     phone_number: PhoneNumber = Field(
         primary_key=True,
         description="Phone number to be called.",
@@ -674,9 +690,10 @@ class QueuedCall(SQLModel, table=True):
     language: Language = Field(
         description="language to be used in the call.",
     )
-    postponed_to: Optional[datetime] = Field(
-        description="The time the call is postponed to in case the user wishes"
-        " to do so in IVR.",
+    is_postponed: bool = Field(
+        default=False,
+        description="Whether the call has been postponed by the User via the "
+        "IVR. These calls will be retrieved from the queue first.",
     )
 
 

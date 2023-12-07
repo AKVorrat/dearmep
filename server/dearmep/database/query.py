@@ -19,9 +19,10 @@ from ..models import CountryCode, DestinationSearchGroup, \
     PhoneRejectReason, Schedule, SearchResult, UserPhone, \
     VerificationCode, FeedbackConvinced
 from .connection import Session, select
-from .models import Blob, BlobID, Destination, DestinationID, \
-    DestinationSelectionLog, DestinationSelectionLogEvent, MediaList, \
-    NumberVerificationRequest, QueuedCall, ScheduledCall, UserFeedback
+from .models import Blob, BlobID, CurrentlyScheduledCalls, Destination, \
+    DestinationID, DestinationSelectionLog, DestinationSelectionLogEvent, \
+    MediaList, NumberVerificationRequest, QueuedCall, ScheduledCall, \
+    UserFeedback
 
 
 _logger = logging.getLogger(__name__)
@@ -756,18 +757,32 @@ def set_schedule(
 def get_currently_scheduled_calls(
     session: Session,
     now: datetime,
-) -> List[ScheduledCall]:
+) -> CurrentlyScheduledCalls:
     """
-    Returns a list of ScheduledCall's that are
-    - scheduled for today
-    - scheduled for a time that is in the past but within our
-      call_schedule_interval
-    - have not been queued today
+    Returns CurrentlyScheduledCalls ordered by their proximity to `now` that
+    are scheduled for today and for a time that is in the past but within our
+    call_schedule_interval and have not been queued today.
+    In case we have postponed calls, they need to be for today and postponed_to
+    a time that is in the past and have not been postponed already today.
     """
     timeframe = timedelta(
         minutes=Config.get().telephony.office_hours.call_schedule_interval)
 
-    return session.exec(select(ScheduledCall).filter(
+    # needs to be: Today, Now, and not postpone_queued today
+    postponed_calls = session.exec(select(ScheduledCall).filter(
+        ScheduledCall.day == now.isoweekday(),
+        and_(
+            col(ScheduledCall.postponed_to).is_not(None),
+            cast(datetime, ScheduledCall.postponed_to) <= now,
+        ),
+        or_(
+            col(ScheduledCall.last_postpone_queued_at).is_(None),
+            cast(date, ScheduledCall.last_postpone_queued_at) < now.date(),
+        ),
+    ).order_by(ScheduledCall.postponed_to)).all()
+
+    # needs to be: Today, Now, and not queued today
+    scheduled_calls = session.exec(select(ScheduledCall).filter(
         ScheduledCall.day == now.isoweekday(),
         and_(
             ScheduledCall.start_time <= now.time(),
@@ -777,18 +792,24 @@ def get_currently_scheduled_calls(
             col(ScheduledCall.last_queued_at).is_(None),
             cast(date, ScheduledCall.last_queued_at) < now.date(),
         ),
-    )).all()
+    ).order_by(ScheduledCall.start_time)).all()
+
+    return CurrentlyScheduledCalls(regular=scheduled_calls,
+                                   postponed=postponed_calls)
 
 
 def mark_scheduled_calls_queued(
     session: Session,
-    calls: List[ScheduledCall],
+    calls: CurrentlyScheduledCalls,
     now: datetime,
 ):
-    """Timestamps 'last_queued_at' to 'now' for calls."""
-    for call in calls:
+    """Timestamps to 'now' for calls."""
+    for call in calls.regular:
         call.last_queued_at = now
-    session.add_all(calls)
+        session.add(call)
+    for call in calls.postponed:
+        call.last_postpone_queued_at = now
+        session.add(call)
 
 
 def get_next_queued_call(
@@ -796,17 +817,11 @@ def get_next_queued_call(
     now: datetime,
 ) -> Optional[QueuedCall]:
     """
-    Returns a QueuedCall object which was the first inserted
-    with priority to the postponed calls.
+    Returns a QueuedCall object which was the first inserted.
+    Prioritizes postponed calls.
     """
 
-    postponed = session.exec(select(QueuedCall).filter(
-        col(QueuedCall.postponed_to).is_not(None),
-        cast(datetime, QueuedCall.postponed_to) <= now,
-    ).order_by(
-        col(QueuedCall.postponed_to).desc(),
+    return session.exec(select(QueuedCall).order_by(
+        case((QueuedCall.is_postponed is True, 0), else_=1),
+        QueuedCall.created_at,
     )).first()
-    if postponed:
-        return postponed
-    else:
-        return session.query(QueuedCall).first()

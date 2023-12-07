@@ -21,15 +21,21 @@ def build_queue() -> None:
 
     with get_session() as session:
         calls = query.get_currently_scheduled_calls(session, now)
-        calls.sort(key=lambda call: call.start_time)
-        # we iterate this to preserve the order in db insertion
-        for call in calls:
+        for call in calls.regular:
             session.add(
                 QueuedCall(
                     phone_number=call.phone_number,
                     language=call.language,
                 ))
-        queued_calls_total.inc(len(calls))
+        for call in calls.postponed:
+            session.add(
+                QueuedCall(
+                    phone_number=call.phone_number,
+                    language=call.language,
+                    is_postponed=True,
+                ))
+        queued_calls_total.inc(
+            (len(calls.regular) + len(calls.postponed)))
         query.mark_scheduled_calls_queued(session, calls, now)
         session.commit()
 
