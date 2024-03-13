@@ -192,7 +192,7 @@ def base_endorsement_scoring(base_score: float) -> float:
     ) * (1-minimum) + minimum
 
 
-def feedback_scoring(feedback_sum: Optional[int]) -> float:
+def feedback_scoring(feedback_sum: int) -> float:
     """Computes the likeliness of being selected based on
     the feedback.
     A plot of the function applied:
@@ -200,7 +200,6 @@ def feedback_scoring(feedback_sum: Optional[int]) -> float:
     *3%29%5E4+%2B1%29+for+-40%3C%3Dx%3C%3D40%2C+N%3D10
     returns a value between 0 and 1.
     """
-    feedback_sum = 0 if feedback_sum is None else feedback_sum
     rc = Config.get().recommender
     threshold = rc.n_clear_feedback_threshold
     return 1 / (
@@ -342,14 +341,17 @@ def get_recommended_destination(
             label(
                 "numeric_feedback",
                 case(
-                    (UserFeedback.convinced ==
-                     FeedbackConvinced.YES,            2),
-                    (UserFeedback.convinced ==
-                     FeedbackConvinced.LIKELY_YES,     1),
-                    (UserFeedback.convinced ==
-                     FeedbackConvinced.LIKELY_NO,     -1),
-                    (UserFeedback.convinced ==
-                     FeedbackConvinced.NO,            -2),
+                    [
+                        (UserFeedback.convinced ==
+                         FeedbackConvinced.YES,            2),
+                        (UserFeedback.convinced ==
+                         FeedbackConvinced.LIKELY_YES,     1),
+                        (UserFeedback.convinced ==
+                         FeedbackConvinced.LIKELY_NO,     -1),
+                        (UserFeedback.convinced ==
+                         FeedbackConvinced.NO,            -2),
+                    ],
+                    else_=0  # as 'convinced' is optional
                 )
             )
         ).label("numeric_feedback_sum")
