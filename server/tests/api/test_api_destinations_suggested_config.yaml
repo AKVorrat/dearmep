@@ -1,0 +1,1662 @@
+# Options ending in `_duration` or `_timeout` (or simply named `duration` or
+# `timeout`) should be specified in seconds, unless noted otherwise.
+
+# Options ending in `_limit` (or simply named `limit`) should contain a string
+# compatible to the notation used by the `limits` Python library. See
+# <https://limits.readthedocs.io/en/latest/quickstart.html#rate-limit-string-notation>.
+# If a limit is being documented as applying "per IP address", the exact
+# definition may be more complex, especially when it comes to IPv6.
+
+
+# Database configuration.
+database:
+
+  # A SQLAlchemy database URL pointing to the database we will use.
+  # See <https://docs.sqlalchemy.org/en/20/core/engines.html>.
+  url: sqlite:///tests/api/test-dearmep.sqlite
+
+
+# Optional filtering of contacts based on timespans. Useful for Members of the
+# European Parliament, which move between Brussels & Strasbourg.
+contact_timespan_filter:
+
+  # The filter will only act on contacts of the following types:
+  types: [ phone, fax ]
+
+  # If these contacts' group column is NULL, they will be returned unfiltered.
+  # Else, they will only be returned if their group either matches this one...:
+  default: brussels
+
+  # ...or if the current date (local system time of the database) falls within
+  # one of these configured timespans. In that case, only those with a group
+  # value of the timespan key (k) of the matching timespan will be returned. In
+  # this example, the strasbourg contacts will be returned if the current date
+  # is between the given days (inclusive, e.g. from 00:00 to 23:59:59).
+  timespans:
+    strasbourg:  # (k)
+      - start: 2023-06-12
+        end:   2023-06-16
+      - start: 2023-07-10
+        end:   2023-07-12
+      - start: 2023-09-11
+        end:   2023-09-13
+      - start: 2023-10-02
+        end:   2023-10-04
+      - start: 2023-10-16
+        end:   2023-10-18
+      - start: 2023-11-20
+        end:   2023-11-22
+      - start: 2023-12-11
+        end:   2023-12-13
+
+
+# The HTTP API.
+api:
+  # The absolute url where this software is to be found. This also accepts IP
+  # addresses with or without port.
+  base_url: https://example-campaign.com
+
+  # Configuration for Cross-Origin Resource Sharing, see
+  # <https://en.wikipedia.org/wiki/Cross-origin_resource_sharing>. Enter a list
+  # of HTTP and/or HTTPS URLs (without any paths or trailing slashes). You may
+  # also add "*" if you prefer to live dangerously. These are the URLs that are
+  # allowed to access the API via a browser. Each campaign that embeds the
+  # DearMEP snippet should have its URL listed here.
+  cors:
+    origins:
+      - http://localhost:8000
+
+      - https://dearmep.eu
+      - https://chatcontrol.dearmep.eu
+      - https://staging.chatcontrol.dearmep.eu
+
+      - https://chatkontrolle.eu
+      - https://chat-kontrolle.eu
+      - https://digitalegesellschaft.de
+
+      - https://digitalcourage.de
+
+      - https://www.laquadrature.net
+
+      - https://chatcontrol.pt
+      - https://staging.chatcontrol.pt
+
+      - https://stopscanningme.eu
+      - https://stopchatcontrol.eu
+      - https://mullvad.net
+      - https://epicenter.works
+      - https://en.epicenter.works
+      - https://stopscanning.us
+      - https://stopscanning.me
+
+  # Rate limit configuration. How often can certain actions/requests be
+  # performed before considering it an attack on the service?
+  # As an attacker might use more than a single IP address, each of these limits
+  # actually use three levels of granularity. Every request counts against all
+  # of them. If one of them is exceeded, the rate limiting kicks in and denies
+  # the request.
+  #   * ip: Uses the exact IPv4 or IPv6 address of the client.
+  #   * small_block: Uses the /24 of the IP address for IPv4, or /64 for IPv6.
+  #   * large_block: /16 for IPv4, /48 for IPv6. These can easily block (parts)
+  #     of whole (small) ISPs, be careful and watch the metrics.
+  # In addition to these levels of granularity, there are also multiple
+  # _categories_ of rate limits. For example, accessing a simple image file
+  # should have a more relaxed rate limit than computationally expensive, or
+  # even _financially_ expensive operation. Each API endpoint only falls into
+  # one of these categories, and they don't influence each other. In other
+  # words: If a client exceeds the "computational" rate limit, they are still
+  # able to access "simple" resources, and vice versa. (Until they exceed _that_
+  # category, too.)
+  rate_limits:
+
+    # Simple requests for static data, or data that can be retrieved from the
+    # database using simple and fast queries.
+    simple:
+      ip_limit: 30 per second, 200 per minute
+      small_block_limit: 1000 per minute
+      large_block_limit: 2000 per minute
+
+    # Requests that are a bit heavier on the CPU or network, e.g. because they
+    # involve somewhat sophisticated calculations, and/or database table scans.
+    computational:
+      ip_limit: 5 per second, 30 per minute
+      small_block_limit: 100 per minute
+      large_block_limit: 300 per minute
+
+    # Requests that send SMS messages. This is basically just the phone number
+    # verification.
+    sms:
+      ip_limit: 3 per second, 25 per 8 hours
+      small_block_limit: 100 per 8 hours
+      large_block_limit: 300 per 8 hours
+
+
+# User authentication.
+authentication:
+
+  # A user's session, usually identified via a one-time code sent via SMS. These
+  # are managed via a non-permanent JWT session cookie that will get deleted
+  # once the user closes their browser window or logs out manually.
+  session:
+
+    # To log a User in, an SMS verification code is sent to their phone and
+    # needs to be entered into the application to prove their ownership over
+    # that phone number. If the correct code is entered, it will be marked as
+    # used. However, a malicious person might try to spam a victim's phone by
+    # sending verification codes to it. Therefore, we limit the number of codes
+    # that can be in "unused" state for a given phone number. If this amount is
+    # reached, no more verification SMS will be sent to that number,
+    # effectively disallowing them from logging in again. This restriction does
+    # not time out on its own, to ensure that we never sent more than this
+    # number of codes to someone who might not even know who we are. However,
+    # a successful login _will_ reset this number: Only unused codes _after_
+    # the last successful login (if any) will be counted.
+    max_unused_codes: 3
+
+    # Additionally, an attacker might try to incur costs for us by using a
+    # phone they indeed control to log in hundreds of times. Therefore, we also
+    # limit the number of _successful_ logins that can be performed per phone
+    # number.
+    max_logins: 10
+
+    # The `max_logins` number above will only consider logins that took place
+    # (to be exact: were requested) in the last `max_logins_cutoff_days` days.
+    # In other words, in this example you could log in 10 times every 5 days.
+    max_logins_cutoff_days: 5
+
+    # After this many wrong codes have been entered, the most recently sent
+    # code becomes invalid. Even if the user then enters the correct code, it
+    # will not be accepted. This protects the system from an attacker trying
+    # all possible codes. (There is rate limiting too, but rate limiting only
+    # slows the attacker down. This setting makes it impossibly to try out all
+    # of the codes, even with unlimited time.) Note that the user can request
+    # new codes, up to the `max_unused_codes` limit defined above.
+    max_wrong_codes: 5
+
+    # How long until verification codes sent via SMS expire.
+    code_timeout: 900  # 15 minutes
+
+    # How long until the session times out regardless of any activity. This
+    # timeout does not reset. A new verification will need to take place once it
+    # has been reached. Its main purpose is to ensure that the user still owns
+    # the phone number, even if they artificially kept the session alive for
+    # days or even months.
+    authentication_timeout: 86400
+
+  # Various secrets used by the server. Customize these for your installation,
+  # and keep them hidden from the public!
+  secrets:
+
+    # Application-wide pepper value for hashes.
+    pepper: CHANGE THIS
+
+    # The JSON Web Tokens used for authenticating the frontend against the
+    # backend, i.e. our "session token".
+    jwt:
+
+      # The token is encrypted symmetrically using this key.
+      key: CHANGE THIS TOO
+
+      # The algorithms we support. The first one in the list will be used for
+      # creating new tokens, while the others (if any) are accepted for
+      # existing lokens. You should not need to change this.
+      algorithms: [ HS512 ]
+
+
+# Options regarding the after-call feedback functionality.
+feedback:
+
+  # How long (in seconds) until the feedback token expires and the User will no
+  # longer be able to use it to enter feedback about that specific call.
+  token_timeout: 604800  # one week
+
+
+# Options regarding phone calls and SMS.
+telephony:
+  # If set to true, do not actually send out SMS and make calls.
+  # This is useful for developing the application.
+  dry_run: true
+
+  # This determines the time after which a call is considered successful. The
+  # reason for this is that we give lower weight to connected calls that lasted
+  # shorter than the specified value, because employees may have answered
+  # instead of MEPs. Short calls indicate that there was no meaningful
+  # conversation with MEPs. In seconds.
+  successful_call_duration: 35
+
+
+  # Calling codes that we allow Users to have. This corresponds to the "country
+  # code" part of an international phone number. For example, the number
+  # +491751234567 has a country code of 49. Note that these are not simply
+  # treated as being prefixes of the phone number; we actually know the codes
+  # of all of the world's countries and extract these. Therefore, a value of 4
+  # 4 will not match all country codes that start with 4, but actually match no
+  # country at all, because none of them has a country code of 4.
+  allowed_calling_codes:
+    - 30   # Greece
+    - 31   # Netherlands
+    - 32   # Belgium
+    - 33   # France
+    - 34   # Spain
+    - 351  # Portugal
+    - 352  # Luxembourg
+    - 353  # Republic of Ireland
+    - 356  # Malta
+    - 357  # Cyprus
+    - 358  # Finland
+    - 359  # Bulgaria
+    - 36   # Hungary
+    - 370  # Lithuania
+    - 371  # Latvia
+    - 372  # Estonia
+    - 385  # Croatia
+    - 386  # Slovenia
+    - 39   # Italy
+    - 40   # Romania
+    - 420  # Czech Republic
+    - 421  # Slovakia
+    - 43   # Austria
+    - 45   # Denmark
+    - 46   # Sweden
+    - 48   # Poland
+    - 49   # Germany
+
+  # A list of numbers/prefixes to be explicitly blocked, even if they are from
+  # an allowed country and an allowed type.
+  blocked_numbers:
+    # By providing an internationally formatted phone number, you are blocking
+    # all numbers that start with these digits. The number is converted to
+    # E.164 format, removing characters like `-`, `(`, `)`, `.`, ` `. Instead
+    # of listing single numbers here, you can also provide whole prefixes like
+    # `+49175`. Note that you should wrap the number in quotes, else YAML could
+    # iterpret it as an integer.
+    - "+1 202-501-4444"
+    # Alternatively, you can block the hash of a number as it appears in the
+    # database. This is useful if you identified someone abusing the system,
+    # but you do not know their phone number (since the database stores it in
+    # hashed format only for privacy reasons). Wrapping these hashes in quotes
+    # is recommended, too.
+    - "7p+gxtb2W3Fgw7cAm/fmHMcb8GogN2D8m4B+Xc1ZRTw="
+
+  # A list of numbers/prefixes to be explicitly allowed, even if they are not
+  # from an allowed country, not of an allowed type or even match an entry on
+  # the `blocked_numbers` list. In other words, this list has precedence over
+  # everything else.
+  approved_numbers:
+    # As in `blocked_numbers`, you can provide a E.164 prefix. All numbers with
+    # a canonical form that starts like this will be allowed.
+    - "+491751234567"  # would've been allowed anyway as it's a mobile number
+    # And, as before, you can also use a hash to specify a singular number.
+    - "bxsT9xkkRFk1Kl4sO8pGl2nCgYuDManlCzKkRGTGE1U="
+
+  # The phone provider, currently only `46elks`
+  # (API CREDENTIALS) https://46elks.com/account for Basic Auth
+  provider:
+    provider_name: 46elks
+    username: xxx
+    password: yyy
+    # allowed IPs taken from https://46elks.com/docs/verify-callback-origin
+    # (2023-09)
+    allowed_ips:
+      - "176.10.154.199"
+      - "85.24.146.132"
+      - "185.39.146.243"
+      - "2001:9b0:2:902::199"
+      - "127.0.0.1"
+      - "::1"
+  # Local path to audio files to be played in phone calls.
+  audio_source: /var/dearmep/audio
+
+  # If you set the following variable always_connect_to to a phone number, it will get
+  # called instead of the MEP when doing the final connect step. Only use this
+  # for testing the IVR and Scheduled call flows if you don't want to actually
+  # call the MEP. Leave commented out if you don't know what that means.
+  #
+  # always_connect_to: "+4940428990" # a german robot doing time announcements
+  #
+
+  # This name will be the one we send SMS from. This will be displayed to the
+  # user in their cellphone. There are some important restrictions to this! Max
+  # 11 chars, must not start with number, limited to a-zA-Z and digits. see:
+  # https://46elks.com/kb/text-sender-id
+  sms_sender_name: DearMEP
+
+# Options to tweak the destination recommender algorithm
+# The recommender randomly selects destinations, while
+# the likeliness of being selected is tweaked with
+# three main methods:
+
+# 1. Hard filter: Removes destinations from
+# the selection based on these hard criteria.
+# - If 'country' is set, all other countries are excluded.
+# - Hard min/max cut offs for base endorsement
+# - If destination is in call, destination is excluded.
+
+# 2. Scores: Over all destinations, a scoring algorithm is applied to
+# change the destinations likeliness of being selected.
+# - If the base endorsement (between 0 and 1) is close to
+#   center (default=0.5), the likeliness of being selected is boosted.
+# - Clear repeated feedback (negative or positive) leads to
+#   reduced likeliness of being selected.
+# Both scores are merged by simply taking the average!
+
+# 3. Rule based drop of likeliness ("soft cool down") if
+# - destination was suggested in last request.
+# - destination was called very recently.
+# - caller called destination already.
+recommender:
+  # Cut off destinations based on base endorsement
+  endorsement_cutoff:
+    min: 0.4
+    max: 0.6
+
+  # Time to give a destination a break since end of last call
+  soft_cool_down_call_timeout: 900  # 15 minutes
+
+  # Options to tweak the scoring based on the base endorsement:
+  #   Be confident on changing these parameters.
+  #   Use this link to wolframalpha to play with the parameters.
+  #    x-axis: base endorsement
+  #    y-axis: score between 0 and 100% likeliness of being selected
+  #    https://www.wolframalpha.com/input?i=plot+%281%2F%281+%2B+%28abs%5Bx-C%5D*S%29%5E3%29+*+%281-M%29%29+%2B+M+where+%7BC+%3D+0.5%2C+S+%3D+4%2C+M+%3D+0.1%7D%2C+x%3D0+to+1
+  base_endorsement_scoring:
+    center: 0.5
+    minimum: 0
+    steepness: 4
+
+  # Options to tweak the scoring based on feedback:
+  #   Feedback is given and numerically represented the following:
+  #     YES:          2
+  #     LIKELY_YES:   1
+  #     LIKELY_NO:   -1
+  #     NO:          -2
+  #   The scoring is computed the following:
+  #     Take the sum over all feedbacks, which means:
+  #       - positive and negative feedbacks can equalize each other.
+  #       - many positive feedbacks will lead to higher sum
+  #       - many negative feedbacks will lead to ver high negative sums
+  #     Very high positive or negative feedback sums are penalized. In other
+  #     words, the likeliness of being selected is reduced, if the opinion
+  #     of a destination get clearer.
+  #   Be confident changing this parameter. It is meant to give an idea after
+  #   how many clear feedbacks the likeliness of being selected is reduced.
+  #   Mathematically it kind of represents the steepness.
+  #   Here the link to play with the paramtere:
+  #     x-axis: sum of feedback
+  #     y-axis: score between 0 and 100% likeliness of being selected
+  #     https://www.wolframalpha.com/input?i=plot+1%2F%281%28abs%28x%2F%28N*8%29%29*3%29%5E4+%2B1%29+for+-40%3C%3Dx%3C%3D40%2C+N%3D10
+  n_clear_feedback_threshold: 8
+
+
+# Localization options.
+l10n:
+  # The languages your campaign is available in. You have to use a language tag
+  # as defined in RFC 5646. (Try not to be over-specific though. `en-UK` is
+  # fine, `de-Latn-DE-1996` might be overdoing it and cause issues when auto-
+  # detecting a user's language.) The first value in this list will be the
+  # default if the user's browser claims they accept `*` (i.e. "any language").
+  # You therefore probably want to make sure that the first value here is
+  # identical to the `default_language` set below.
+  languages: [ en, de, sv, fr, da, pt ]
+
+  # Which language to fall back to if there is no localized message available
+  # for the user's language. Every string defined under `strings` needs to have
+  # a value provided for this language. This is also what the language auto-
+  # detection falls back to if the user does not specify a supported language
+  # in their preferences. This has to be one of the languages defined in the
+  # `languages` list above.
+  default_language: en
+
+  # Which MMDB geo-IP lookup database to use. Supply the file name relative to
+  # the working directory you're invoking the application from, or use an
+  # absolute path. If you do not set this value, a bundled version of
+  # <https://pypi.org/project/python-geoacumen/> will be used.
+  # You may choose any MMDB, as long as the lookup results in a dict with a key
+  # `country` that contains either the ISO code as a string, or a sub-dict with
+  # a key `iso_code` that then contains the ISO code.
+  # geo_mmdb: Geoacumen-Country.mmdb
+
+  # Localized/translated strings.
+  # Each of the keys below `strings` defines a translateable string. You may
+  # either set the value to a simple string, in which case it will be used
+  # regardless of the user's language (good for single-language campaigns), but
+  # the recommended way is to provide a mapping of languages to strings.
+  # TODO: Explain further.
+  strings:
+
+    # Content of SMS sent to users when we need to verify their phone number.
+    # {code} will be replaced by a six-digit random number.
+    phone_number_verification_sms:
+      en: "{code} is your verification code. If you think you have received this message in error, simply ignore it."
+      de: "{code} ist dein Verifikationscode. Wenn du glaubst, diese Nachricht irrtümlicherweise erhalten zu haben, ignoriere sie bitte."
+      da: "{code} er din verifikationskode. Hvis du tror, at du ikke er den rigtige modtager af beskeden, så ignorer den bare."
+      sv: "{code} är din verifikationkod. Ignorera detta meddelande ifall du tror att du har fått det av misstag."
+      fr: "Voici, ton code de vérification: {code}. Si tu penses avoir reçu ce code par erreur, ignore-le."
+      pt: "{code} é o teu código de verificação. Se não solicitaste este código, podes ignorá-lo."
+
+    # Content of SMS sent to users after a seemingly successful call with
+    # someone. {name} will be replaced with the name of the person they've
+    # called. {url} is the link to the feedback form.
+    feedback_survey_sms:
+      en: "How was your call with {name}? Please share your feedback here: {URL}"
+      de: "Wie war dein Anruf mit {name}? Bitte gib uns Feedback unter: {URL}"
+      sv: "Hur var ditt samtal med {name}? Återkoppla gärna här: {URL}"
+      da: "Hvordan var din samtale med {name}? Venligst giv din feedback her: {URL}"
+      pt: "Como foi a tua chamada com {name}? Partilha os teus comentários aqui: {URL}"
+
+  frontend_strings:
+    # Main title of the campaign.
+    # Ideally this should be short, concise and no more than two lines.
+    title:
+      en: Stop Scanning Me! The EU wants to scan all our private chat messages
+      de: Stop Scanning Me! Die EU will alle unsere privaten Chatnachrichten scannen
+      sv: Stop Scanning Me! EU vill kolla alla våra privata chattar
+      fr: Stop Scanning Me! L'UE veut inspecter tous nos messages personnels.
+      da: Stop Scanning Me! EU vil overvåge alle dine chats
+      pt: Stop Scanning Me! A UE quer escutar todas as nossas mensagens privadas.
+
+  # Translation strings for the calling-section on the right side of the screen
+
+    # Main text of the primary button that lets the user initiate a call now to the selected MEP.
+    # Keep in mind that this button does not instantly start the call. A verification-step (if user
+    # is not verified) will appear before the call is actually started.
+    # If the user is already verified, the call will start instantly.
+    call.start-call-btn.title:
+      en: Start Call
+      de: Anruf starten
+      sv: Starta samtal
+      fr: Appeler
+      da: Start opkald
+      pt: Fazer chamada
+
+    # Sub-text of primary button that lets the user initiate a call now.
+    # Currently the intention of this sub-text is to reassure the user that they will not be charged
+    # for the call.
+    call.start-call-btn.subtitle:
+      en: Free of charge
+      de: Kostenlos
+      sv: Kostnadsfri
+      fr: Gratuit
+      da: Gratis
+      pt: Grátis
+
+    # Main text of the pimrary button that lets the user initiate the actuall call.
+    # After this button is clicked an actual phone-call will be set-up.
+    call.call-now-btn.title:
+      en: Call Now
+      de: Jetzt anrufen
+      sv: Ring
+      fr: Appeler maintenant
+      da: Ring op
+      pt: Ligar agora
+
+    # Sub-text of the primary button that lets the user initiate the actual call.
+    # Currently the intention of this sub-text is to reassure the user that they will not be charged
+    # for the call.
+    call.call-now-btn.subtitle:
+      en: Free of charge
+      de: Kostenlos
+      sv: Kostnadsfri
+      fr: Gratuit
+      da: Gratis
+      pt: Grátis
+
+    # Hint that will be displayed below the disabled call-now-button when out of office hours.
+    call.call-now-btn.outOfOfficeHoursHint:
+      en: Calling is only possible during office hours.
+      de: Anrufe sind nur während der Bürozeiten möglich.
+      sv: Samtal är bara möjliga under kontorstid.
+      da: Opkald er kun muligt under kontortiden.
+      pt: As chamadas só podem ser feitas durante o horário de atendimento.
+
+    # Title for UI popover explaining the current office hours
+    call.office-hours.title:
+      en: Office Hours
+      de: Bürozeiten
+      sv: Kontorstider
+      da: Kontortider
+      pt: Horário de atendimento
+
+    # Description for UI popover explaining the current office hours
+    call.office-hours.description:
+      en: Calling is only possible during office hours.
+      de: Anrufe sind nur während der Bürozeiten möglich.
+      sv: Samtal är bara möjliga under kontorstid.
+      da: Opkald er kun muligt under kontortiden.
+      pt: As chamadas só podem ser feitas durante o horário de atendimento.
+
+    # Text specifying the office hours in original and local timezone
+    # Examples:
+    #   Monday through Thursday: 8:00 - 17:00 Europe/Vienna (9:00 - 18:00 Local)
+    #   Friday: 8:00 - 15:00 Europe/Vienna (9:00 - 16:00 Local)
+    # Placeholders:
+    # {{ dayOrRange }}      ... Either a single weekday or a range of days (see: call.office-hours.day-range)
+    # {{ timeRange }}       ... Range from start- to end-time including remtoe timezone (see: call.office-hours.time-range-zoned)
+    # {{ timeRangeLocal }}  ... Range from start- to end-time in local timezone (see: call.office-hours.time-range-zoned)
+    call.office-hours.hours-zoned:
+      en: "{{ dayOrRange }}: {{ timeRange }} ({{ timeRangeLocal }})"
+      de: "{{ dayOrRange }}: {{ timeRange }} ({{ timeRangeLocal }})"
+      sv: "{{ dayOrRange }}: {{ timeRange }} ({{ timeRangeLocal }})"
+      da: "{{ dayOrRange }}: {{ timeRange }} ({{ timeRangeLocal }})"
+      pt: "{{ dayOrRange }}: {{ timeRange }} ({{ timeRangeLocal }})"
+
+    # Same as 'call.office-hours.hours-zoned' applies when the user is in the same time-zone as the destination
+    call.office-hours.hours:
+      en: "{{ dayOrRange }}: {{ timeRange }}"
+      de: "{{ dayOrRange }}: {{ timeRange }}"
+      sv: "{{ dayOrRange }}: {{ timeRange }}"
+      da: "{{ dayOrRange }}: {{ timeRange }}"
+      pt: "{{ dayOrRange }}: {{ timeRange }}"
+
+    # Specifies a Day-Range
+    # Example:
+    #   Monday through Thursday
+    call.office-hours.day-range:
+      en: "{{ startDayOfWeek }} through {{ endDayOfWeek }}"
+      de: "{{ startDayOfWeek }} bis {{ endDayOfWeek }}"
+      sv: "{{ startDayOfWeek }} till {{ endDayOfWeek }}"
+      da: "{{ startDayOfWeek }} til {{ endDayOfWeek }}"
+      pt: "{{ startDayOfWeek }} a {{ endDayOfWeek }}"
+
+    # Specifies a time-range with a start and end time
+    # Example:
+    #   8:00 - 17:00 Europe/Vienna
+    #   8:00 - 17:00 Local (see: 'call.office-hours.time-zone-local')
+    call.office-hours.time-range-zoned:
+      en: "{{ startTime }} - {{ endTime }} {{ timeZone }}"
+      de: "{{ startTime }} - {{ endTime }} {{ timeZone }}"
+      sv: "{{ startTime }} - {{ endTime }} {{ timeZone }}"
+      da: "{{ startTime }} - {{ endTime }} {{ timeZone }}"
+      pt: "{{ startTime }} - {{ endTime }} {{ timeZone }}"
+
+    # Same as 'call.office-hours.time-range-zoned' applies when the user is in the same time-zone as the destination
+    # Example:
+    #   8:00 - 17:00
+    call.office-hours.time-range:
+      en: "{{ startTime }} - {{ endTime }}"
+      de: "{{ startTime }} - {{ endTime }}"
+      sv: "{{ startTime }} - {{ endTime }}"
+      da: "{{ startTime }} - {{ endTime }}"
+      pt: "{{ startTime }} - {{ endTime }}"
+
+    # Specifies that a certain time is in local timezone
+    call.office-hours.time-zone-local:
+      en: Local
+      de: Lokal
+      sv: lokal tid
+      da: lokal tid
+      pt: Hora local
+
+    # Text of the button that allows the user to schedule a call at a later point in time.
+    call.call-later-btn.title:
+      en: Call later
+      de: Später anrufen
+      sv: Ringa senare
+      fr: Appeler à une date plus tard
+      da: Ring senere
+      pt: Ligar mais tarde
+
+    # Title of the calling-section of the app.
+    # This title is displayed in the first step (thus "home") of the calling flow. This means
+    # it is visible on the initial screen as soon as the user loads the app. It should explain
+    # the functionality and invite users to use the app.
+    # Make sure to use a short and concise title. Ideally it should be no more than two or three
+    # lines of text.
+    call.home.title:
+      en: Contact your Member of the European Parliament. Make your voice heard and convince them to stop the chatcontrol bill!
+      de: Sprich mit deinen Abgeordneten im EU-Parlament. Überzeuge sie, den Gesetzesvorschlag zur Chatkontrolle zu stoppen!
+      sv: Prata med en Europaparlamentariker och få dem att stoppa lagförslaget.
+      fr: Contacte ton Membre du Parlement européen. Engaage-toi et convaincs-les de rejeter le project de loi sur le contrôle du chat!
+      da: Snak med dine politikere i Europa-Parlamentet. Overbevis dem om at stoppe chatkontrolloven!
+      pt: Contacta os teus membros do Parlamento Europeu. Faz ouvir a tua voz e convence-os a parar o ChatControl!
+
+    # Alternative title of the calling-section that is used when the user is already authenticated.
+    call.home.titleAuthenticated:
+      en: Welcome back!
+      de: Willkommen zurück!
+      sv: Välkommen tillbaka!
+      da: Velkommen tilbage!
+      pt: Bem-vinde de volta!
+
+    # Description paragraphs of the calling-section of the app.
+    # The paragraphs are displayed in the first step (thus "home") of the calling flow. This means
+    # they are visible on the initial screen as soon as the user loads the app. They are meant to
+    # give further information about how the main-feature of the app works and invite the user to
+    # start a call.
+    # Use the numeric index to display multiple paragraphs. Example keys: "call.home.descriptions.0.text",
+    # "call.home.descriptions.1.text", ... . Each item represents a single paragraph. Ideally one or two
+    # paragraphs should be used, more than that might cause layout issues.
+    # Make sure to write short and concise paragraphs. Each paragraph should not be more than two or three
+    # lines of text.
+    call.home.descriptions.0.text:
+      en: We will call you on your mobile phone, and then connect you to the person you have selected.
+      de: Wir rufen dich auf deinem Mobiltelefon an und verbinden dich dann mit der Person, die du ausgewählt hast.
+      sv: Vi kommer att ringa dig på din mobil för att koppla dig till den person du har valt.
+      fr: Tu peux les appeler maintenant ou choisir d'appeler à un autre moment. De plus, il y a la possibilité de faire des appels chaque jour ou chaque semaine.
+      da: Vi ringer til dig på din mobiltelefon og derefter forbinder vi dig med den udvalgte person.
+      pt: Vamos ligar-te para o teu número de telefone e por-te em contacto com a pessoa que seleccionaste.
+    call.home.descriptions.1.text:
+      en: The politicians we recommend to you are those where you will likely have the biggest impact. The call is always free of charge.
+      de: Wir schlagen dir die Personen vor, bei denen du den größten Unterschied machen kannst. Der Anruf ist immer kostenlos.
+      sv: Vi föreslår politiker där du kan göra mest skillnad. Samtalet är alltid kostnadsfritt.
+      da: Vi forslår de politiker til dig hvor du sandsynligvis vil have den største indflydelse. Opkaldet er altid gratis.
+      fr: Nous te mettrons en contact gratuitement avec le membre du parlement qui est le plus facile à convaincre pour toi.
+      pt: A pessoa recomendada por nós é escolhida de forma a maximizar o teu impacto. A chamada telefónica é sempre gratuita.
+
+    # Description text that lets the user know that they are alredy signed in and which numer was used.
+    # The placeholder number will be replaced with a redacted version of the users phone-number (e.g. +43 123***78)
+    call.home.youHaveAlreadySignedIn:
+      en: You are already signed in with the number {{ number }}.
+      de: Du bist bereits mit der nummer {{ number }} angemeldet.
+      sv: Du är redan inloggad med numret {{ number }}.
+      da: Du er allerede logget på med nummeret {{ number }}
+      pt: Já iniciaste sessão com o número {{ number }}.
+
+    # Text of the link-button that allows the user log-out and re-authenticate with a different number
+    call.home.notYourNumber:
+      en: Not your number?
+      de: Nicht deine Nummer?
+      sv: Inte ditt nummer?
+      fr: Ce n'est pas ton numéro de téléphone?
+      da: Ikke din nummer?
+      pt: Número errado?
+
+  # Translation strings related to the phone number verification step in the frontend
+  # This step consists of three sub-steps: "enterNumber", "enterCode", "success"
+
+    # Title of the phone number verification step of the app. This title is present during
+    # all three sub-steps of the verfication process.
+    verification.title:
+      en: Verify your phone number
+      de: Bestätige deine Telefonnummer
+      sv: Bekräfta ditt telefonnummer
+      fr: Vérifier ton numéro de téléphone
+      da: Bekræft dit telefonnummer
+      pt: Verifica o teu número de telefone
+
+    # Short description of the first step (entering number) of the phone number verification.
+    # The description is displayed below the title and above the number-field.
+    verification.enterNumber.description:
+      en: Please enter your own phone number and we will send you a one-time password
+        to verify your number.
+      de: Gib bitte deine eigene Telefonnummer an, damit wir dir einen Code zur Bestätigung deiner Nummer schicken können.
+      sv: Fyll i ditt telefonnummer så vi kan skicka en bekräftelsekod.
+      fr: Entre ton propre numéro de téléphone, s'il te plaît, afin que nous puissions le vérifier en t'envoyant un mot de passe.
+      da: Indtast venligst dit telefonnummer, så vi kan sende dig en engangskode for at bekræfte dit nummer.
+      pt: Introduz o teu número de telefone para te enviarmos um código de confirmação.
+
+    # Label that describes the number-input of the first step of the phone number verification
+    verification.enterNumber.numberFieldLabel:
+      en: Enter your phone number
+      de: Gib deine Telefonnummer ein
+      sv: Fyll i ditt telefonnummer
+      fr: Entre ton numéro de téléphone
+      da: Indtast dit telefonnummer
+      pt: Introduz o teu número de telefone
+
+    verification.enterNumber.numberIsRequired:
+      en: Phone number is required!
+      de: Telefonnumer ist erforderlich!
+      sv: Telefonnumret behövs!
+      da: Telefonnummeret kræves!
+      pt: O número de telefone é obrigatório!
+
+    # Error-Label that is shown when the entered number is invalid
+    verification.enterNumber.invalidNumber:
+      en: Invalid phone number!
+      de: Ungültige Telefonnumer!
+      sv: Ogiltigt telefonnummer!
+      da: Ugyldigt telefonnummer!
+      pt: Número de telefone inválido!
+
+    # Error-Label that is shown when the entered number not allowed
+    verification.enterNumber.numberNotAllowed:
+      en: This number is not allowed!
+      de: Diese Nummer ist nicht erlaubt!
+      sv: Detta nummer är inte tillåtit!
+      da: Dette nummer er ikke tilladt!
+      pt: Número de telefone não permitido!
+
+    # Error-Label that is shown when the entered number has been blocked
+    verification.enterNumber.numberBlocked:
+      en: This number has been blocked!
+      de: Diese Nummer wurde blockiert!
+      sv: Detta nummer har blockerats!
+      da: Dette nummer er blockeret!
+      pt: Número de telefone bloqueado!
+
+    # Error-Label that is shown when the verification was attempted too many times
+    verification.enterNumber.tooManyAttempts:
+      en: Too many attempts, please try again later!
+      de: Zu viele Versuche, bitte versuche die es später erneut!
+      sv: För många försök, var god prova igen senare!
+      da: For mange forsøg, venligst prøv igen senere!
+      pt: Demasiadas tentativas, tenta outra vez mais tarde!
+
+    # Text for the mandatory privacy-policy checkbox below the number-input.
+    # The placeholder {{ policyLink }} is replaced with an HTML A-Tag linking to the privacy
+    # policy that is configured to open in a new tab when clicked.
+    verification.enterNumber.policy:
+      en: I have read and accept the {{ policyLink }}.
+      de: Ich habe die {{ policyLink }} gelesen und akzeptiere sie.
+      sv: Jag har läst {{ policyLink }} och godkänner dem.
+      fr: J'ai lu le {{ policyLink }} et je l'accepte.
+      da: Jeg har læst {{ policyLink }} og accepterer den.
+      pt: Li e aceito a {{ policyLink }}.
+
+    # Link-Text of the privacy-policy link which replaces the {{ policyLink }} placeholder of
+    # the translation key "verification.enterNumber.policy"
+    verification.enterNumber.policyLinkText:
+      en: Privacy Policy
+      de: Datenschutzerklärung
+      sv: integritetspolicy
+      # Danish grammar note: I am using the -ken suffix because of the definite article,
+      # given that it will probably be used in a sentence with a definite meaning.
+      fr: Règles de confidentialité
+      da: Privatlivspolitikken
+      pt: Política de privacidade
+
+    verification.enterNumber.policyLinkUrl:
+      en: /pages/privacy/en/
+      de: /pages/privacy/de/
+      sv: /pages/privacy/sv/
+      pt: /pages/privacy/pt/
+
+    # Button text of the button that lets the user send a verification code to the specified phone number
+    verification.enterNumber.sendCode:
+      en: Send Code
+      de: Code schicken
+      sv: Skicka kod
+      fr: Envoyer le code de vérification
+      da: Send kode
+      pt: Enviar código
+
+    # Short description for the second sub-step of the verification (where the user is supposed to enter the code)
+    # The placeholder {{ number }} is replaced with the previosly entered number. This allows the user to check if
+    # they entered the number correcly in case the verification SMS is somehow delayed or fails to arrive.
+    verification.enterCode.description:
+      en: Please check you phone. We've sent a code to {{ number }}.
+      de: Wir haben einen Code an {{ number }} geschickt. Bitte schau auf deinem Telefon nach.
+      sv: Vi har skickat en kod till {{ number }}. Kolla din telefon.
+      fr: Nous t'avons envoyé le code de vérification à {{ number }}. Merci de confirmer que le code est bien arrivé.
+      da: Tjek venligst din telefon. Vi har sendt koden til {{ number }}.
+      pt: Verifica o teu telefone. Enviámos um código para {{ number }}.
+
+    # Description text for the link-button that allowes the user to go one step back and edit the number in order
+    # to resend the verification SMS to the correct number.
+    verification.enterCode.notYourNumber:
+      en: Not your number?
+      de: Nicht deine Nummer?
+      sv: Inte ditt nummer?
+      fr: Ce n'est pas ton numéro de téléphone?
+      da: Ikke dit nummer?
+      pt: Número errado?
+
+    # Label that describes the form field which is used to enter the verification code that was sent via SMS to the
+    # users phone.
+    verification.enterCode.codeFieldLabel:
+      en: Enter your Code
+      de: Code eingeben
+      sv: Fyll i koden du fick
+      fr: Entre ton code de vérification
+      da: Indtast koden
+      pt: Introduz o código
+
+    # Error-Label tells the user that the entered code was invalid
+    verification.enterCode.invalidCode:
+      en: The code is invalid!
+      de: Der Code ist ungültig!
+      sv: Koden är ogiltig!
+      da: Koden er ugyldigt!
+      pt: Código inválido!
+
+    # Button text of the button that allows the user to submit the verification code in order to complete the verification
+    # process.
+    verification.enterCode.verifyCode:
+      en: Verify
+      de: Verifizieren
+      sv: Verifiera
+      fr: Vérifier
+      da: Verificer
+      pt: Verificar
+
+    # Message that is displayed in the final sub-step of the verification process informing the user of the successfull
+    # verification.
+    # The placeholder {{ number }} is replaced with the previosly entered number.
+    # After clicking the call-button in this step the call is being set-up instantly without any further confirmations.
+    verification.success.message:
+      en: 'Succesfully verified with the number: {{ number }}'
+      de: '{{ number }} wurde erfolgreich verifiziert'
+      sv: 'Ditt nummer {{ number }} är nu verifierat'
+      fr: 'Nous avons réussi à vérifier ton numéro de téléphone: {{ number }}'
+      da: Dit nummer {{ number }} er nu verificeret
+      pt: 'Número verificado com sucesso: {{ number }}'
+
+  # Translation strings related to the step that shows the user that their call is being set up right now.
+
+    # Title of the call-setup-page
+    callSetup.title:
+      en: Your call is being set up
+      de: Dein Anruf wird aufgebaut
+      sv: Samtalet byggs upp nu
+      fr: Ton appel est en cours d'établissement.
+      da: Dit opkald klargøres nu
+      pt: A preparar a chamada
+
+    # Description of the call-setup-page informing the user that the call is currently being set up meaning their phone
+    # is going to ring in the next few seconds.
+    # The placeholder {{ mep }} will be replaced with the full name (first + last name) of the MEP that was previously
+    # selected for this call.
+    callSetup.description:
+      en: Please have your mobile phone ready. We will call you right away and connect
+        you with {{ mep }}.
+      de: Halte dein Mobiltelefon bereit. Wir werden dich umgehend
+        anrufen und mit {{ mep }} verbinden.
+      sv: Ha din telefon redo. Vi ringer dig omgående för att koppla dig till {{ mep }}.
+      fr: Prépare-toi, s'il te plaît. Nous t'appelerons en quelques secondes pour t'enfin connecter avec {{ mep }}.
+      da: Hav din telefon parat. Vi vil straks ringe til dig og forbinde dig med {{ mep }}.
+      pt: Prepara-te para atender o telefone. Vamos ligar-te agora e pôr-te em contacto com {{ mep }}.
+
+    # Error message: The call could not be established for some reason, maybe the user did not pick up the phone.
+    callSetup.error.failedToEstablishCall:
+      en: The call could not be established, please try again!
+      de: Der Anruf konnte nicht aufgebaut werden, bitte versuchen sie es erneut!
+      sv: Samtalet kunde inte kopplas, var god försök igen!
+      da: Opkaldet fejlede, venligst prøv igen senere!
+      pt: Não conseguimos estabelecer a chamada, tenta novamente.
+
+    # Error message: It is not possible to reach the selected person at the moment, maybe they
+    # are in a call already or they did not pick up the phone.
+    # May suggest to the user to try to call a different person
+    callSetup.error.failedToReachDestination:
+      en: Unable to connect. The selected person may be on another call. Please try again later and consider
+        calling a different person in the meantime!
+      de: Keine Verbindung möglich. Die ausgewählte Person ist möglicherweise bereits in einem Gespräch.
+        Bitte versuche es später erneut und rufe in der Zwischeneit eine andere Person an.
+      sv: "Ingen förbindelse. Personen kan vara upptagen. Var god och försök senare. Kanske vill du ringa en annan person under tiden?"
+      da: Ingen forbindelse. Personen kunne være optaget i et andet opkald. Venligst prøv igen senere og ring til en anden person i mellemtiden.
+      pt: Não conseguimos por-te em contacto com a pessoa seleccionada. Podem estar noutra chamada.
+        Tenta novamente mais tarde e considera entretanto ligar a outra pessoa.
+
+    # Error message: It is not possible to make a call right now as we are outside office hours
+    callSetup.error.outsideOfficeHours:
+      en: Calling outside office hours is not available. Please try again during office hours.
+      de: Anrufe außerhalb der Bürozeiten sind nicht möglich. Bitte versuchen Sie es während der Bürozeiten erneut.
+      sv: Samtal utanför kontorstid är inte möjliga. Var god försök igen under kontorstiden.
+      da: Opkald udenfor kontortiden er ikke muligt. Venligst prøv igen under kontortiden.
+      pt: Não é possível ligar fora do horário de atendimento. Tenta novamente durante o horário de atendimento.
+
+  # Translation strings related to the feedback step that will be displayed as soon as the user is connected to the MEP.
+  # This means the feedback can already be entered during the call. This can be helpful for textual notes during the call.
+
+    # Title of the feedback step
+    feedback.title:
+      en: Feedback
+      de: Feedback
+      sv: Återkoppling
+      fr: Commentaires
+      da: Tilbagemelding
+      pt: Comentários
+
+    # Question-text of the first feedback item. The item is a question with four mutually exclusive radio-buttons.
+    # The intention of the question is to ask the user whether they believe they were able to convice the MEP.
+    feedback.convincingQuestion:
+      en: Were you able to convince the person?
+      de: Warst du in der Lage, dein Gegenüber zu überzeugen?
+      sv: Kunde du övertyga motparten?
+      fr: As-tu réussi à convaincre la personne qui vous répondait au téléphone?
+      da: Har du overbevist din samtalepartner?
+      pt: Conseguiste convencer a pessoa com quem falaste?
+
+    # First possible answer indicates a strong yes in the question of whether the MEP was convinced.
+    feedback.convincingQuestionFeedback.yes:
+      en: 'Yes'
+      de: 'Ja'
+      sv: 'Ja'
+      fr: 'Oui'
+      da: 'Ja'
+      pt: Sim
+
+    # Second possible answer indicates more likely yes than no in the question of whether the MEP was convinced.
+    feedback.convincingQuestionFeedback.likelyYes:
+      en: likely yes
+      de: Eher ja
+      sv: Sannoliken
+      fr: Probablement oui
+      da: Sandsynligvis ja
+      pt: Provavelmente sim
+
+    # Third possible answer indicates more likely no than yes in the question of whether the MEP was convinced.
+    feedback.convincingQuestionFeedback.likelyNo:
+      en: likely no
+      de: Eher nicht
+      sv: Snarare inte
+      fr: Probablement non
+      da: Snarere nej
+      pt: Provavelmente não
+
+    # Third possible answer indicates a strong no in the question of whether the MEP was convinced.
+    feedback.convincingQuestionFeedback.no:
+      en: 'No'
+      de: 'Nein'
+      sv: 'Nej'
+      fr: 'Non'
+      da: 'Nej'
+      pt: Não
+
+    # Checkbox-text for a checkbox that lets the user indicate that there were technical problems during the call.
+    feedback.technicalProblemsQuestion:
+      en: There were technical problems
+      de: Es gab technische Probleme
+      sv: Det blev tekniska problem
+      fr: Il y avait des difficultés techniques
+      da: Der opstod et teknisk problem
+      pt: Houve problemas técnicos
+
+    # Label describing a text-area that can be used to enter additional feedback in textual form.
+    feedback.additionalFeedbackQuestion:
+      en: Additional feedback
+      de: Weiteres Feedback
+      sv: Mer återkoppling
+      fr: Commentaires supplémentaires
+      da: Yderligere bemærkninger
+      pt: Comentários adicionais
+
+    # Placeholder for a text-area that can be used to enter additional feedback in textual form.
+    feedback.additionalFeedbackPlaceholder:
+      en: If you have any additional feedback, please type it in here. If you want us to contact you for a debrief, please provide your contact information here …
+      de: Falls du uns weiteres Feedback geben möchtest, nutze bitte dieses Feld. Wenn du von uns kontaktiert werden willst, bitte nenne uns hier deine Kontaktinformationen …
+      sv: Här kan du lämna fler kommentarer kring samtalet. Om du vill prata med oss om din upplevelse, tala om för oss hur vi kan nå dig.
+      fr: Si tu as des commentaires supplémentaires, merci de les ajouter ici. Si tu souhaite que nous te contactions, merci de remplir tes coordonnées.
+      da: Hvis du har yderligere kommentarer, så skriv dem her. Hvis du vil snakke med os om oplevelsen, så skriv også dine kontaktoplysninger.
+      pt: Se tens comentários adicionais, escreve-os aqui. Se quiseres que te contactemos, escreve aqui o teu contacto.
+
+    # Submit button that allows the user to send their feedback and go back to the home-screen where they can instantly start another call.
+    feedback.submit:
+      en: Submit
+      de: Abschicken
+      sv: Skicka
+      fr: Envoyer
+      da: Send
+      pt: Enviar
+
+    # Skip button that allows the user go back to the home-screen where they can instantly start another call without submiting any feedback.
+    feedback.skip:
+      en: Skip
+      de: Überspringen
+      sv: Hoppa över
+      da: Spring over
+      pt: Não enviar
+
+    # Error message that is shown if feedback was already submitted. This could happen if the user
+    # opens the same feedback link twice.
+    feedback.alreadySubmitedError:
+      en: The feedback for this call has already been submitted.
+      de: Das Feedback für diesen Anruf wurde bereits abgegeben.
+      sv: Återkopplingen för detta samtal har redan skickats in.
+      da: Tilbagemeldingen for dette opkald er allerede sendt ud.
+      pt: Já submeteste os teus comentários para esta chamada.
+
+  # Translation strings related to the section of the MEP-Selection section on the left side of the screen
+
+    # Alternative text for an icon-button using a renew-icon that lets the user ask for a new MEP-Suggestion
+    # from the system.
+    # This text is not normally visible in the screen it is only supposed to explain the functionality of the
+    # button on hover and for screenreaders.
+    select-mep.autorenew:
+      en: Choose another Politician
+      de: Jemand anderen vorschlagen lassen
+      sv: Välj en annan Europaparlamentariker
+      fr: Choisir un autre membre du Parlement européen
+      da: Vælg en anden politiker
+      pt: Escolher outro membro do Parlamento
+
+    # Label for the select-form-control that lets the user choose a different country for the automatic or
+    # manual selection of MEPs
+    select-mep.country:
+      en: Country
+      de: Land
+      sv: Land
+      fr: Pays
+      da: Land
+      pt: País
+
+    # Placeholder for the
+    select-mep.search.placeholder:
+      en: Search
+      de: Suche
+      sv: Sök
+      fr: Rechercher
+      da: Søg
+      pt: Pesquisar
+
+    # Message that shows that no destinations math the entered search-text
+    select-mep.autocomplete-empty:
+      en: Not found
+      de: Nicht gefunden
+      sv: Hittades inte
+      fr: Aucun résultat n'a été trouvé
+      da: Ikke fundet
+      pt: Sem resultados
+
+    # Credits displayed below the portrait of the MEP
+    # {{ id }} placeholder is replaced with the MEP-ID from the API
+    select-mep.portraitCreditHtml:
+      en: portrait © European Parliament (<a href="https://www.europarl.europa.eu/meps/en/{{id}}/" target="_blank">source</a>)
+      de: Portrait © Europäisches Parlament (<a href="https://www.europarl.europa.eu/meps/de/{{id}}/" target="_blank">source</a>)
+      sv: Porträtt © Europaparlamentet (<a href="https://www.europarl.europa.eu/meps/sv/{{id}}/" target="_blank">source</a>)
+      fr: portait © Parlement européen (<a href="https://www.europarl.europa.eu/meps/fr/{{id}}/" target="_blank">source</a>)
+      da: Portræt © Europa-Parlamentet (<a href="https://www.europarl.europa.eu/meps/da/{{id}}/" target="_blank">kilde</a>)
+      pt: retrato © Parlamento Europeu (<a href="https://www.europarl.europa.eu/meps/pt/{{id}}/" target="_blank">fonte</a>)
+
+  # Translation strings for the talking-points that will be displayed during the call or while scheduling a call
+
+    # Title of the talking-points section
+    talkingPoints.title:
+      en: Talking Points
+      de: Themen
+      sv: Samtalsämnen
+      fr: Sujets de discussion
+      da: Emner
+      pt: Assuntos
+
+    # Enumeration of talking-points. The numeric index in the key can be used to configure an arbirary number of talking-points
+    # starting with the index of zero. Example: "talkingPoints.points.0.title" and "talkingPoints.points.0.body".
+    # The indexes also define the order of the talking-points. It is recommended to specify the talking points in the order of
+    # their importance.
+    # Each talking-point consists of a title and a body, it is necessary to specify both keys for each talking-point.
+    # The talking-points are displayed in two columns this means it is advantageous to have an even number of talking-points.
+    # Talking-points should ideally be roughly similar in the number of lines. Otherwise the styling of the grid might not look
+    # particularly nice.
+    # Ideally the number of talking-points should not be greater than four since everything beyond that will likeley not be seen
+    # by many users because scrolling would be required.
+    talkingPoints.points.0.title:
+      en: Illegal Surveillance
+      de: Illegale Überwachung
+      sv: Illegal övervakning
+      fr: Surveillance illégale
+      da: Ulovlig overvågning
+      pt: Vigilância ilegal
+    talkingPoints.points.0.body:
+      en: The independent research / scrutiny services of the EU Commission, Parliament, Council and data protection supervisor all agree, this law is unconstitutional and would likely not survive the high court. No child is protected, if this law is struck down in court in three years.
+      de: Die wissenschaftlichen Dienste von EU-Kommission, Parlament und Rat sowie die Datenschutzbeauftragten sind sich einig, dass dieser Gesetzesvorschlag verfassungswidrig ist und vor dem EuGh nicht bestehen würde.
+      sv: EU parlamentets utredningstjänst, kommissionens och ministerrådets rättstjänst och dataskyddsansvariga är eniga om att lagförslaget bryter mot EUs grundlag och skulle sannoliken sågas av högsta domstolen. Inga barn kommer att skyddas om lagen förkastas av EU domstolen om tre år.
+      fr: Les rechercheurs indépendants et services de surveillance de la Commission européenne, du Parlement européen, du Conseil européen et le Contrôleur européen de la protection des données sont tous d'accord que ce projet de loi est anticonstitutionnel et a peu de chances à la Cour de justice de l'UE. Les enfants ne sont pas protégés si cette régulation est abolie à la Cour dans trois années.
+      da: Videnskabelige tjenester fra EU-kommissionen, EU-parlamentet, EU-Rådet og Datatilsynet siger, at lovforslaget er grundlovsstridig, og at EU-domstolen sandsynligvis vil erklære loven for ugyldig.
+      pt: Os investigadores independentes da Comissão Europeia, do Parlamento Europeu, e do Conselho Europeu concordam que a lei é inconstitucional e não passaria no Tribunal Supremo. Não vamos proteger nenhuma criança se a lei for derrubada daqui a três anos.
+    talkingPoints.points.1.title:
+      en: Magic Technology won't save us
+      de: Technische Wundermittel sind nicht die Rettung
+      sv: Teknologiskt trolleri är inte räddningen
+      fr: La technologie n'est pas un remède miracle
+      da: Teknisk trylleri er ikke løsningen
+      pt: Tecnologia mágica não nos vai ajudar
+    talkingPoints.points.1.body:
+      en: There is no filter technology in the world that can accurately classify these types of illegal content. With the billions of messages Europeans send every day, hundreds of millions of legal messages would be read by an unintended recipient. Legal speech would be suppressed on a massive scale.
+      de: Keine Filtertechnologie der Welt kann diese Art illegaler Inhalte zuverlässig klassifizieren. Selbst bei optimistischen Fehlerraten im einstelligen Prozentbereich würden in Anbetracht von Milliarden täglicher Nachrichten hunderte Millionen harmloser Nachrichten bei nicht-Adressaten landen. In unerhörtem Umfang würde freie Rede behindert.
+      sv: Det finns ingen filterteknologi som på ett pålitligt sätt identifierar den här typen av olagligt innehåll. Det skickas miljarder meddelanden varje dag, så polisen skulle översvämmas med hundramiljontals helt oskyldiga meddelanden. Yttrandefriheten skulle begränsas kolossalt.
+      fr: Il n'y a pas une technique de filtrage dans tout le monde qui est capable de trouver fiablement ce type de contenu illégal. En Europe, ce sont quelques milliards de messages qui sont partagés tous les jours. Ce seront quelque cent millions des messages légaux qui seront envoyés à la police due à des détections erronées. Par conséquent, le discours juridique serait supprimé sur une échelle massive.
+      da: Der findes ingen teknologi i hele verden, som pålideligt kan klassificere disse illegale indhold. Milliarder af beskeder sendes hver dag i EU, og masser af lovlige beskeder vil blive markeret som mistænkelige og blive videresendt til nogle uvedkommende. Det er en massiv krænkelse af frie og private samtaler.
+      pt: Não existe nenhuma tecnologia no mundo que consiga classificar correctamente estes tipos de conteúdo ilegal. Com os milhares de milhões de mensagens que os Europeus enviam todos os dias, centenas de milhões de mensagens legais seriam lidas por terceiros. Estaríamos a oprimir a expressão legal de europeus a uma escala maciça.
+    talkingPoints.points.2.title:
+      en: Chat control does not protect children
+      de: Chatkontrolle schützt Kinder nicht
+      sv: Chatkontroll skyddar inte barnen
+      fr: Le contrôle du chat ne protège pas les enfants
+      da: Chatkontrol beskytter ikke børn
+      pt: O ChatControl não protege as crianças
+    talkingPoints.points.2.body:
+      en: This chat control law lacks evidence that it would improve the situation of victims. Instead of pouring money into expensive surveillance technologies that don't work, the EU should promote prevention, education and victim protection measures. The EU Commission is preventing meaningful solutions by its narrow focus on surveillance technology as a supposed panacea for complex social problems.
+      de: Es gibt keinerlei Nachweise, dass dieses Gesetz die Situation der Opfer wesentlich verbessern würde. Statt Gelder in teure, fehleranfällige Überwachungstechniken zu stecken, sollte die EU Maßnahmen zur Aufklärung und zum Opferschutz fördern. Mit ihrem engen Fokus auf Überwachungstechnologie als Allheilmittel verhindert die EU sinnvolle Lösungsansätze für komplexe soziale Probleme.
+      sv: Det saknas bevis för att  chatkontroll kommer att på ett väsentligt sätt förbättra offrens situation. Istället för att lägga pengar på dyra, verkningslösa övervakningsteknologier, EU borde främja utbildning och andra förebyggande åtgärder. Kommissionen förhindrar effektiva åtgärder genom att satsa enbart på övervakning som ett medel mot komplexa sociala problem.
+      fr: Ce projet de loi manque des épreuves vis à sa fonction d'améliorer la situation des victimes. À la place d'investir des grands sommes en techniques de surveillance sujette aux bogues, elle devrait favoriser et financer les projets sur les mesures de l'éducation, de la prévention et de la protection. La Commission européenne empêche que les solutions efficaces s'établissent en seulement considérant la surveillance comme solution véritable pour les problèmes sociaux et complexes.
+      da: Der findes ingen beviser for, at chatkontrol faktisk vil forbedre ofrenes situation. I stedet for at spilde penge på dyr og dårlig overvågningsteknologi, burde EU styrke initiativer, som laver forebyggelse mod børnemisbrug, og som beskytter ofrene. Det snævre fokus på overvågningsteknologi, som en løsning på komplekse sociale problemer, er den forkerte vej at gå.
+      pt: Não há evidências de que a lei do ChatControl melhoraria a situação das vítimas. Em vez de atirar dinheiro para tecnologias de vigilâncias que não funcionam, a UE deve promover medidas de prevenção, de educação e de protecção de vítimas. A Comissão Europeia está a impedir soluções viáveis ao se focar completamente em tecnologias de vigilância como se fossem uma solução milagrosa para problemas sociais complexos.
+    talkingPoints.points.3.title:
+      en: Police will be overwhelmed with false positives
+      de: Massenweiser Falschalarm überlastet die Polizei
+      sv: Falska larm vill överlasta polisen
+      fr: La police sera débordée avec les détections erronées
+      da: Politiet vil blive overbelastet på grund af falske alarmer
+      pt: A polícia vai ser inundada com falsos positivos.
+    talkingPoints.points.3.body:
+      en: Evidence shows that these tools already routinely flag lawful images such as family beach photos or consensual adult content. Police already can't handle the case load and with these new automated tools million more false positives would end up on their desks. That will take valuable time and resources away from investigating actual perpetrators.
+      de: Nachweislich kennzeichnen diese Tools routinemäßig rechtmäßige Bilder wie Familienfotos vom Strand oder einvernehmlich geteilte sexuelle Inhalte in Konversationen zwischen Erwachsenen. Schon heute kann die Polizei nicht allen Anzeigen nachgehen. Täglich Millionen neuer Anzeigen aufgrund überwiegend falscher Verdachtsfälle würden die Behörden lahmlegen und wertvolle Ressourcen für tatsächliche Strafverfolgung stehlen.
+      sv: Det finns bevis för att dessa verktyg rutinmässigt flaggar helt lagliga bilder, t.ex. familjefoton från stranden eller samtyckesinnehåll för vuxna. Redan idag är polisen helt överlastad. Miljontals nya anmälningar dagligen på grund av den höga felkvoten skulle översvämma myndigheterna och stjäla värdefulla resurser som hade behövts för att få fast dem verkliga bovarna.
+      fr: Il y a déjà évidence que ces outils techniques régulièrement marquent des photos légales comme des photos d'une famille à la plage ou du contenu consensuel adulte. La police n'a pas déjà la capacité de s'occuper de tous ces cas et avec l'implementation d'un outil automatique ils auront plusieurs millions des détections erronées de s'occuper. Ce temps investi en travailler avec les fausses détections serait perdu pour investiguer les vrais criminels.
+      da: Den nuværende teknologi klassificerer ofte lovlige familiebilleder, fx fra en strandentur forkert. Det samme gælder lovligt seksuelt indhold som deles blandt sexuelle partnere. Politiet har allerede problemer med at håndtere den nuværende mængde af anmeldelser. Chatcontrol vil kræve endnu flere resurser som ikke er til rådighed for at bekæmpe reelt børnemisbrug.
+      pt: As evidências mostram que estas ferramentas denunciam sistematicamente imagens legais, como fotos de família na praia ou conteúdo adulto consensual. A polícia já não consegue lidar com todos os casos que recebe, e estas novas ferramentas automáticas adicionarão milhões de falsos positivos ao seu trabalho. Isto consumirá tempo e recursos que podiam ser gastos a investigar criminosos reais.
+    talkingPoints.points.4.title:
+      en: False positives endanger innocent people
+      de: Fehlalarme gefährden Unschuldige
+      sv: Oskyldiga utsätts för falska larm
+      fr: Les détections erronées posent un danger aux personnes innocentes
+      da: Uskyldige borgere vil blive udsat for falske alarmer
+      pt: Falsos positivos põe em perigo pessoas inocentes
+    talkingPoints.points.4.body:
+      en: There are already documented cases in which voluntary chat control by companies has led to suspicion reports against innocent people. For example, several people have pursued court cases in the EU because they were permanently locked out of all their digital accounts following an accusation of sharing abuse material - despite the subsequent investigation clearing them of any wrongdoing. With chat control, such false suspicions would happen every day.
+      de: Es gibt bereits bekannte Fälle in denen freiwillige Chatkontrolle durch Unternehmen zu Anzeigen gegen unschuldige Nutzer geführt hat. So haben beispielsweise mehrere Personen in der EU vor Gericht geklagt, weil sie nach einer Beschuldigung, Missbrauchsmaterial geteilt zu haben, dauerhaft aus allen ihren digitalen Konten ausgesperrt wurden - obwohl die anschließende Untersuchung sie von jeglichem Fehlverhalten freisprach. Mit verpflichtender Chatkontrolle würden derartige Fehlalarme ständig passieren.
+      sv: Redan idag finns det kända fall där oskyldiga användare pekas ut som kriminella av företag som använder frivillig chatkontroll. Till exempel behövde flera personer driva domstolsprocesser i EU efter att de permanent låsts ut från alla sina digitala konton i samband med en anklagelse om att ha delat övergreppsmaterial - trots att den efterföljande utredningen friade dem från alla felaktigheter. Med chatkontroll, vi kan vänta oss den typen av falska larm hela tiden.
+      fr: Chez quelques entreprises l'implementation d'un contrôle du chat volontaire a mené aux rapports de soupçon des personnes innocentes. Par exemple, y avait-il des procédures judiciaires nombreuses dans l'UE où les personnes étaient refuser l'accès à leurs comptes numériques car ils étaient soupçonnés d'avoir partagé du contenu d'abus. Malgré que les investigations révélaient qu'ils étaient innocents dans le cas. Avec le contrôle du chat mis en place, ces accusations seraient le quotidien.
+      da: Der findes allerede tilfælde, hvor frivilig chatkontrol har medført, at uskyldige blev sigtet. Disse uskyldige mistede adgang til deres digitale kontoer på grund af fejlidentifikationen. Selvom de blev erklæret uskyldige, var de nødt til at føre en retssag på EU-niveau mod virksomheder for at får adgangen til deres digitale kontoer tilbage. Den forpligtende chatkontrolle vil medføre at dette vil ske endnu hyppigere.
+      pt: Já há casos documentados em que sistemas de vigilância implementados voluntariamente por empresas levou a queixas contra pessoas inocentes. Por exemplo, várias pessoas foram a tribunal na UE porque foram impedidas de aceder às suas contas de serviços digitais como consequência de serem acusadas de partilharem material de exploração de menores - mesmo após a investigação as ilibar de qualquer crime. Com o ChatControl, estas queixas em falso aconteceriam todos os dias.
+    talkingPoints.points.5.title:
+      en: Encryption is the precondition for privacy, security and trust online
+      de: Verschlüsselung ist Voraussetzung für Privatsphäre, Sicherheit und Vertrauen im Netz
+      sv: Kryptering som förutsättning för privatsfär, säkerhet och tillit på nätet
+      fr: Le chiffrement est la condition préalable à la confidentialité, à la sécurité et à la confiance en ligne
+      da: Kryptering er en forudsætning for privatliv, sikkerhed og tillid online
+      pt: Encriptação das comunicação é necessária para haver privacidade, segurança e confiança online
+    talkingPoints.points.5.body:
+      en: If encryption is broken for one use case it is broken for all of society. We cannot take the right to secure and private communication away from just a few bad actors. If private messaging or cloud hosting services have to scan the messages of their users, they need to be able to circumvent the protections that right now make such scanning impossible. Intelligence agencies but also criminals are the main beneficiaries of a world in which no online communication can be trusted.
+      de: Wenn Verschlüsselung für diesen Anwendungsfall ausgehebelt wird, ist sie für die gesamte Gesellschaft verloren. Es ist nicht möglich, lediglich den Verbrechern das Recht auf sichere und vertrauliche Kommunikation zu entziehen. Wenn Dienstleister für private Kommunikation oder Cloud-Speicher verpflichtet sind die Nachrichten ihrer Anwender zu scannen, müssen sie zwangsläufig den Schutz dieser Nachrichten umgehen. Neben Nachrichtendiensten ist vor allem die organisierte Kriminalität Gewinner in einer Welt, in der Kommunikation im Netz nicht mehr vertraut werden kann.
+      sv: Försvagar man kryptering så drabbar detta hela samhället, inte bara dem kriminella som man egentligen vill åt. Om företag är tvungna att undersöka sina kunders meddelanden eller filer som sparas i molnet så måste de kringgå skyddet som krypteringen erbjuder. Underrättelsetjänster men framförallt organiserad brottslighet gynnas mest i en värld där en säker kommunikation på nätet blir omöjlig.
+      fr: Si le chiffrement est cassé une fois, c'est cassé pour tous les jours à venir. On ne peut pas contourner le droit à une communication confidentielle et sécurisée à quelques mauvais acteurs. L'implémentation d'une telle technique de surveillance fera sauter toutes les précautions qui sont actives en ce moment pour rendre impossible la surveillance comme celle-ci proposée dans la regulation. Les services de rensignement et les criminels profitent également d'un monde ou la communication confidentielle est effectivement abolie.
+      da:  Det er umuligt kun at fratage kriminelle retten til sikker kommunikation uden at påvirke resten af samfundet. Hvis tjenester for private kommunikation og cloud storage er forpligtet til at scanne beskeder og filer, som ejes af deres kunder, så er de nødt til at svække krypteringen for alle. Det vil gavne efterretningstjenester og organiserede kriminelle mest, hvis vi får en verden hvor sikker kommunikationen ikke er mulig.
+      pt: Se a encriptação for ultrapassada para um caso de uso, é ultrapassada para toda a sociedade. Não podemos tirar às pessoas o direito a comunicações seguras e privadas por causa de alguns criminosos. Se os serviços de comunicação ou alojamento na núvem tiverem de monitorizar as mensagens todas dos seus utilizadores, terão de desactivar as protecções que hoje em dia impedem que essa monitorização seja feita. Quem benificiará num mundo onde nenhuma comunicação online possa ser confiada serão os serviços de espionagem e criminosos.
+    talkingPoints.points.6.title:
+      en: Threats to professional secrecy
+      de: Gefährdung des Berufsgeheimnisses
+      sv: Yrken med tystnadsplikt hotas
+      fr: Menacnes contre les secrets professioneels
+      da: En trussel mod professionel fortrolighed
+      pt: Ameaças ao sigilo profissional
+    talkingPoints.points.6.body:
+      en: The analog equivalent of the current proposal would be, among other things, that  a machine in our home reads our letters before we put them in the envelope, and sends them to private moderators and police when they predict anything seems suspicious. Except that we communicate and reveal much more about ourselves and our contacts online than we do with letters. Some professions are bound to secrecy for good reasons, e.g. doctors, lawyers and journalists. Chat control threatens the protection of such professional secrets that are important for our democratic societies.
+      de: Die Entsprechung zum aktuellen Vorschlag in der analogen Welt wäre ein Gerät, das jeden Brief liest bevor wir ihn in einen Umschlag stecken, und bei "verdächtigem" Inhalt private Moderatoren und die Polizei informiert. Nur dass wir online viel mehr über uns verraten als in Briefen. Das betrifft besonders auch Ärzte, Rechtsanwälte und Journalisten. Für diese Berufe gibt es aus gutem Grund ein Berufsgeheimnis, das essentiell für unsere demokratische Gesellschaft ist.
+      sv: 'Tänker man sig en liknelse till chatkontroll i den analoga världen så vore det  en maskin som läser samtliga brev innan de läggs i ett kuvert, och att maskinen skickar vidare breven till polisen så snart den tror sig ha hittat "misstänkt" innehåll. Bara att vi berättar så mycket mer om oss idag i vår kommunikation på nätet. Vissa yrken skulle drabbas särskilt hårt av en lag om chatkontroll: Advokater, läkare med tystnadsplikt, journalister som vill skydda sina källor. Att undergräva deras rätt till förtrolig kommunikation utgör ett massivt hot mot vårt demokratiskt samhälle.'
+      fr: L'équivalent analogique du projet de loi en question serait par exemple une machine qui lit nos lettres avant que nous les mettions dans l'enveloppe. Le contenu dans nos lettres sera envoyé aux inspecteurs secrets et à la police si cette machine voit quelque chose de suspecte. D'ailleurs, notre communication en ligne révèle beaucoup plus sur nous et nos contacts qu'une lettre jamais pourrait faire. De plus, à côté de notre besoin de la confidentialité naturelle, certaines professions sont dépendantes de la confidentialité. Ça s'applique notamment pour les docteurs, les avocats et les journalistes. Le contrôle du chat est une menace exemplaire pour ces professions qui sont de plus importants pour nos sociétés démocratiques.
+      da: Den analoge ækvivalent til det nuværende lovforslag kunne fx være en maskine i vores hjem, som læser alle vores breve, før vi lægger dem i en kuvert. Maskinen ville sende en kopi af brevet til moderatorer og politiet, hvis maskinen mente at den havde fundet noget mistænkeligt. Men vores onlinekommunikation indeholder langt flere informationer om os end vores breve. Nogle professioner, som fx advokater, læger og journalister, har særlige behov for fortrolighed. Chatcontrol truer den professionelle fortrolighed som er meget vigtig i vores demokratiske samfund.
+      pt: Uma analogia possível a esta proposta é instalar uma máquina nas nossas casas que lê toda a nossa correspondência antes de ser posta no envelope e que envia a um conjunto de moderadores privados e agentes da polícia quando algo parece suspeito. Com a agravante que nós comunicamos e revelamos muito mais sobre nós e os nossos contactos online do que fazemos com cartas postais. Algumas profissões estão vinculadas pelo sigilo profissional por bons motivos, p.e. médica/os, advogada/os, e jornalistas. O ChatControl ameaça a protecção do sigilo profissional, que é importante para a nossa democracia.
+    talkingPoints.points.7.title:
+      en: Setting a bad example globally
+      de: Schlechte Vorbildwirkung weltweit
+      sv: EU som dålig förebild
+      fr: Donner un mauvais exemple à l'échelle globale
+      da: EU bliver et dårligt forbillede
+      pt: Dar um mau exemplo a nível global
+    talkingPoints.points.7.body:
+      en: The GDPR has shown that the European Union can set global standards that other parts of the world will follow. If this legislation is passed, the European Union is giving authoritarian governments around the world an excuse to implement mass surveillance plans with a similar design. Such a surveillance infrastructure can easily be misused for other purposes once it has been created.
+      de: Die DSGVO hat gezeigt, dass die EU weltweit Standards setzen kann, denen andere Teile der Welt folgen. Falls die Gesetzgebung zur Chatkontrolle angenommen wird, bietet die EU autoritären Regimen eine Ausrede, ähnliche Maßnahmen zur Massenüberwachung einzuführen. Wenn einmal vorhanden, kann eine derartige Überwachungsinfrastruktur leicht für andere Zwecke missbraucht werden.
+      sv: GDPR har visat att lagar som införs i EU kan vara förebild för länder utanför unionen. Ifall lagen om chatkontroll antas är det en fantastisk ursäkt för auktoritära regimer världen för att installera liknande åtgärder för massövervakning. En gång på plats, kan infrastrukturen användas för alla möjliga andra syften.
+      fr: Le RGPD a montré que l'UE peut servir de modèle au monde en établissant des standards qu'autres pays dans tout le monde essaient à suivre. Si l'UE implémentera cette regulation, elle donnait une excuse aux régimes totalitaires autour du monde pour implementer des systèmes de surveillance similaires. Un tel système se présente avec un grand potentiel d'abus une fois établi.
+      da: GDPR har vist, at EU kan sætte standarder, som bliver et forbillede for resten af verden. Hvis loven bliver vedtaget, får autoritære stater mulighed for at burge EU som forbillede og indføre lignende masseovervågning. Overvågningsinfrastrukturen kan også nemt misbruges til andre formål.
+      pt: O RGPD mostrou que a União Europeia pode definir normas globais que outras partes do mundo seguirão. Se o ChatControl for aprovado, a União Europeia está a dar uma desculpa aos governos autoritários do mundo inteiro para implementar vigilância em massa semelhantes. Com esta infrastrutura implementada, facilmente pode ser abusada para outros propósitos.
+    talkingPoints.points.8.title:
+      en: Putting people’s personal devices at risk
+      de: Gefährdet die Sicherheit mobiler Endgeräte
+      sv: Utsätter mobila enheter för större risker
+      fr: Mettre en danger les appareils personnels
+      da: Truer sikkerheden i mobilt IT-udstyr
+      pt: Por em risco os nossos aparelhos pessoais
+    talkingPoints.points.8.body:
+      en: There is consensus from the tech community that technologies to scan encrypted messages are unsafe and create dangerous vulnerabilities in our personal devices. This could put victims of domestic partner violence and child abuse at greater risk of cyber stalking and violence, and journalists, politicians and activists at greater risk of illegal spyware being put on their phones.
+      de: In der Tech-Community herrscht Konsens, dass Technologien zum Scannen verschlüsselter Nachrichten unsicher sind und gefährliche Schwachstellen in unseren Geräten schaffen. Dies setzt Opfer häuslicher Gewalt oder Kindesmissbrauchs der Gefahr des Cyber-Stalkings aus und erhöht das Risiko für Journalisten, Politiker oder Aktivisten, dass ihre Geräte ausgespäht werden.
+      sv: Inom tech communityn råder det samförstånd att teknologier som kan läsa krypterade meddelanden skapar farliga sårbarheter i våra mobila enheter. Offer för våld i nära relationer och barnmisshandel löper då större risk för cyberstalking, och journalister, politiker och aktivister riskerar i ännu större utsträckning att få spionprogram installerade på sina telefoner.
+      fr: Dans la communauté technique on est d'accord que les techniques utilisées pour inspecter la communication chiffrée ne sont pas sécurisées, ni digne de confiance car ils établissent des vulnérabilités dangereuses dans nos appareils personnels. Comme conséquence, le risque du cyber-harcèlement et violence augmentera chez les victimes  d'une relation violente ou chez les enfants abusés. De plus, la probabilité d'infiltration des appareils personnels avec l'espiogiciel augmentera chez les politiciens, journalistes et activistes.
+      da: Teknologieksperter er enige om, at det skaber sårbarhed, når man scanner krypterede beskeder. Det er farligt for voldofre og misbrugsofre, fordi det øger risikoen for cyberstalking. Det øger også risikoen for, at journalister, politikere og aktivister får hacket deres mobiltelefoner.
+      pt: Na comunidade técnica há um consenso que as tecnologias de monitorizar mensagens encriptadas são inseguras e criam vulnerabilidades perigosas nos nossos aparelhos pessoais. Isto pode aumentar o risco de as vítimas de abuso doméstico e infantil sofrerem cyberstalking e violência, assim como põe as classes jornalistas, políticas e activistas em risco de serem espiadas através dos seus telefones.
+    talkingPoints.moreArgumentsHtml:
+      en: <a href="https://edri.org/wp-content/uploads/2023/05/CSAR-summary-booklet.pdf">More Arguments</a>
+      de: <a href="https://edri.org/wp-content/uploads/2023/05/CSAR-summary-booklet.pdf">Mehr Argumente</a>
+      sv: <a href="https://edri.org/wp-content/uploads/2023/05/CSAR-summary-booklet.pdf">Fler argument</a>
+      fr: <a href="https://edri.org/wp-content/uploads/2023/05/CSAR-summary-booklet.pdf">Fler arguments</a>
+      da: <a href="https://edri.org/wp-content/uploads/2023/05/CSAR-summary-booklet.pdf">Flere argumenter</a>
+      pt: <a href="https://edri.org/wp-content/uploads/2023/05/CSAR-summary-booklet.pdf">Mais argumentos</a>
+
+  # Translation strings for the language switcher component
+
+    # Label for the language select component
+    languages.language: Language
+
+    # All names of the available languages should be listed in this section.
+    # It is preferred that the name of each language is in that language rather
+    # than translated.
+    # The translation keys should be named according to the languages specified
+    # under "l10n.languages".
+    # It is required that each language specified under "l10n.languages" is also
+    # listed in this section.
+    languages.en: English
+    languages.de: Deutsch
+    languages.sv: Svenska
+    languages.fr: Français
+    languages.da: Dansk
+    languages.pt: Português
+
+  # Footer text of the app.
+  # Html formatting is allowed in this string.
+  # Keep in mind that the content should fit in a single line of text in order to not break the layout.
+    footer.contentHtml:
+      en: <a href="https://dearmep.eu" target="_blank">DearMEP</a>&nbsp;powered by&nbsp;
+          <a href="https://en.epicenter.works" target="_blank">Epicenter.works</a>
+      de: <a href="https://dearmep.eu" target="_blank">DearMEP</a>&nbsp;powered by&nbsp;
+          <a href="https://epicenter.works" target="_blank">Epicenter.works</a>
+      sv: <a href="https://dearmep.eu" target="_blank">DearMEP</a>&nbsp;powered by&nbsp;
+          <a href="https://en.epicenter.works" target="_blank">Epicenter.works</a>
+      fr: <a href="https://dearmep.eu" target="_blank">DearMEP</a>&nbsp;powered by&nbsp;
+      da: <a href="https://dearmep.eu" target="_blank">DearMEP</a>&nbsp;powered by&nbsp;
+          <a href="https://en.epicenter.works" target="_blank">Epicenter.works</a>
+      pt: <a href="https://dearmep.eu" target="_blank">DearMEP</a>&nbsp;powered by&nbsp;
+          <a href="https://en.epicenter.works" target="_blank">Epicenter.works</a>
+
+  # Translation strings for the call-scheduling section of the app.
+
+    schedule.title:
+      en: Schedule a call
+      de: Anruf planen
+      sv: Schemalägg samtal
+      fr: Trouver un date pour appeler
+      da: Planlæg et opkald
+      pt: Agendar uma chamada
+    schedule.description:
+      en: 'Plan now to talk to a politican later! Select a day and time:'
+      de: 'Wähle jetzt Tag und Uhrzeit für dein Gespräch mit eine*r Politiker*in:'
+      sv: 'Välj dag och tid för ditt samtal med en Europaparlamentariker:'
+      fr: "Quand voudrais-tu appeler un membre du Parlement européen? Ajoute un jour et temps, s'il te plaît."
+      da: Vælg et senere tidspunktet for din samtale med en politiker nu
+      pt: 'Agenda falar com um membro do Parlamento! Escolhe o dia e a hora:'
+    schedule.scheduleAsText:
+      en: We will give you a ring every {{ timeSlots }} at your number to connect you
+        with a politician from {{ country }}.
+      de: Wir werden dich jeden {{ timeSlots }} auf deiner Nummer anrufen um dich mit eine*r Politiker*in aus {{ country }} zu verbinden.
+      sv: Vi kommer att ringa dig varje {{ timeSlots }} på ditt nummer för att koppla dig till en Europaparlamentariker från {{ country }}.
+      fr: Nous t'appelerons tous les {{ timeSlots }} à ton numéro pour te mettre en contact avec un membre du Parlement européen du / de la {{ country }}.
+      da: Vi vil ringe til dig hver {{ timeSlots }} med dit nummer for at forbinde dig med en politiker fra {{ country }}
+      pt: Vamos ligar para o teu número a cada {{ timeSlots }} para te por em contacto com um membro do Parlamento Europeu de {{ country }}.
+    schedule.timeSlot:
+      en: "{{ dayOfWeek }} around {{ time }}"
+      de: "{{ dayOfWeek }} um {{ time }}"
+      sv: "{{ dayOfWeek }} klockan {{ time }}"
+      fr: "{{ dayOfWeek }} à {{ time }}"
+      da: "{{ dayOfWeek }} klokken {{ time }}"
+      pt: "{{ dayOfWeek }} às {{ time }}"
+
+    # Long-Names of the seven weekdays.
+    # The inxex is zero-based and ordered according to the semantics of 'Date.getDay()' in JavaScript.
+    # Example: 0 => "Sunday", 1 => "Monday", ...
+    # See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/getDay
+    schedule.days.0:
+      en: Sunday
+      de: Sonntag
+      sv: söndag
+      fr: Dimanche
+      da: søndag
+      pt: domingo
+    schedule.days.1:
+      en: Monday
+      de: Montag
+      sv: måndag
+      fr: Lundi
+      da: mandag
+      pt: segunda-feira
+    schedule.days.2:
+      en: Tuesday
+      de: Dienstag
+      sv: tirsdag
+      fr: Mardi
+      da: tirdag
+      pt: terça-feira
+    schedule.days.3:
+      en: Wednesday
+      de: Mittwoch
+      sv: onsdag
+      fr: Mercredi
+      da: onsdag
+      pt: quarta-feira
+    schedule.days.4:
+      en: Thursday
+      de: Donnerstag
+      sv: torsdag
+      fr: Jeudi
+      da: torsdag
+      pt: quinta-feira
+    schedule.days.5:
+      en: Friday
+      de: Freitag
+      sv: fredag
+      fr: Vendredi
+      da: fredag
+      pt: sexta-feira
+    schedule.days.6:
+      en: Saturday
+      de: Samstag
+      sv: lördag
+      fr: Samedi
+      da: lørdag
+      pt: sábado
+
+    # Short-Names of the seven weekdays.
+    # Ideally two-letter abbreviations of the weekdays should be used.
+    # It is possible to use more than two letters if necessary but it might lead to styling-issues.
+    # The inxex is zero-based and ordered according to the semantics of 'Date.getDay()' in JavaScript.
+    # Example: 0 => "Sunday", 1 => "Monday", ...
+    # See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/getDay
+    schedule.days-short.0:
+      en: Su
+      de: So
+      sv: sön
+      fr: Dim
+      da: søn
+      pt: dom
+    schedule.days-short.1:
+      en: Mo
+      de: Mo
+      sv: mån
+      fr: Lun
+      da: man
+      pt: seg
+    schedule.days-short.2:
+      en: Tu
+      de: Di
+      sv: tis
+      fr: Mar
+      da: tir
+      pt: ter
+    schedule.days-short.3:
+      en: We
+      de: Mi
+      sv: ons
+      fr: Mer
+      da: ons
+      pt: qua
+    schedule.days-short.4:
+      en: Th
+      de: Do
+      sv: tor
+      fr: Jeu
+      da: tor
+      pt: qui
+    schedule.days-short.5:
+      en: Fr
+      de: Fr
+      sv: fre
+      fr: Ven
+      da: fre
+      pt: sex
+    schedule.days-short.6:
+      en: Sa
+      de: Sa
+      sv: lör
+      fr: Sam
+      da: lør
+      pt: sáb
+
+    # Main text of the primary button that lets the user save the configured schedule.
+    schedule.schedule-btn.title:
+      en: Confirm
+      de: Bestätige
+      sv: Bekräfta
+      fr: Confirmer
+      da: Bekræft
+      pt: Confirmar
+
+    # Sub-text of the primary button that lets the user save the configured schedule.
+    # Currently the intention of this sub-text is to reassure the user that they will not be charged
+    # for the call.
+    schedule.schedule-btn.subtitle:
+      en: Free of charge
+      de: Kostenlos
+      sv: Kostnadsfri
+      fr: Gratuit
+      da: Gratis
+      pt: Grátis
+
+    # Text to hint the time-zone of the displayed times.
+    # This is usually the currently selected time-zone of the browser.
+    # Placeholder {{ zone }} is replaced by the name of the time-zone
+    # Example: "Time: {{ zone }}" => "Time: Europe/Vienna"
+    schedule.timezone:
+      en: 'Time: {{ zone }}'
+      de: 'Zeit: {{ zone }}'
+      sv: 'Tid: {{ zone }}'
+      fr: 'Temps: {{ zone }}'
+      da: 'Tid: {{ zone }}'
+      pt: 'Fuso horário: {{ zone }}'
+
+  # Names of all countries available for selection
+  # Make sure to use two-letter ISO country codes (ISO-3166) in the keys.
+    countries.BE:
+      en: Belgium
+      de: Belgien
+      sv: Belgien
+      fr: Belgique
+      da: Belgien
+      pt: Bélgica
+    countries.BG:
+      en: Bulgaria
+      de: Bulgarien
+      sv: Bulgarien
+      fr: Bulgarie
+      da: Bulgarien
+      pt: Bulgária
+    countries.CZ:
+      en: Czechia
+      de: Tschechien
+      sv: Tjeckien
+      fr: Tchéquie
+      da: Tjekkiet
+      pt: Chéquia
+    countries.DK:
+      en: Denmark
+      de: Dänemark
+      sv: Danmark
+      fr: Danemark
+      da: Danmark
+      pt: Dinamarca
+    countries.DE:
+      en: Germany
+      de: Deutschland
+      sv: Tyskland
+      fr: Allemagne
+      da: Tyskland
+      pt: Alemanha
+    countries.EE:
+      en: Estonia
+      de: Estland
+      sv: Estland
+      fr: Estonie
+      da: Estland
+      pt: Estónia
+    countries.IE:
+      en: Ireland
+      de: Irland
+      sv: Irland
+      fr: Irlande
+      da: Irland
+      pt: Irlanda
+    countries.GR:
+      en: Greece
+      de: Griechenland
+      sv: Grekland
+      fr: Grèce
+      gr: Ελλάδα
+      da: Grækenland
+      pt: Grécia
+    countries.ES:
+      en: Spain
+      de: Spanien
+      sv: Spanien
+      fr: Espagne
+      da: Spanien
+      pt: Espanha
+    countries.FR:
+      en: France
+      de: Frankreich
+      sv: Frankrike
+      fr: France
+      da: Frankrig
+      pt: França
+    countries.HR:
+      en: Croatia
+      de: Kroatien
+      sv: Kroatien
+      fr: Croatie
+      da: Kroatien
+      pt: Croácia
+    countries.IT:
+      en: Italy
+      de: Italien
+      sv: Italien
+      fr: Italie
+      da: Italien
+      pt: Itália
+    countries.CY:
+      en: Cyprus
+      de: Zypern
+      sv: Cypern
+      fr: Chypre
+      da: Cypern
+      pt: Chipre
+    countries.LV:
+      en: Latvia
+      de: Lettland
+      sv: Lettland
+      fr: Lettonie
+      da: Letland
+      pt: Letónia
+    countries.LT:
+      en: Lithuania
+      de: Litauen
+      sv: Litauen
+      fr: Lituanie
+      da: Litauen
+      pt: Lituânia
+    countries.LU:
+      en: Luxembourg
+      de: Luxemburg
+      sv: Luxemburg
+      fr: Luxembourg
+      da: Luxembourg
+      pt: Luxemburgo
+    countries.HU:
+      en: Hungary
+      de: Ungarn
+      sv: Ungern
+      fr: Hongrie
+      da: Ungarn
+      pt: Hungria
+    countries.MT:
+      en: Malta
+      de: Malta
+      sv: Malta
+      fr: Malte
+      da: Malta
+      pt: Malta
+    countries.NL:
+      en: Netherlands
+      de: Niederlande
+      sv: Nederländerna
+      fr: Pays-Bas
+      da: Holland
+      pt: Países Baixos
+    countries.AT:
+      en: Austria
+      de: Österreich
+      sv: Österrike
+      fr: Autriche
+      da: Østrig
+      pt: Áustria
+    countries.PL:
+      en: Poland
+      de: Polen
+      sv: Polen
+      fr: Pologne
+      da: Polen
+      pt: Polónia
+    countries.PT:
+      en: Portugal
+      de: Portugal
+      sv: Portugal
+      fr: Portugal
+      da: Portugal
+      pt: Portugal
+    countries.RO:
+      en: Romania
+      de: Rumänien
+      sv: Rumänien
+      fr: Roumanie
+      da: Rumænien
+      pt: Roménia
+    countries.SI:
+      en: Slovenia
+      de: Slowenien
+      sv: Slovenien
+      fr: Slovénie
+      da: Slovenien
+      pt: Eslovénia
+    countries.SK:
+      en: Slovakia
+      de: Slowakei
+      sv: Slovakien
+      fr: Slovaquie
+      da: Slovakiet
+      pt: Eslováquia
+    countries.FI:
+      en: Finland
+      de: Finnland
+      sv: Finnland
+      fr: Finlande
+      da: Finland
+      pt: Filândia
+    countries.SE:
+      en: Sweden
+      de: Schweden
+      sv: Sverige
+      fr: Suède
+      da: Sverige
+      pt: Suécia
+
+  # General purpose string snippets
+
+    # Delimiter used in enumerations of items
+    # Example: [ "A", "B", "C" ] => "A, B, C" using the delimiter ", "
+    util.join.delimiter:
+      en: ", "
+      de: ", "
+      sv: ", "
+      fr: ", "
+      da: ", "
+      pt: ", "
+
+    # Delimiter used in between the last and second-to-last items of an enumeration
+    # Example: [ "A", "B", "C" ] => "A, B and C" using the lastDelimiter " and "
+    util.join.lastDelimiter:
+      en: " and "
+      de: " und "
+      sv: " och "
+      fr: " et "
+      da: " og "
+      pt: " e "
+
+    # Error message that will be shown as a dialog when the connection to the server cannot be established
+    # or the server returns an error code after several retries.
+    error.genericApiError:
+      en: Error! Failed to connect to server!
+      de: Fehler! Verbeindung zum Server fehlgeschlagen!
+      sv: Fel! Ingen förbindelse till servern!
+      da: Fejl! Ingen forbindelse til serveren!
+      pt: Erro ao comunicar com o servidor.
+
+    # Generic error message that is used when an unusual error has occurred and we do not know what has happend.
+    errro.genericError:
+      en: An error has occurred!
+      de: Es ist ein Fehler aufgetreten!
+      sv: Ett fel har uppstått.
+      da: Et fejl er opstået.
+      pt: Ocorreu um erro.
+
+    # Title of the error-dialog, that will be shown when a severe error has occured.
+    error.errorDialogTitle:
+      en: Error
+      de: Fehler
+      sv: Fel
+      da: Fejl
+      pt: Erro
+
+    # OK-Button of the error-dialog, that will be shown when a severe error has occured.
+    error.errorDialogOK:
+      en: OK
+      de: OK
+      sv: OK
+      da: OK
+      pt: OK
