@@ -532,7 +532,7 @@ l10n:
       en: The system is currently down for maintenance. Please check back later.
       de: Das System ist momentan im Wartungsmodus und daher nicht verfügbar. Bitte versuche es später noch einmal.
       fr: Le système est actuellement en maintenance. Merci de revenir plus tard.
-      sv: Systemet är just nu i underhållsläge. V g försök senare.
+      sv: Systemet är just nu i underhållsläge. Var god och försök senare.
 
   # Translation strings for the calling-section on the right side of the screen
 
