@@ -15,7 +15,9 @@
     "format": "prettier --write .",
     "lint": "ng lint",
     "lint:fix": "ng lint --fix",
-    "generate-client": "ng-openapi-gen --input ../openapi.json --output src/app/api",
+    "generate-client": "ng-openapi-gen --input '../openapi.json' --output src/app/api",
+    "generate-client:local": "ng-openapi-gen --input 'http://localhost:8000/openapi.json' --output src/app/api",
+    "generate-client:remote": "ng-openapi-gen --input 'https://akvorrat.github.io/dearmep/openapi.json' --output src/app/api",
     "cypress:open": "cypress open",
     "cypress:run": "cypress run"
   },

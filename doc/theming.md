@@ -10,50 +10,61 @@ The appearance of the DearMEP client can be customized using CSS, allowing you t
 
 ## CSS Custom Properties
 
-The simplest way to customize the DearMEP client is by modifying its pre-defined CSS custom properties (variables). This approach enables you to change visual aspects such as colors, fonts, and spacing without needing to recompile the SCSS files.
+The simplest way to customize the DearMEP client is by modifying its predefined CSS custom properties (variables). This approach lets you adjust visual aspects such as colors, fonts, and spacing without the need to recompile SCSS files.
 
 ### Where to Find Variables
 
-The list of available variables is defined in [`variables.scss`](../client/src/style/themes/variables.scss). Additionally, you can explore custom properties with the `--dmep-` prefix using your browser’s developer tools.
+The available CSS custom properties are defined in [`variables.scss`](../client/src/style/themes/variables.scss). You can also explore properties prefixed with `--dmep-` using your browser’s developer tools.
 
-### Example
+### Example Usage
 
-Here's an example of how to adjust the client’s appearance by setting custom properties:
+Here’s an example of how to customize the client’s appearance by setting custom properties:
 
-```scss
-:host {
-  --dmep-text-color: rgba(255, 255, 255, 0.9);
-  --dmep-footer-text-color: rgba(255, 255, 255, 0.75);
-  --dmep-primary-color: rgba(250, 128, 114, 1);
-  --dmep-success-color: rgba(92, 184, 92, 1);
+```css
+dear-mep {
+  --dmep-bg: rgba(0, 0, 0, 75%);
+  --dmep-primary-color: rgb(250, 128, 114);
   /* Add more customizations as needed */
 }
 ```
 
+> **Note:** `--dmep-primary-color` does not affect the styles of Angular Material components.
+
 ### How It Works
 
-To apply your custom styles, simply load an additional stylesheet with the updated variables. This approach does not require recompiling the SCSS files. However, it is somewhat limited in scope, as it only allows you to adjust predefined properties.
+To apply your custom styles, you can load an additional stylesheet with updated CSS variables or use inline styles when embedding the client. Because CSS Custom Properties can traverse the Shadow DOM, you can override values from the Light DOM. However, this method has limitations:
+- Only predefined properties can be adjusted.
+- Modifying other style aspects is not supported through this method.
 
-## Customizing UI Components with Angular Material
+This approach allows you to adjust styles without modifying or recompiling the client’s original stylesheets. However, it cannot be used to customize Angular Material components.
 
-The DearMEP client uses **Angular Material** components, allowing for deeper customization through theming. If you need more control over the visual appearance, you can create a new theme following the [Angular Material Theming Guide](https://material.angular.io/guide/theming).
+## Advanced Customization
 
-### Current Theme
+For more extensive customizations, the above method may not suffice, particularly for styling Angular Material components. In such cases, you can create custom stylesheets by modifying the files in `/client/src/style/`. These stylesheets are compiled into CSS as part of the client’s build process.
 
-The current theme used in the client is defined in [`default-dark.scss`](../client/src/style/themes/default-dark.scss). Currently, only a dark theme is provided, but more themes may be added in the future.
+> **Caution:** When [overriding arbitrary styles](#overriding-arbitrary-styles), be mindful of potential breaking changes in future releases.
 
-### Building a Custom Angular Material Theme
+> **Note:** We acknowledge that theming the client can be complex and are working to simplify it in future releases.
 
-If you wish to build a new theme for Angular Material components:
+### Stylesheets
 
-1. Modify the SCSS files as needed.
-2. Compile the SCSS as part of the application build process. The theme is included in the [dear-mep-inner.scss](../client/src/style/dear-mep-inner.scss) file.
+The client’s styles are compiled into two main stylesheets:
+- **`dear-mep.css`** – Loaded in the Light DOM.
+- **`dear-mep-inner.css`** – Loaded in the Shadow DOM.
 
-> **Note**: When creating a custom theme, it's recommended to replace the existing stylesheet rather than loading an additional theme on top of it. This avoids duplicating styles, which can lead to performance issues.
+Most styling changes must be applied in the Shadow DOM. However, certain assets like fonts need to be loaded in the Light DOM to be usable within the Shadow DOM.
 
-## Overriding CSS
+You can include multiple versions of the stylesheets in a single instance. The `assets` [attribute](../client/README.md#1-html-attributes) specifies where to find static assets, including stylesheets.
 
-If the previous approaches are insufficient for your requirements, you can always override specific styles using custom CSS. However, this approach should be used with caution.
+### Angular Material 2 Components
+
+The DearMEP client uses **Angular Material 2** components, which support customization through theming. For advanced control over the appearance, you can create a custom theme following the [Angular Material Theming Guide](https://material.angular.io/guide/material-2-theming).
+
+The client’s current theme is defined in [`default-dark.scss`](../client/src/style/themes/default-dark.scss). At present, only a dark theme is provided, though more themes may be added in future releases.
+
+## Overriding Arbitrary Styles
+
+If adjusting custom properties and Angular Material themes does not meet your needs, you can override specific styles in `dear-mep-inner.css`. Use this method cautiously, as it can introduce instability.
 
 ### Considerations for Overriding Styles
 

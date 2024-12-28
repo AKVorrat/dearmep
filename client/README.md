@@ -93,17 +93,27 @@ npm install
 
 ### Generating the API Client
 
-Before building the frontend, generate the API client:
-
-1. Retrieve the current OpenAPI specification from the backend as described in [Retrieving the OpenAPI specification](../server/README.md#retrieving-the-openapi-specification).
-2. Save the specification as `openapi.json` in the root directory.
-3. Run:
-
-   ```bash
-   npm run generate-client
-   ```
+Before building the frontend, it is required generate the API client code. This step ensures that the frontend is able to communicate with the backend API.
 
 > **Note:** Regenerate the client whenever there are API changes to avoid build errors.
+
+**Using the Latest OpenAPI Specification**
+
+The easiest way to generate the API client is by running the following command. This will use the latest OpenAPI specification based on the `main` branch, available [hrer](https://akvorrat.github.io/dearmep/openapi.json).
+
+    npm run generate-client:remote
+
+**Using a Locally Running Server**
+
+In case the server is running locally, it is possible to generate the API client with the following command. This method is recommended because it guarantees that the generated client matches the API version of the local server:
+
+    npm run generate-client:local
+
+**Using a Custom OpenAPI Specification**
+
+Alternatively, it is possible to generate the API client using a custom OpenAPI specification. Save the specification file as `openapi.json` in the root directory of the repository. For guidance on generating this file, refer to [Retrieving the OpenAPI specification](../server/README.md#retrieving-the-openapi-specification).
+
+    npm run generate-client
 
 ### Running the Development Server
 
