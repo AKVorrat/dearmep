@@ -552,7 +552,7 @@ def get_number_verification_count(
             NumberVerificationRequest.requested_at
             > func.coalesce(
                 last_successful,
-                datetime(2000, 1, 1),  # noqa: DTZ001
+                datetime(2000, 1, 1, tzinfo=timezone.utc),
             )
         )
 

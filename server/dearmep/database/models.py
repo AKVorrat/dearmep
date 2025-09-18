@@ -6,20 +6,21 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 import enum
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timezone
 from typing import Any, NamedTuple, Optional, TypedDict, Union
 from uuid import uuid4
 
 from pydantic import UUID4, BaseModel
 from sqlmodel import (
     JSON,
-    TIMESTAMP,
     Column,
+    DateTime,
     Enum,
     Field,
     Relationship,
     SQLModel,
     String,
+    TypeDecorator,
     UniqueConstraint,
     and_,
     case,
@@ -134,6 +135,44 @@ DestinationGroupID = str
 DEFAULT_BASE_ENDORSEMENT = 0.5
 
 
+# Based upon <https://docs.sqlalchemy.org/en/20/core/custom_types.html#store-timezone-aware-timestamps-as-timezone-naive-utc>
+class TZDateTime(TypeDecorator):
+    """DateTime implementation enforcing timezones & converting to/from UTC."""
+
+    impl = DateTime
+    cache_ok = True
+
+    def process_bind_param(self, value: Any, _dialect) -> Optional[datetime]:  # noqa: ANN401, PLR6301
+        if value is not None:
+            if not value.tzinfo or value.tzinfo.utcoffset(value) is None:
+                raise TypeError("naive datetime values are not supported")
+            value = value.astimezone(timezone.utc).replace(tzinfo=None)
+        return value  # type: ignore[no-any-return]
+
+    def process_result_value(  # noqa: PLR6301
+        self, value: Optional[datetime], _dialect
+    ) -> Optional[datetime]:
+        if value is not None:
+            value = value.replace(tzinfo=timezone.utc)
+        return value
+
+
+def tz_datetime_column(**kwargs: Any) -> Column:  # noqa: ANN401
+    """A datetime column that will convert to and from UTC.
+
+    Note that this returns a `Column`, which will cause the field to be
+    prioritized higher than normal SQLModel fields in table creation. It will
+    probably be come right after the primary key. Worse yet, if it is part of
+    the primary key, it will be ordered before any non-`Column` fields. If this
+    breaks your ordering, use `sa_column_kwargs=auto_timestamp_column_kwargs()`
+    instead. See <https://github.com/tiangolo/sqlmodel/issues/542> for details.
+    """
+    return Column(
+        TZDateTime,
+        **kwargs,
+    )
+
+
 def auto_timestamp_column_kwargs() -> dict[str, Any]:
     return {
         "nullable": False,
@@ -151,8 +190,7 @@ def auto_timestamp_column(**kwargs: Any) -> Column:  # noqa: ANN401
     breaks your ordering, use `sa_column_kwargs=auto_timestamp_column_kwargs()`
     instead. See <https://github.com/tiangolo/sqlmodel/issues/542> for details.
     """
-    return Column(
-        TIMESTAMP(timezone=True),
+    return tz_datetime_column(
         **auto_timestamp_column_kwargs(),
         **kwargs,
     )
@@ -318,13 +356,15 @@ class Call(SQLModel, table=True):
         index=True,
     )
     started_at: datetime = Field(
+        sa_column=tz_datetime_column(),
         description="Timestamp of when the call was started.",
-        **_example("2021-01-01 00:00:00"),
+        **_example("2021-01-01 00:00:00+02:00"),
     )
     connected_at: Optional[datetime] = Field(
         None,
+        sa_column=tz_datetime_column(),
         description="Timestamp of when the call was connected.",
-        **_example("2021-01-01 00:00:00"),
+        **_example("2021-01-01 00:00:00+02:00"),
     )
     user_language: Language = Field(
         description="The user's language.",
@@ -485,14 +525,15 @@ class NumberVerificationRequest(SQLModel, table=True):
     # Not an auto_timestamp_column because it relates to expires_at, the caller
     # should calculate both and set them explicitly.
     requested_at: datetime = Field(
-        index=True,
+        sa_column=tz_datetime_column(index=True),
         description="Timestamp of when the User requested the code.",
     )
     expires_at: datetime = Field(
+        sa_column=tz_datetime_column(),
         description="Timestamp of when the code will expire.",
     )
     completed_at: Optional[datetime] = Field(
-        index=True,
+        sa_column=tz_datetime_column(index=True),
         description="Timestamp of when the request has been completed "
         "successfully (if at all) by entering the correct code.",
     )
@@ -632,15 +673,15 @@ class UserFeedback(SQLModel, table=True):
     # Not an auto_timestamp_column because it relates to expires_at, the caller
     # should calculate both and set them explicitly.
     issued_at: datetime = Field(
-        index=True,
+        sa_column=tz_datetime_column(index=True),
         description="When the token has been issued.",
     )
     expires_at: datetime = Field(
-        index=True,
+        sa_column=tz_datetime_column(index=True),
         description="When the token will expire.",
     )
     feedback_entered_at: Optional[datetime] = Field(
-        index=True,
+        sa_column=tz_datetime_column(index=True),
         description="When the feedback has been given. Can be null if the "
         "token has not yet been used.",
     )
@@ -728,6 +769,7 @@ class ScheduledCall(SQLModel, table=True):
         description="The date the call was last scheduled.",
     )
     postponed_to: Optional[datetime] = Field(
+        sa_column=tz_datetime_column(),
         description="The time the call is postponed to in case the user wishes"
         " to do so in IVR.",
     )
