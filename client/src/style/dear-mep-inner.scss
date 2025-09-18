@@ -128,7 +128,8 @@
     min-height: 6em;
     background-color: var(--dmep-btn-primary-bg-color);
   }
-  .dmep-btn-primary:not(:disabled) {
+  .dmep-btn-primary:not(:disabled),
+  .dmep-btn-primary-sm:not(:disabled) {
     color: var(--dmep-btn-primary-text-color);
   }
   .dmep-btn-primary[disabled] {
