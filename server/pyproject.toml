@@ -207,6 +207,8 @@ ignore = [
 [tool.ruff.lint.flake8-annotations]
 # Allow __init__ to omit the `-> None` return type declaration.
 mypy-init-return = true
+# Don't require type annotations for variables starting with an underscore.
+suppress-dummy-args = true
 
 [tool.ruff.lint.flake8-bugbear]
 # Allow FastAPI's request data type hints as default arguments in functions.

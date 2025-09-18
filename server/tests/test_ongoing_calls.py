@@ -47,6 +47,8 @@ def test_ongoing_calls_interface(client: TestClient):
         assert call.provider_call_id == provider_call_id
         assert call.user_language == user_language
         assert call.provider == provider
+        # timestamp has to be timezone-aware
+        assert call.started_at.tzinfo is not None
         # call is not connected yet
         # check call instance and via interface method
         assert call.connected_at is None
