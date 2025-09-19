@@ -5,6 +5,7 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
+import logging
 from collections.abc import Iterable
 from datetime import datetime, timezone
 from typing import Annotated, Any, Callable, Optional, Union
@@ -75,6 +76,9 @@ from ..ratelimit import Limit, client_addr
 from . import authtoken
 
 
+_logger = logging.getLogger(__name__)
+
+
 l10n_autodetect_total = Counter(
     "l10n_autodetect_total",
     "Number of times language/country autodetect was performed, by results.",
@@ -136,7 +140,9 @@ def destination_to_destinationread(dest: Destination) -> DestinationRead:
 
 
 def error_model(status_code: int, instance: BaseModel) -> JSONResponse:
-    return JSONResponse(instance.dict(), status_code=status_code)
+    instance_dict = instance.dict()
+    _logger.error(f"preparing error {status_code}: {instance_dict}")
+    return JSONResponse(instance_dict, status_code=status_code)
 
 
 router = APIRouter()
