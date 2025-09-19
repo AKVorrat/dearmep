@@ -326,6 +326,7 @@ class TelephonyConfig(BaseModel):
     dry_run: bool = False
     office_hours: OfficeHoursConfig
     successful_call_duration: PositiveInt
+    connected_call_timeout: Union[PositiveInt, Literal[False]] = False
     provider: ElksConfig
     audio_source: Path
     always_connect_to: Optional[str]
