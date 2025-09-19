@@ -251,6 +251,13 @@ telephony:
   # conversation with MEPs. In seconds.
   successful_call_duration: 35
 
+  # After a User has been connected to a Destination (i.e., an MEP), how long
+  # may they talk to each other (in seconds)? After this time, the call will be
+  # terminated without any further notice. This option acts as a safety measure
+  # to prevent excessively long conversations and their associated costs. Can be
+  # set to false to completely disable the timeout.
+  connected_call_timeout: 900  # 15 minutes
+
   # It does not make sense to call representatives' offices in the middle of
   # the night. Therefore, you can configure "office hours". Outside of the time
   # range defined here, starting new calls will not be possible.

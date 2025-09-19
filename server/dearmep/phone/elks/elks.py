@@ -767,11 +767,13 @@ def mount_router(app: FastAPI, prefix: str) -> None:  # noqa: C901, PLR0915
                 destination_number=connect_number, our_number=from_number
             )
             ongoing_calls.connect_call(call, session)
-            connect = {
+            connect: dict[str, Union[str, int]] = {
                 "connect": connect_number,
             }
             if telephony_cfg.always_connect_to:
                 connect["connect"] = telephony_cfg.always_connect_to
+            if telephony_cfg.connected_call_timeout:
+                connect["timelimit"] = telephony_cfg.connected_call_timeout
 
             query.log_destination_selection(
                 session=session,
