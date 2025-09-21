@@ -32,6 +32,18 @@
   }
 }
 
+// Variable defaults with zero specificity for easy overriding
+:where(:host) {
+  // Title decoration (uses background gradient)
+  // More info here: https://stackoverflow.com/a/61361501
+  --dmep-title-decoration-bg: linear-gradient(
+    0deg,
+    var(--dmep-title-decoration-color) 0%,
+    var(--dmep-title-decoration-color) 55%,
+    rgba(0, 0, 0, 0) 55%
+  );
+}
+
 .dmep-app-container {
   background: var(--dmep-bg);
   border-radius: var(--dmep-bg-border-radius);
