@@ -681,6 +681,10 @@ l10n:
       da: Ring senere
       pt: Ligar mais tarde
 
+    call.show-talking-points-btn.title:
+      en: Read arguments
+      de: Argumente lesen
+
     # Title of the calling-section of the app.
     # This title is displayed in the first step (thus "home") of the calling flow. This means
     # it is visible on the initial screen as soon as the user loads the app. It should explain

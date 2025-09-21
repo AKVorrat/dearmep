@@ -38,11 +38,17 @@ export class CallingButtonsComponent {
   @Input()
   public disabled = false;
 
+  @Input()
+  public allowShowTalkingPoints = false;
+
   @Output()
   public callNowClick = new EventEmitter();
 
   @Output()
   public callLaterClick = new EventEmitter();
+
+  @Output()
+  public showTalkinPointsClick = new EventEmitter();
 
   public officeHoursPopoverOpen = false;
 
@@ -61,6 +67,12 @@ export class CallingButtonsComponent {
   public onCallNowContainerClick() {
     if (!this.isOfficeHours) {
       this.officeHoursPopoverOpen = true;
+    }
+  }
+
+  public onTalkingPointsClick() {
+    if (this.allowShowTalkingPoints) {
+      this.showTalkinPointsClick.emit();
     }
   }
 }

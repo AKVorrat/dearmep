@@ -43,6 +43,13 @@ export class RoutingStateManagerService {
     this.step$.next(CallingStep.Home);
   }
 
+  public showTalkingPoints() {
+    if (this.step$.value === CallingStep.Home) {
+      this.step$.next(CallingStep.HomeShowTalkingPoints);
+      console.log('Calling step', CallingStep.HomeShowTalkingPoints);
+    }
+  }
+
   private goToVerify() {
     this.step$.next(CallingStep.Verify);
   }

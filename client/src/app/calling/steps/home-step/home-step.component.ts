@@ -11,6 +11,7 @@ import { OfficeHoursService } from 'src/app/services/office-hours/office-hours.s
 import { RoutingStateManagerService } from 'src/app/services/routing/routing-state-manager.service';
 import { AsyncPipe } from '@angular/common';
 import { CallingButtonsComponent } from '../../../components/calling-buttons/calling-buttons.component';
+import { CallingStep } from 'src/app/model/calling-step.enum';
 
 @Component({
   selector: 'dmep-home-step',
@@ -30,6 +31,7 @@ export class HomeStepComponent {
   public officeHoursText$;
   public isOfficeHours$;
   public officeHoursTimezone;
+  public talkingPointsVisible$;
 
   @Input()
   public disableScheduling = false;
@@ -49,6 +51,9 @@ export class HomeStepComponent {
     this.isOfficeHours$ = this.officeHoursService.inOfficeHours$();
     this.officeHoursTimezone =
       this.officeHoursService.getOfficeHours().timezone;
+    this.talkingPointsVisible$ = this.routingStateManager
+      .getStep$()
+      .pipe(map(s => s !== CallingStep.HomeShowTalkingPoints));
   }
 
   public onCallNowClick() {
@@ -61,5 +66,9 @@ export class HomeStepComponent {
 
   public onReauthenticateClick() {
     this.authService.logout();
+  }
+
+  public onShowTalkinPointsClick() {
+    this.routingStateManager.showTalkingPoints();
   }
 }

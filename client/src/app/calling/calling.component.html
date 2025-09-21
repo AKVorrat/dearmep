@@ -6,7 +6,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 <div class="dmep-card-container">
   @switch (step$ | async) {
-    @case (StepHome) {
+    @default {
       <dmep-home-step [disableScheduling]="disableScheduling"></dmep-home-step>
     }
     @case (StepVerify) {
