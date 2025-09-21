@@ -12,7 +12,8 @@ SPDX-License-Identifier: AGPL-3.0-or-later
       <p>{{ talkingPoint.body }}</p>
     </div>
   }
-  @if (t('talkingPoints.moreArgumentsHtml')) {
+  <!-- It seems that currently there is no intrinsic way to check if a key exists so this is the workaround -->
+  @if (t('talkingPoints.moreArgumentsHtml') !== 'talkingPoints.moreArgumentsHtml') {
     <div
       class="dmep-more-arguments"
       [innerHTML]="
