@@ -185,7 +185,7 @@ export class AppComponent implements OnInit, OnChanges, AfterViewInit {
           step =>
             step === CallingStep.Home ||
             step === CallingStep.HomeAuthenticated ||
-            step == CallingStep.UpdateCallSchedule
+            step === CallingStep.UpdateCallSchedule
         )
       );
     this.shouldDisplayMEP$ = this.routingStateManagerService

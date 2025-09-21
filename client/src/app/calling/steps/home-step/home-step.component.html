@@ -35,6 +35,8 @@ SPDX-License-Identifier: AGPL-3.0-or-later
   <dmep-calling-buttons
     (callNowClick)="onCallNowClick()"
     (callLaterClick)="onCallLaterClick()"
+    (showTalkinPointsClick)="onShowTalkinPointsClick()"
+    [allowShowTalkingPoints]="(talkingPointsVisible$ | async) || false"
     [disableScheduling]="disableScheduling"
     [isOfficeHours]="!!(isOfficeHours$ | async)"
     [officeHoursTimezone]="officeHoursTimezone"

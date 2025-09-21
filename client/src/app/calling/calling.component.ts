@@ -27,6 +27,7 @@ import { HomeStepComponent } from './steps/home-step/home-step.component';
 })
 export class CallingComponent {
   public readonly StepHome = CallingStep.Home;
+  public readonly HomeShowTalkingPoints = CallingStep.HomeShowTalkingPoints;
   public readonly StepHomeAuthenticated = CallingStep.HomeAuthenticated;
   public readonly StepVerify = CallingStep.Verify;
   public readonly StepSetup = CallingStep.Setup;
