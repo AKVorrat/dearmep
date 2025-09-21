@@ -175,7 +175,7 @@ export class AppComponent implements OnInit, OnChanges, AfterViewInit {
       .pipe(
         map(
           step =>
-            step !== CallingStep.Home && step !== CallingStep.HomeAuthenticated
+            step !== CallingStep.Home
         )
       );
     this.shouldDisplayTitle$ = this.routingStateManagerService
@@ -184,7 +184,6 @@ export class AppComponent implements OnInit, OnChanges, AfterViewInit {
         map(
           step =>
             step === CallingStep.Home ||
-            step === CallingStep.HomeAuthenticated ||
             step === CallingStep.UpdateCallSchedule
         )
       );

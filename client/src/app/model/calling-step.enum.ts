@@ -5,7 +5,6 @@
 export enum CallingStep {
   Home = 'home',
   HomeShowTalkingPoints = 'home-show-talking-points',
-  HomeAuthenticated = 'home-unauthenticated',
   Verify = 'verify',
   Setup = 'call-starting',
   Feedback = 'call-feedback',
