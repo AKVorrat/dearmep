@@ -50,7 +50,6 @@ export class CallingButtonsComponent {
   @Output()
   public showTalkinPointsClick = new EventEmitter();
 
-
   public officeHoursPopoverOpen = false;
 
   public onCallLaterClick() {
@@ -73,7 +72,7 @@ export class CallingButtonsComponent {
 
   public onTalkingPointsClick() {
     if (this.allowShowTalkingPoints) {
-      this.showTalkinPointsClick.emit()
+      this.showTalkinPointsClick.emit();
     }
   }
 }

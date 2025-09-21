@@ -172,19 +172,13 @@ export class AppComponent implements OnInit, OnChanges, AfterViewInit {
 
     this.shouldDisplayTalkingPoints$ = this.routingStateManagerService
       .getStep$()
-      .pipe(
-        map(
-          step =>
-            step !== CallingStep.Home
-        )
-      );
+      .pipe(map(step => step !== CallingStep.Home));
     this.shouldDisplayTitle$ = this.routingStateManagerService
       .getStep$()
       .pipe(
         map(
           step =>
-            step === CallingStep.Home ||
-            step === CallingStep.UpdateCallSchedule
+            step === CallingStep.Home || step === CallingStep.UpdateCallSchedule
         )
       );
     this.shouldDisplayMEP$ = this.routingStateManagerService

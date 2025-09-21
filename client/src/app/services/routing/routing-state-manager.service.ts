@@ -46,7 +46,7 @@ export class RoutingStateManagerService {
   public showTalkingPoints() {
     if (this.step$.value === CallingStep.Home) {
       this.step$.next(CallingStep.HomeShowTalkingPoints);
-      console.log("Calling step", CallingStep.HomeShowTalkingPoints)
+      console.log('Calling step', CallingStep.HomeShowTalkingPoints);
     }
   }
 

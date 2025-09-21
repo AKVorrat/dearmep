@@ -51,9 +51,9 @@ export class HomeStepComponent {
     this.isOfficeHours$ = this.officeHoursService.inOfficeHours$();
     this.officeHoursTimezone =
       this.officeHoursService.getOfficeHours().timezone;
-    this.talkingPointsVisible$ = this.routingStateManager.getStep$().pipe(
-      map(s => s !== CallingStep.HomeShowTalkingPoints)
-    )
+    this.talkingPointsVisible$ = this.routingStateManager
+      .getStep$()
+      .pipe(map(s => s !== CallingStep.HomeShowTalkingPoints));
   }
 
   public onCallNowClick() {

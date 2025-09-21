@@ -64,7 +64,10 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 @if (allowShowTalkingPoints) {
   <div class="dmep-btn-container">
-    <button matButton class="dmep-show-talking-points-btn" (click)="onTalkingPointsClick()">
+    <button
+      matButton
+      class="dmep-show-talking-points-btn"
+      (click)="onTalkingPointsClick()">
       {{ 'call.show-talking-points-btn.title' | transloco }}
     </button>
   </div>
