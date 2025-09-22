@@ -681,9 +681,11 @@ l10n:
       da: Ring senere
       pt: Ligar mais tarde
 
+    # Text of the button that allows users to view the arguments before calling from the home screen
     call.show-talking-points-btn.title:
       en: Read arguments
       de: Argumente lesen
+      fr: Voir les arguments ici
 
     # Title of the calling-section of the app.
     # This title is displayed in the first step (thus "home") of the calling flow. This means
